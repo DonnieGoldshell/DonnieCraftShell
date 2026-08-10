@@ -1,38 +1,55 @@
-# MVP
+# MVP 0.1: Quiver Craft Advisor
 
 ## Scope
 
-The first MVP focuses only on rare Quivers in Path of Exile 2. The goal is to evaluate one pasted item and recommend whether the player should continue crafting or sell the item now.
+MVP 0.1 supports only rare Quivers in Path of Exile 2. It is a vertical proof of concept for the whole product, not a broad item database.
 
-## Target Workflow
+The domain architecture must remain item-class agnostic so bows, rings, amulets, armour, and other item classes can be added later without changing the core decision engine.
 
-1. Paste PoE2 Quiver clipboard text.
-2. Parse item base, item level, rarity, and modifiers.
-3. Identify modifier tiers.
-4. Determine prefixes, suffixes, and open affix slots.
-5. Obtain current economy data.
-6. Generate legal crafting actions.
-7. Estimate outcomes and crafting costs.
-8. Calculate expected value.
-9. Compare against **SELL NOW**.
-10. Recommend **CRAFT** or **SELL**.
+## Workflow
+
+```text
+PASTE QUIVER
+-> PARSE ITEM
+-> IDENTIFY MODIFIERS
+-> IDENTIFY TIERS
+-> DETERMINE AFFIX STATE
+-> ESTIMATE CURRENT VALUE
+-> GENERATE VALID NEXT ACTIONS
+-> GET CURRENT CRAFT COSTS
+-> SIMULATE OUTCOMES
+-> VALUE OUTCOMES
+-> CALCULATE EV / ROI / RISK
+-> COMPARE WITH SELL NOW
+-> RECOMMEND CRAFT OR SELL
+-> EXPLAIN RECOMMENDATION
+-> PASTE RESULTING ITEM
+-> REPEAT
+```
+
+## Required Behavior
+
+- **SELL NOW** must always be included as a candidate action.
+- The Advisor must never recommend crafting only because improvement is possible.
+- Recommendations must include the economic reason, uncertainty, and comparison against selling.
+- Any unverified PoE2 rule or data point must be marked `NEEDS VERIFICATION`.
 
 ## MVP Boundaries
 
 - Rare Quivers only.
-- No support for other item classes yet.
-- No unverified crafting rules.
+- No Profit Finder UI or strategy search.
 - No automated trade execution.
+- No unsupported automated Path of Exile trade scraping.
 - No account integration.
+- No invented currency, Omen, Essence, modifier, or crafting behavior.
 
 ## Acceptance Criteria
 
-- The system clearly separates parsed item data, economy data, crafting actions, and recommendation logic.
-- Every PoE2 rule used by the system is linked to a verified source or marked `TODO / NEEDS VERIFICATION`.
-- The recommendation includes expected value, cost estimate, and sell-now comparison.
+- Parsed item state, modifier intelligence, economy data, action generation, valuation, and recommendation logic are separable.
+- Current value and outcome values include estimated value, plausible range, confidence, comparable count or quality where available, and timestamp.
+- Expected value, ROI, probability of profit, downside risk, and required capital are represented in the recommendation model, even if early implementations mark inputs as `NEEDS VERIFICATION`.
+- Craft session data can track item states, actions, costs, total invested, current estimated value, and unrealized profit/loss.
 
-## Risks
+## Out Of Scope Until Later
 
-- Reliable economy data may be difficult to source.
-- Modifier tier and crafting legality data must be verified before recommendations can be trusted.
-- Expected value calculations require explicit assumptions and confidence levels.
+Profit Finder, broad Meta & Modifiers browsing, historical economy trend analysis, realized sale tracking, and additional item classes are later milestones.

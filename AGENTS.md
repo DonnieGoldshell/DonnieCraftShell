@@ -43,4 +43,6 @@ Pull requests should include a short summary, testing notes, and screenshots or 
 
 ## Agent-Specific Instructions
 
-Before editing, inspect the repository for existing conventions and preserve user changes. Do not invent PoE2 crafting rules, modifier data, or API capabilities. Mark unverified game logic and data sources as `TODO / NEEDS VERIFICATION`.
+Before editing, inspect the repository for existing conventions and preserve user changes. Do not invent PoE2 crafting rules, modifier data, probabilities, API capabilities, or trade integrations. Mark unverified game logic and data sources as `NEEDS VERIFICATION`.
+
+Product principles are non-negotiable: optimize economic decisions, treat **SELL NOW** as a first-class competing action, separate market value from craft quality, expose uncertainty and confidence, keep engines item-class agnostic, isolate external integrations behind adapters, and store provenance for important data. Do not implement application functionality when the user asks only for product specification or documentation.

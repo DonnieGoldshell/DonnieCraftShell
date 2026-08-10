@@ -1,33 +1,58 @@
-# Data Sources
+# Data Sources And Provenance
+
+## Verification Policy
+
+Path of Exile 2 changes frequently. All game rules, modifier data, crafting mechanics, API capabilities, and economy sources are `NEEDS VERIFICATION` until confirmed from reliable references.
+
+Do not present unverified or curated data as objective game truth.
 
 ## Required Data Categories
 
-- Item bases and item levels.
-- Modifier names, tiers, weights, tags, and prefix/suffix classification.
-- Crafting currency behavior and legality.
-- Current economy prices for crafting materials.
-- Market value estimates for comparable finished items.
+- Item bases, item levels, rarity, and clipboard text format.
+- Modifier names, tiers, roll ranges, weights, tags, groups, and prefix/suffix classification.
+- Crafting currency, Omen, Essence, Rune, and other crafting material behavior.
+- Legal crafting actions and outcome probabilities.
+- League-specific currency exchange rates and crafting material prices.
+- Comparable rare item market observations.
+- Build/meta relevance for modifiers.
 
-## Verification Status
+## Economy Records
 
-All PoE2-specific sources are currently `TODO / NEEDS VERIFICATION`.
+Economy data is shared infrastructure. Each record should include league, item or currency identifier, normalized price, exchange rate, timestamp, source, trading volume where available, and confidence or data quality where appropriate.
+
+Initial normalized unit:
+
+```text
+1 Exalted Orb = 1 economic unit
+```
+
+UI may display Exalted, Divine, or both using current exchange rates.
+
+Historical snapshots should be retained for trend analysis and reproducibility.
+
+## Data Provenance
+
+External or derived records should include fields such as:
+
+- `source`
+- `retrieved_at`
+- `game_version`
+- `league`
+- `confidence`
+
+Store raw imported data separately from normalized application data. Keep derived statistical data separate from curated or opinion-based relevance.
 
 ## Candidate Source Types
 
-- Official Grinding Gear Games sources: `TODO / NEEDS VERIFICATION`.
-- Public trade or economy APIs: `TODO / NEEDS VERIFICATION`.
-- Community-maintained databases: `TODO / NEEDS VERIFICATION`.
-- Manual curated data files: allowed only with source notes and verification dates.
-
-## Data Handling Guidelines
-
-Store raw imported data separately from normalized application data. Preserve source name, retrieval time, and transformation version for each import.
-
-Avoid mixing estimated prices with verified rules data. Economy values should include timestamp, currency unit, source, and confidence level.
+- Official Grinding Gear Games sources: `NEEDS VERIFICATION`.
+- Public trade or economy APIs: `NEEDS VERIFICATION`.
+- Community-maintained databases: `NEEDS VERIFICATION`.
+- Manual curated data files: permitted only with source notes, verification dates, and clear labeling.
 
 ## Open Questions
 
-- Which PoE2 APIs are available and permitted for this use case?
-- Which sources provide reliable Quiver modifier tiers?
-- How should comparable item prices be estimated?
+- Which PoE2 APIs are available, stable, and permitted for this use case?
+- Which sources reliably provide Quiver modifier tiers and affix classification?
+- Which sources can support comparable item valuation?
 - What rate limits, terms, or attribution requirements apply?
+- How should confidence be calculated for sparse comparable data?

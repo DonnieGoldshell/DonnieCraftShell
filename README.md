@@ -1,6 +1,6 @@
 # DonnieCraftShell
 
-DonnieCraftShell is a Path of Exile 2 crafting intelligence web application focused on economic decision support for crafting.
+DonnieCraftShell is a Path of Exile 2 crafting intelligence platform focused on helping players maximize in-game currency profit through economically optimal crafting decisions.
 
 The long-term product is planned around four modules:
 
@@ -26,7 +26,7 @@ The initial milestone will eventually support:
 9. Compare crafting against **SELL NOW**.
 10. Recommend **CRAFT** or **SELL**.
 
-Game rules, modifier tables, crafting legality, and external data APIs are not yet verified. Anything relying on PoE2-specific mechanics must be marked `TODO / NEEDS VERIFICATION` until backed by a reliable source.
+Game rules, modifier tables, crafting legality, and external data APIs are not yet verified. Anything relying on PoE2-specific mechanics must be marked `NEEDS VERIFICATION` until backed by a reliable source.
 
 ## Repository Layout
 

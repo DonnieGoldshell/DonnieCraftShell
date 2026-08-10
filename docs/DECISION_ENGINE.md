@@ -1,46 +1,50 @@
-# Decision Engine
+# Decision Engine Specification
 
 ## Purpose
 
-The decision engine compares available crafting actions against selling the item immediately. It should produce transparent economic recommendations rather than opaque scores.
+The Decision Engine compares legal crafting actions against selling immediately. It produces transparent economic recommendations, not generic crafting optimism.
+
+## Core Rule
+
+**SELL NOW is always a first-class action.** Continuing to craft is recommended only when the economic case beats selling after cost, risk, uncertainty, and bankroll constraints are considered.
 
 ## Core Concepts
 
-- **Parsed item**: normalized representation of pasted clipboard text.
-- **Item-class module**: Quiver-specific logic for bases, modifiers, affix limits, and legal actions.
-- **Economy snapshot**: current prices for relevant currencies and comparable items.
-- **Crafting action**: a legal next step with cost, possible outcomes, and assumptions.
-- **Expected value**: weighted outcome value minus expected crafting cost.
+- **Parsed item**: normalized representation of pasted PoE2 clipboard text.
+- **Item-class module**: Quiver-specific definitions for bases, modifiers, affix rules, and legal actions.
+- **Craft quality**: how promising the crafting state is, based on modifier quality, tier quality, build relevance, affix structure, and remaining potential.
+- **Market value**: estimated sale value. This is separate from craft quality.
+- **Economy snapshot**: league-specific prices using normalized units where `1 Exalted Orb = 1 economic unit`.
+- **Crafting action**: legal next step with cost, possible outcomes, assumptions, and provenance.
+- **Expected value**: weighted outcome value minus crafting cost.
+- **Confidence**: explicit uncertainty attached to valuations, probabilities, data, and recommendations.
 
-## Initial Quiver Flow
+## Expected Value
+
+For an action with outcomes:
 
 ```text
-clipboard text
--> parser
--> normalized rare quiver
--> modifier/tier classifier
--> affix-slot analyzer
--> legal action generator
--> outcome estimator
--> expected value calculator
--> recommendation
+EV = sum(probability_of_outcome * market_value_of_outcome) - crafting_cost
 ```
 
-## Item-Class Extensibility
+The system should eventually calculate expected net value, expected profit/loss, ROI, probability of profit, probability of significant loss, downside, upside, and required capital.
 
-The engine should depend on item-class interfaces, not hardcoded Quiver logic. Future modules for bows, rings, amulets, and armour should be added by supplying new item-class definitions and rule providers.
+## Risk And Bankroll
+
+Users should eventually provide a bankroll and risk profile: conservative, balanced, or aggressive.
+
+Risk preference must not alter the underlying expected-value calculation. It may alter the final recommendation based on bankroll exposure and variance. For example, a positive-EV craft requiring 80% of bankroll may be inappropriate for a conservative user.
+
+## Valuation Engine
+
+Rare item valuation is uncertain and must not be represented as falsely precise. A valuation should include estimated market value, plausible range, confidence score, comparable observation count or quality, and timestamp.
+
+Supported comparable strategies should include strict comparables, moderate comparables, and build-equivalent comparables. Trade integrations must remain replaceable adapters. Unsupported automated trade scraping must not be implemented.
+
+## Craft Session
+
+The architecture should support repeated paste-and-recalculate sessions. Track item states, actions, step costs, total invested, current estimated value, and unrealized profit/loss. Future versions may track realized sale value and long-term crafting performance.
 
 ## Verification Requirements
 
-The following are `TODO / NEEDS VERIFICATION`:
-
-- PoE2 clipboard text format details.
-- Quiver base types and item-level requirements.
-- Modifier tier data.
-- Prefix/suffix limits and classification.
-- Legal crafting actions for relevant currencies.
-- Outcome probabilities and weighting.
-
-## Recommendation Output
-
-Recommendations should include action, reasoning, expected cost, expected value, risk notes, and a clear comparison to **SELL NOW**.
+The following are `NEEDS VERIFICATION`: PoE2 clipboard format, Quiver bases, item-level requirements, modifier tiers, prefix/suffix classification, legal crafting actions, currency behavior, Omens, Essences, outcome probabilities, and market data sources.

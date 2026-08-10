@@ -1,39 +1,59 @@
-# Architecture
+# Architecture Specification
 
 ## Overview
 
-DonnieCraftShell should be a modular web application with a TypeScript frontend, Python API, PostgreSQL database, and a reusable crafting decision engine.
+DonnieCraftShell is a modular web platform with a Next.js frontend, FastAPI backend, PostgreSQL database, and reusable domain engines.
 
 ```text
 apps/web
   -> services/api
-    -> domain services
-      -> decision engine
+    -> application services
+      -> item parser
       -> item-class modules
+      -> modifier intelligence
+      -> valuation engine
+      -> crafting simulator
+      -> decision engine
       -> economy adapters
     -> PostgreSQL
 ```
 
 ## Frontend
 
-`apps/web/` will contain the Next.js application. It should handle item paste input, analysis views, recommendations, and user-facing explanations. Keep PoE2 crafting calculations out of React components.
+`apps/web/` contains the Next.js, React, and TypeScript application. It should handle paste input, analysis views, recommendation explanations, uncertainty display, and crafting-session history. React components must not contain PoE2 crafting rules or valuation logic.
 
 ## Backend
 
-`services/api/` will contain the FastAPI service. It should expose endpoints for parsing, item analysis, economy lookup, and recommendation generation.
+`services/api/` contains the Python FastAPI service. It should expose endpoints for parsing, analysis, economy lookup, recommendation generation, and session tracking. Backend services should orchestrate domain engines rather than embedding item-class-specific logic directly in route handlers.
 
-## Decision Engine
+## Core Domain Engines
 
-The decision engine should be item-class agnostic. Quiver-specific behavior belongs in a Quiver module implementing shared interfaces for base types, modifiers, affix rules, and legal actions.
+- **Decision Engine**: compares actions against **SELL NOW** using EV, ROI, risk, confidence, and bankroll context.
+- **Valuation Engine**: estimates current and outcome market values with ranges, confidence, comparables, and timestamps.
+- **Economy Engine**: provides league-specific normalized prices and historical snapshots.
+- **Modifier Intelligence**: separates verified game data, derived statistical data, and curated relevance.
+- **Craft Simulator**: models legal actions and outcomes only when mechanics are verified.
 
-## Database
+See [DECISION_ENGINE.md](DECISION_ENGINE.md) for economic behavior.
 
-PostgreSQL should store verified modifier metadata, item-class definitions, economy snapshots, analysis runs, and future strategy results.
+## Item-Class Modularity
 
-## Architecture Adjustments Recommended
+Quiver logic belongs behind item-class interfaces. Future bows, rings, amulets, and armour modules should supply their own base definitions, modifier mappings, affix rules, legal action providers, and valuation features without changing the core engines.
 
-- Add a shared contract layer for API request/response schemas before frontend-backend integration.
-- Treat economy providers as adapters so pricing sources can be replaced or compared.
-- Keep verified game data separate from provisional research data.
-- Version data imports and economy snapshots for reproducibility.
-- Design all item-class logic behind interfaces from the start, even while only Quivers are implemented.
+## Data And Persistence
+
+PostgreSQL should store item-class definitions, verified modifier metadata, provisional research data, economy snapshots, valuation comparables, analysis runs, craft sessions, and future strategy results.
+
+Important records should include provenance fields such as `source`, `retrieved_at`, `game_version`, `league`, and `confidence`.
+
+## Integration Boundaries
+
+External data sources, trade data, and economy providers must be isolated behind adapters so they can be replaced, disabled, mocked, or compared. Do not implement unsupported automated Path of Exile trade scraping.
+
+## Architecture Adjustments Before Implementation
+
+- Define shared API contracts before building frontend-backend flows.
+- Create explicit confidence and provenance types early.
+- Version game data imports and economy snapshots.
+- Keep raw source data separate from normalized domain data.
+- Model craft sessions from MVP 0.1, even if persistence starts minimal.
