@@ -2,12 +2,15 @@
 
 ## Project Structure & Module Organization
 
-This repository is currently a clean workspace with no source tree committed yet. Keep the root focused on project metadata and documentation. As the project grows, use predictable top-level directories:
+This repository is the foundation for DonnieCraftShell, a Path of Exile 2 crafting intelligence web application. Keep the root focused on project metadata and documentation. Use these top-level directories:
 
-- `src/` for application or library code.
-- `tests/` for automated tests that mirror `src/` structure.
-- `assets/` for static images, icons, sample data, or other non-code resources.
-- `docs/` for longer design notes, runbooks, and contributor-facing references.
+- `apps/web/` for the Next.js, React, and TypeScript frontend.
+- `services/api/` for the Python FastAPI backend.
+- `packages/shared/` for shared contracts and domain schemas.
+- `data/` for verified and provisional data sets.
+- `infra/` for PostgreSQL and deployment infrastructure notes.
+- `docs/` for product, architecture, data source, MVP, and decision-engine docs.
+- `tests/` for cross-service integration and acceptance tests.
 
 Avoid placing generated build output or local environment files in version control.
 
@@ -20,24 +23,24 @@ No build system is defined yet. When one is added, document the canonical comman
 - `npm test` for the full test suite.
 - `npm run lint` or `npm run format` for code quality checks.
 
-If the project uses another toolchain, replace these examples with the actual commands.
+For backend work, add Python commands such as `pytest`, `ruff check`, and `uvicorn app.main:app --reload` once FastAPI is scaffolded.
 
 ## Coding Style & Naming Conventions
 
-Follow the conventions of the chosen language and framework once introduced. Keep indentation consistent within each file, prefer descriptive names, and avoid abbreviations that obscure intent. Use `camelCase` for JavaScript/TypeScript variables and functions, `PascalCase` for components or classes, and `kebab-case` for file names unless the framework expects another pattern.
+Follow the conventions of each stack. Use `camelCase` for TypeScript variables and functions, `PascalCase` for React components, `kebab-case` for frontend file names, and `snake_case` for Python modules, functions, and variables.
 
 Add formatting and linting configuration before the codebase becomes large, and treat formatter output as authoritative.
 
 ## Testing Guidelines
 
-Place tests under `tests/` or next to implementation files using the ecosystem’s standard pattern, such as `*.test.ts`, `*.spec.ts`, or `test_*.py`. New behavior should include focused tests for expected paths and important edge cases. Keep fixtures small and commit only deterministic test data.
+Place frontend tests beside implementation as `*.test.ts` or `*.spec.ts`. Place backend tests as `test_*.py`. Use `tests/` for cross-service flows such as parsing a rare Quiver and producing a recommendation. Keep fixtures small and mark unverified PoE2 assumptions clearly.
 
 ## Commit & Pull Request Guidelines
 
-This folder is not currently a Git repository, so no historical commit convention is available. Use clear, imperative commit messages such as `Add login form validation` or `Document setup workflow`.
+Use clear, imperative commit messages such as `Add quiver parser contract` or `Document MVP workflow`.
 
 Pull requests should include a short summary, testing notes, and screenshots or recordings for user-facing UI changes. Link related issues when available and call out configuration, migration, or deployment steps explicitly.
 
 ## Agent-Specific Instructions
 
-Before editing, inspect the repository for existing conventions and preserve user changes. Keep changes scoped, avoid unrelated refactors, and update this guide whenever project structure or commands change.
+Before editing, inspect the repository for existing conventions and preserve user changes. Do not invent PoE2 crafting rules, modifier data, or API capabilities. Mark unverified game logic and data sources as `TODO / NEEDS VERIFICATION`.
