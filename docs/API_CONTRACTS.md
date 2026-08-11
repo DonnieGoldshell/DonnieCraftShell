@@ -44,6 +44,8 @@ Economy endpoints should accept explicit `league` and optional `asset_id`, `cate
 
 Task 6B implements the framework-independent economy domain, adapter, normalizer, and repository first. `GET /api/v1/economy/current` remains deferred until API-layer Pydantic DTOs can map explicitly to `EconomyQuote` without leaking provider-specific payload fields.
 
+When exposed later, economy DTOs should include category filters for materials and a separate cost-preview contract for known ingredient lists. That cost contract must report incomplete results when any ingredient price is missing.
+
 ## Error Model
 
 Common API errors use:

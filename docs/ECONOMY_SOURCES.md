@@ -65,6 +65,8 @@ Live Task 6A research confirmed all categories returned data for league `Runes o
 
 Task 6B captured a bounded offline Currency response for `Runes of Aldur` at `2026-08-11T13:10:57.2395462Z`. Automated tests and runtime normalization use this fixture only and do not call poe.show.
 
+Task 6C captured bounded Ritual and Essences responses for `Runes of Aldur` at `2026-08-11T13:26:14.9830715Z`. Both responses used `core.primary = divine`, exposed `core.rates.exalted`, and provided `volumePrimaryValue` on captured lines.
+
 Response concepts:
 
 - `lines[].id`: stable identifier within the overview.

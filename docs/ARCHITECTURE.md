@@ -58,6 +58,8 @@ Economy providers must ingest in the backend through replaceable adapters. Runti
 
 Task 6B proves this boundary with an offline poe.show Currency fixture and local normalized JSON. No runtime network polling or background scheduling is implemented.
 
+Task 6C adds offline Ritual and Essences fixtures using the same provider boundary, and introduces craft-material cost calculation as a pure economy service, not Craft Advisor logic.
+
 Community game-data sources such as PoE2DB must be imported through source adapters into raw snapshots and normalized records. Runtime analysis should use normalized data or database records, not live scraping.
 
 Task 5B implements this boundary with local JSON fixtures:

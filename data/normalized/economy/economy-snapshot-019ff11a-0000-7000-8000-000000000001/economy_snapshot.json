@@ -1,26 +1,26 @@
 {
-  "snapshot_id": "economy-snapshot-019ff0f4-83a6-76a7-b304-8afe521778ff",
+  "snapshot_id": "economy-snapshot-019ff11a-0000-7000-8000-000000000001",
   "provider": "poe.show",
   "game": "Path of Exile 2",
   "league": "Runes of Aldur",
-  "retrieved_at": "2026-08-11T13:10:57.239546+00:00",
+  "retrieved_at": "2026-08-11T13:26:14.983071+00:00",
   "freshness": "FRESH",
   "quotes": [
     {
-      "asset_id": "dc:poe2:economy-asset:currency:exalted-orb",
+      "asset_id": "dc:poe2:economy-asset:ritual:omen-of-putrefaction",
       "league": "Runes of Aldur",
       "normalized_value": {
-        "amount": "1",
+        "amount": "0.21693516",
         "unit": "EXALTED_ECONOMIC_UNIT"
       },
-      "source_native_value": "0.002957",
+      "source_native_value": "0.0006422",
       "native_reference_asset_id": "dc:poe2:economy-asset:currency:divine-orb",
       "source": "poe.show",
-      "snapshot_id": "economy-snapshot-019ff0f4-83a6-76a7-b304-8afe521778ff",
-      "category": "CURRENCY",
+      "snapshot_id": "economy-snapshot-019ff11a-0000-7000-8000-000000000001",
+      "category": "RITUAL",
       "observed_at": null,
-      "retrieved_at": "2026-08-11T13:10:57.239546+00:00",
-      "volume": "4353",
+      "retrieved_at": "2026-08-11T13:26:14.983071+00:00",
+      "volume": "0.2314",
       "confidence": {
         "score": null,
         "level": "MEDIUM",
@@ -34,8 +34,8 @@
         {
           "source_id": "poe.show",
           "source_type": "COMMUNITY",
-          "source_uri": "https://poe.show/poe2/api/economy/exchange/current/overview?league=Runes%20of%20Aldur&type=Currency",
-          "retrieved_at": "2026-08-11T13:10:57.239546+00:00",
+          "source_uri": "https://poe.show/poe2/api/economy/exchange/current/overview?league=Runes%20of%20Aldur&type=Ritual",
+          "retrieved_at": "2026-08-11T13:26:14.983071+00:00",
           "game_version": null,
           "league": "Runes of Aldur",
           "verification_status": "PROVISIONAL",
@@ -47,25 +47,25 @@
             ],
             "sample_size": null
           },
-          "notes": "Offline captured poe.show Currency response."
+          "notes": "Offline captured poe.show Ritual response."
         }
       ]
     },
     {
-      "asset_id": "dc:poe2:economy-asset:currency:greater-exalted-orb",
+      "asset_id": "dc:poe2:economy-asset:ritual:omen-of-catalysing-exaltation",
       "league": "Runes of Aldur",
       "normalized_value": {
-        "amount": "5.54648",
+        "amount": "5.968926",
         "unit": "EXALTED_ECONOMIC_UNIT"
       },
-      "source_native_value": "0.0164",
+      "source_native_value": "0.01767",
       "native_reference_asset_id": "dc:poe2:economy-asset:currency:divine-orb",
       "source": "poe.show",
-      "snapshot_id": "economy-snapshot-019ff0f4-83a6-76a7-b304-8afe521778ff",
-      "category": "CURRENCY",
+      "snapshot_id": "economy-snapshot-019ff11a-0000-7000-8000-000000000001",
+      "category": "RITUAL",
       "observed_at": null,
-      "retrieved_at": "2026-08-11T13:10:57.239546+00:00",
-      "volume": "78.0",
+      "retrieved_at": "2026-08-11T13:26:14.983071+00:00",
+      "volume": "2.97",
       "confidence": {
         "score": null,
         "level": "MEDIUM",
@@ -79,8 +79,8 @@
         {
           "source_id": "poe.show",
           "source_type": "COMMUNITY",
-          "source_uri": "https://poe.show/poe2/api/economy/exchange/current/overview?league=Runes%20of%20Aldur&type=Currency",
-          "retrieved_at": "2026-08-11T13:10:57.239546+00:00",
+          "source_uri": "https://poe.show/poe2/api/economy/exchange/current/overview?league=Runes%20of%20Aldur&type=Ritual",
+          "retrieved_at": "2026-08-11T13:26:14.983071+00:00",
           "game_version": null,
           "league": "Runes of Aldur",
           "verification_status": "PROVISIONAL",
@@ -92,25 +92,25 @@
             ],
             "sample_size": null
           },
-          "notes": "Offline captured poe.show Currency response."
+          "notes": "Offline captured poe.show Ritual response."
         }
       ]
     },
     {
-      "asset_id": "dc:poe2:economy-asset:currency:divine-orb",
+      "asset_id": "dc:poe2:economy-asset:ritual:omen-of-chaotic-monsters",
       "league": "Runes of Aldur",
       "normalized_value": {
-        "amount": "338.2",
+        "amount": "48.9810",
         "unit": "EXALTED_ECONOMIC_UNIT"
       },
-      "source_native_value": "1",
+      "source_native_value": "0.145",
       "native_reference_asset_id": "dc:poe2:economy-asset:currency:divine-orb",
       "source": "poe.show",
-      "snapshot_id": "economy-snapshot-019ff0f4-83a6-76a7-b304-8afe521778ff",
-      "category": "CURRENCY",
+      "snapshot_id": "economy-snapshot-019ff11a-0000-7000-8000-000000000001",
+      "category": "RITUAL",
       "observed_at": null,
-      "retrieved_at": "2026-08-11T13:10:57.239546+00:00",
-      "volume": "29510",
+      "retrieved_at": "2026-08-11T13:26:14.983071+00:00",
+      "volume": "254.0",
       "confidence": {
         "score": null,
         "level": "MEDIUM",
@@ -124,8 +124,8 @@
         {
           "source_id": "poe.show",
           "source_type": "COMMUNITY",
-          "source_uri": "https://poe.show/poe2/api/economy/exchange/current/overview?league=Runes%20of%20Aldur&type=Currency",
-          "retrieved_at": "2026-08-11T13:10:57.239546+00:00",
+          "source_uri": "https://poe.show/poe2/api/economy/exchange/current/overview?league=Runes%20of%20Aldur&type=Ritual",
+          "retrieved_at": "2026-08-11T13:26:14.983071+00:00",
           "game_version": null,
           "league": "Runes of Aldur",
           "verification_status": "PROVISIONAL",
@@ -137,25 +137,25 @@
             ],
             "sample_size": null
           },
-          "notes": "Offline captured poe.show Currency response."
+          "notes": "Offline captured poe.show Ritual response."
         }
       ]
     },
     {
-      "asset_id": "dc:poe2:economy-asset:currency:perfect-exalted-orb",
+      "asset_id": "dc:poe2:economy-asset:ritual:omen-of-light",
       "league": "Runes of Aldur",
       "normalized_value": {
-        "amount": "889.466",
+        "amount": "3286.794",
         "unit": "EXALTED_ECONOMIC_UNIT"
       },
-      "source_native_value": "2.63",
+      "source_native_value": "9.73",
       "native_reference_asset_id": "dc:poe2:economy-asset:currency:divine-orb",
       "source": "poe.show",
-      "snapshot_id": "economy-snapshot-019ff0f4-83a6-76a7-b304-8afe521778ff",
-      "category": "CURRENCY",
+      "snapshot_id": "economy-snapshot-019ff11a-0000-7000-8000-000000000001",
+      "category": "RITUAL",
       "observed_at": null,
-      "retrieved_at": "2026-08-11T13:10:57.239546+00:00",
-      "volume": "4366",
+      "retrieved_at": "2026-08-11T13:26:14.983071+00:00",
+      "volume": "16302",
       "confidence": {
         "score": null,
         "level": "MEDIUM",
@@ -169,8 +169,8 @@
         {
           "source_id": "poe.show",
           "source_type": "COMMUNITY",
-          "source_uri": "https://poe.show/poe2/api/economy/exchange/current/overview?league=Runes%20of%20Aldur&type=Currency",
-          "retrieved_at": "2026-08-11T13:10:57.239546+00:00",
+          "source_uri": "https://poe.show/poe2/api/economy/exchange/current/overview?league=Runes%20of%20Aldur&type=Ritual",
+          "retrieved_at": "2026-08-11T13:26:14.983071+00:00",
           "game_version": null,
           "league": "Runes of Aldur",
           "verification_status": "PROVISIONAL",
@@ -182,7 +182,7 @@
             ],
             "sample_size": null
           },
-          "notes": "Offline captured poe.show Currency response."
+          "notes": "Offline captured poe.show Ritual response."
         }
       ]
     }
@@ -191,12 +191,12 @@
     {
       "base_asset_id": "dc:poe2:economy-asset:currency:divine-orb",
       "quote_asset_id": "dc:poe2:economy-asset:currency:exalted-orb",
-      "rate": "338.2",
+      "rate": "337.8",
       "source": "poe.show",
       "league": "Runes of Aldur",
-      "snapshot_id": "economy-snapshot-019ff0f4-83a6-76a7-b304-8afe521778ff",
+      "snapshot_id": "economy-snapshot-019ff11a-0000-7000-8000-000000000001",
       "observed_at": null,
-      "retrieved_at": "2026-08-11T13:10:57.239546+00:00",
+      "retrieved_at": "2026-08-11T13:26:14.983071+00:00",
       "confidence": {
         "score": null,
         "level": "MEDIUM",
@@ -209,8 +209,8 @@
         {
           "source_id": "poe.show",
           "source_type": "COMMUNITY",
-          "source_uri": "https://poe.show/poe2/api/economy/exchange/current/overview?league=Runes%20of%20Aldur&type=Currency",
-          "retrieved_at": "2026-08-11T13:10:57.239546+00:00",
+          "source_uri": "https://poe.show/poe2/api/economy/exchange/current/overview?league=Runes%20of%20Aldur&type=Ritual",
+          "retrieved_at": "2026-08-11T13:26:14.983071+00:00",
           "game_version": null,
           "league": "Runes of Aldur",
           "verification_status": "PROVISIONAL",
@@ -222,7 +222,7 @@
             ],
             "sample_size": null
           },
-          "notes": "Offline captured poe.show Currency response."
+          "notes": "Offline captured poe.show Ritual response."
         }
       ]
     }
@@ -232,8 +232,8 @@
     {
       "source_id": "poe.show",
       "source_type": "COMMUNITY",
-      "source_uri": "https://poe.show/poe2/api/economy/exchange/current/overview?league=Runes%20of%20Aldur&type=Currency",
-      "retrieved_at": "2026-08-11T13:10:57.239546+00:00",
+      "source_uri": "https://poe.show/poe2/api/economy/exchange/current/overview?league=Runes%20of%20Aldur&type=Ritual",
+      "retrieved_at": "2026-08-11T13:26:14.983071+00:00",
       "game_version": null,
       "league": "Runes of Aldur",
       "verification_status": "PROVISIONAL",
@@ -245,7 +245,7 @@
         ],
         "sample_size": null
       },
-      "notes": "Offline captured poe.show Currency response."
+      "notes": "Offline captured poe.show Ritual response."
     }
   ],
   "warnings": []

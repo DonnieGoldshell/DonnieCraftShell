@@ -71,6 +71,8 @@ Historical snapshots must be retained so craft sessions and recommendations rema
 
 Task 6B implements a framework-independent in-memory `EconomyRepository` and an offline poe.show Currency normalizer. See [ECONOMY_IMPORT.md](ECONOMY_IMPORT.md) for the captured fixture, asset mapping, normalization command, and exact Task 6B values.
 
+Task 6C extends the same path to Ritual/Omens and Essences, plus a small craft-material cost abstraction. See [ECONOMY_DATASET_STATUS.md](ECONOMY_DATASET_STATUS.md).
+
 ## Source Selection
 
 Do not blindly average sources. Keep observations separate, then choose according to policy:

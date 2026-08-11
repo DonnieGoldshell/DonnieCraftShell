@@ -71,6 +71,8 @@ Store raw imported data separately from normalized application data. Keep derive
 
 Task 6B uses one bounded offline Currency response from poe.show for `Runes of Aldur` captured at `2026-08-11T13:10:57.2395462Z`. Automated tests must use this fixture and must not depend on live network access.
 
+Task 6C adds bounded offline Ritual and Essences responses for the same league captured at `2026-08-11T13:26:14.9830715Z`. These fixtures are sufficient for Omen/Essence normalization tests but are not complete category datasets.
+
 ### PoE2DB
 
 - Source type: community-maintained database / game-file presentation site.

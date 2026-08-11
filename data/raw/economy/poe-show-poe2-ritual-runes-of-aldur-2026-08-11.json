@@ -1,0 +1,120 @@
+{
+  "source": "poe.show",
+  "snapshot_id": "economy-snapshot-019ff11a-0000-7000-8000-000000000001",
+  "source_uri": "https://poe.show/poe2/api/economy/exchange/current/overview?league=Runes%20of%20Aldur&type=Ritual",
+  "retrieved_at": "2026-08-11T13:26:14.9830715Z",
+  "game": "Path of Exile 2",
+  "league": "Runes of Aldur",
+  "category": "Ritual",
+  "response": {
+    "core": {
+      "items": [
+        {
+          "id": "divine",
+          "name": "Divine Orb",
+          "image": "/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3VycmVuY3kvQ3VycmVuY3lNb2RWYWx1ZXMiLCJzY2FsZSI6MSwicmVhbG0iOiJwb2UyIn1d/2986e220b3/CurrencyModValues.png",
+          "category": "Currency",
+          "detailsId": "divine-orb"
+        },
+        {
+          "id": "exalted",
+          "name": "Exalted Orb",
+          "image": "/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3VycmVuY3kvQ3VycmVuY3lBZGRNb2RUb1JhcmUiLCJzY2FsZSI6MSwicmVhbG0iOiJwb2UyIn1d/ad7c366789/CurrencyAddModToRare.png",
+          "category": "Currency",
+          "detailsId": "exalted-orb"
+        },
+        {
+          "id": "chaos",
+          "name": "Chaos Orb",
+          "image": "/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3VycmVuY3kvQ3VycmVuY3lSZXJvbGxSYXJlIiwic2NhbGUiOjEsInJlYWxtIjoicG9lMiJ9XQ/c0ca392a78/CurrencyRerollRare.png",
+          "category": "Currency",
+          "detailsId": "chaos-orb"
+        }
+      ],
+      "rates": {
+        "exalted": 337.8,
+        "chaos": 8.07
+      },
+      "primary": "divine",
+      "secondary": "chaos"
+    },
+    "lines": [
+      {
+        "id": "omen-of-putrefaction",
+        "primaryValue": 0.0006422,
+        "volumePrimaryValue": 0.2314,
+        "maxVolumeCurrency": "exalted",
+        "maxVolumeRate": 4.61,
+        "sparkline": {
+          "totalChange": -80.0,
+          "data": [
+            20.46,
+            -8.27,
+            2.48,
+            -23.91,
+            3.43,
+            -27.62,
+            -80.0
+          ]
+        }
+      },
+      {
+        "id": "omen-of-catalysing-exaltation",
+        "primaryValue": 0.01767,
+        "volumePrimaryValue": 2.97,
+        "maxVolumeCurrency": "exalted",
+        "maxVolumeRate": 0.1675,
+        "sparkline": {
+          "totalChange": -8.13,
+          "data": [
+            -10.35,
+            20.49,
+            22.83,
+            24.61,
+            -6.37,
+            -13.73,
+            -8.13
+          ]
+        }
+      },
+      {
+        "id": "omen-of-chaotic-monsters",
+        "primaryValue": 0.145,
+        "volumePrimaryValue": 254.0,
+        "maxVolumeCurrency": "chaos",
+        "maxVolumeRate": 0.8539,
+        "sparkline": {
+          "totalChange": -16.89,
+          "data": [
+            1.84,
+            0.43,
+            -8.63,
+            -11.67,
+            -10.37,
+            -10.17,
+            -16.89
+          ]
+        }
+      },
+      {
+        "id": "omen-of-light",
+        "primaryValue": 9.73,
+        "volumePrimaryValue": 16302,
+        "maxVolumeCurrency": "divine",
+        "maxVolumeRate": 0.1027,
+        "sparkline": {
+          "totalChange": -20.36,
+          "data": [
+            -3.66,
+            -16.19,
+            -19.38,
+            -20.96,
+            -22.05,
+            -23.67,
+            -20.36
+          ]
+        }
+      }
+    ]
+  }
+}

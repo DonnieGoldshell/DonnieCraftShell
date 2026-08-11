@@ -15,6 +15,7 @@ from .economy import (
     DIVINE_ASSET_ID,
     EXALTED_ASSET_ID,
     EXALTED_ECONOMIC_UNIT,
+    EconomyCategory,
     FreshnessState,
     EconomyQuote,
     EconomySnapshot,
@@ -34,7 +35,18 @@ def load_raw_poe_show_currency_snapshot(path: Path) -> dict[str, Any]:
     return json.loads(path.read_text(encoding="utf-8"), parse_float=Decimal, parse_int=Decimal)
 
 
+def load_raw_poe_show_economy_snapshot(path: Path) -> dict[str, Any]:
+    return load_raw_poe_show_currency_snapshot(path)
+
+
 def normalize_poe_show_currency_snapshot(
+    path: Path,
+    as_of: datetime | None = None,
+) -> EconomySnapshot:
+    return normalize_poe_show_economy_snapshot(path, as_of)
+
+
+def normalize_poe_show_economy_snapshot(
     path: Path,
     as_of: datetime | None = None,
 ) -> EconomySnapshot:
@@ -47,6 +59,7 @@ def normalize_poe_show_currency_snapshot(
     freshness = classify_freshness(retrieved_at, current_as_of)
     response = raw["response"]
     core = response["core"]
+    category = _category(raw.get("category"))
     primary_source_id = core["primary"]
     primary_asset_id = asset_id_for_poe_show(primary_source_id)
     if primary_asset_id is None:
@@ -91,6 +104,7 @@ def normalize_poe_show_currency_snapshot(
             native_reference_asset_id=primary_asset_id,
             source=raw["source"],
             snapshot_id=snapshot_id,
+            category=category,
             observed_at=None,
             retrieved_at=retrieved_at,
             volume=_decimal_or_none(line.get("volumePrimaryValue")),
@@ -104,7 +118,7 @@ def normalize_poe_show_currency_snapshot(
         quotes.append(quote)
         seen_assets.add(asset_id)
 
-    if EXALTED_ASSET_ID not in seen_assets:
+    if category == EconomyCategory.CURRENCY and EXALTED_ASSET_ID not in seen_assets:
         quotes.append(
             EconomyQuote(
                 asset_id=EXALTED_ASSET_ID,
@@ -114,6 +128,7 @@ def normalize_poe_show_currency_snapshot(
                 native_reference_asset_id=EXALTED_ASSET_ID,
                 source=raw["source"],
                 snapshot_id=snapshot_id,
+                category=category,
                 retrieved_at=retrieved_at,
                 confidence=Confidence(level=ConfidenceLevel.MEDIUM),
                 freshness=freshness,
@@ -155,6 +170,9 @@ def load_normalized_economy_snapshot(path: Path) -> EconomySnapshot:
             native_reference_asset_id=item.get("native_reference_asset_id"),
             source=item["source"],
             snapshot_id=item["snapshot_id"],
+            category=EconomyCategory[item.get("category", "UNKNOWN")]
+            if item.get("category") in EconomyCategory.__members__
+            else item.get("category", EconomyCategory.UNKNOWN),
             observed_at=_parse_datetime(item.get("observed_at")),
             retrieved_at=_parse_datetime(item.get("retrieved_at")),
             volume=_decimal_or_none(item.get("volume")),
@@ -239,8 +257,18 @@ def _provenance(raw: dict[str, Any]) -> DataProvenance:
             level=ConfidenceLevel.MEDIUM,
             reasons=("Public community economy API; no SLA.",),
         ),
-        notes="Offline captured poe.show Currency response for Task 6B.",
+        notes=f"Offline captured poe.show {raw.get('category', 'economy')} response.",
     )
+
+
+def _category(value: str | None) -> EconomyCategory | str:
+    if value == "Currency":
+        return EconomyCategory.CURRENCY
+    if value == "Ritual":
+        return EconomyCategory.RITUAL
+    if value == "Essences":
+        return EconomyCategory.ESSENCES
+    return value or EconomyCategory.UNKNOWN
 
 
 def _provenance_from_json(data: dict[str, Any]) -> DataProvenance:

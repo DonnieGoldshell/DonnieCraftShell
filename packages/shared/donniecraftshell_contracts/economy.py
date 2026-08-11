@@ -15,6 +15,14 @@ EXALTED_ASSET_ID = "dc:poe2:economy-asset:currency:exalted-orb"
 DIVINE_ASSET_ID = "dc:poe2:economy-asset:currency:divine-orb"
 PERFECT_EXALTED_ASSET_ID = "dc:poe2:economy-asset:currency:perfect-exalted-orb"
 GREATER_EXALTED_ASSET_ID = "dc:poe2:economy-asset:currency:greater-exalted-orb"
+OMEN_OF_PUTREFACTION_ASSET_ID = "dc:poe2:economy-asset:ritual:omen-of-putrefaction"
+OMEN_OF_CATALYSING_EXALTATION_ASSET_ID = "dc:poe2:economy-asset:ritual:omen-of-catalysing-exaltation"
+OMEN_OF_CHAOTIC_MONSTERS_ASSET_ID = "dc:poe2:economy-asset:ritual:omen-of-chaotic-monsters"
+OMEN_OF_LIGHT_ASSET_ID = "dc:poe2:economy-asset:ritual:omen-of-light"
+PERFECT_ESSENCE_OF_BATTLE_ASSET_ID = "dc:poe2:economy-asset:essence:perfect-essence-of-battle"
+PERFECT_ESSENCE_OF_ALACRITY_ASSET_ID = "dc:poe2:economy-asset:essence:perfect-essence-of-alacrity"
+GREATER_ESSENCE_OF_ICE_ASSET_ID = "dc:poe2:economy-asset:essence:greater-essence-of-ice"
+ESSENCE_OF_ENHANCEMENT_ASSET_ID = "dc:poe2:economy-asset:essence:essence-of-enhancement"
 EXALTED_ECONOMIC_UNIT = "EXALTED_ECONOMIC_UNIT"
 
 
@@ -27,6 +35,8 @@ class FreshnessState(str, Enum):
 
 class EconomyCategory(str, Enum):
     CURRENCY = "Currency"
+    RITUAL = "Ritual"
+    ESSENCES = "Essences"
     UNKNOWN = "UNKNOWN"
 
 
@@ -88,6 +98,7 @@ class EconomyQuote:
     native_reference_asset_id: str | None
     source: str
     snapshot_id: str
+    category: EconomyCategory | str = EconomyCategory.UNKNOWN
     observed_at: datetime | None = None
     retrieved_at: datetime | None = None
     volume: Decimal | None = None
@@ -176,3 +187,15 @@ def _decimal(value: Decimal | int | str, field_name: str) -> Decimal:
 
 def _aware(value: datetime) -> datetime:
     return value if value.tzinfo else value.replace(tzinfo=timezone.utc)
+
+
+def least_fresh(states: tuple[FreshnessState, ...]) -> FreshnessState:
+    if not states:
+        return FreshnessState.UNAVAILABLE
+    order = {
+        FreshnessState.FRESH: 0,
+        FreshnessState.AGING: 1,
+        FreshnessState.STALE: 2,
+        FreshnessState.UNAVAILABLE: 3,
+    }
+    return max(states, key=lambda state: order[state])

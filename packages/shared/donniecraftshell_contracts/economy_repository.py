@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from .economy import EconomyQuote, EconomySnapshot, ExchangeRate, FreshnessState
+from .economy import EconomyCategory, EconomyQuote, EconomySnapshot, ExchangeRate, FreshnessState
 
 
 class EconomyRepository:
@@ -58,6 +58,41 @@ class EconomyRepository:
         if not candidates:
             return None
         return max(candidates, key=lambda rate: rate.retrieved_at or as_of)
+
+    def get_current_quotes(
+        self,
+        league: str,
+        asset_ids: tuple[str, ...],
+        as_of: datetime,
+        source: str | None = None,
+    ) -> dict[str, EconomyQuote | None]:
+        return {
+            asset_id: self.get_current_quote(league, asset_id, as_of, source)
+            for asset_id in asset_ids
+        }
+
+    def get_category_quotes(
+        self,
+        league: str,
+        category: EconomyCategory | str,
+        as_of: datetime,
+        source: str | None = None,
+    ) -> tuple[EconomyQuote, ...]:
+        candidates = [
+            quote
+            for snapshot in self._snapshots.values()
+            if snapshot.league == league and (source is None or snapshot.provider == source)
+            for quote in snapshot.quotes
+            if quote.category == category
+            and quote.retrieved_at is not None
+            and quote.retrieved_at <= as_of
+        ]
+        latest_by_asset: dict[str, EconomyQuote] = {}
+        for quote in candidates:
+            current = latest_by_asset.get(quote.asset_id)
+            if current is None or (quote.retrieved_at or as_of) > (current.retrieved_at or as_of):
+                latest_by_asset[quote.asset_id] = quote
+        return tuple(latest_by_asset.values())
 
     def get_history(self, league: str, asset_id: str) -> tuple[EconomyQuote, ...]:
         return tuple(
