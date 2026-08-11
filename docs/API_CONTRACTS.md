@@ -6,12 +6,15 @@ This document defines the initial contract surface for future DonnieCraftShell A
 
 Use an API-schema-first workflow once FastAPI is scaffolded:
 
-1. Backend Pydantic models define request and response schemas.
+1. Backend API-layer Pydantic models define request and response transport schemas.
 2. FastAPI generates OpenAPI.
-3. TypeScript types are generated from OpenAPI for `apps/web/`.
-4. Contract tests verify generated schemas and critical invariants.
+3. OpenAPI is the single source of truth for frontend API contracts.
+4. TypeScript client/types are generated from OpenAPI for `apps/web/`.
+5. Contract tests verify generated schemas and critical transport invariants.
 
 The temporary dependency-free contracts in `packages/shared/donniecraftshell_contracts/api.py` document the DTO shape until FastAPI/Pydantic is introduced.
+
+OpenAPI is authoritative for transport contracts, not for the internal domain model. The core domain model remains framework-independent and should not depend on FastAPI or Pydantic.
 
 ## Initial Endpoints
 
@@ -45,6 +48,14 @@ Required error codes include validation error, unsupported item, parse failure, 
 ## DTO Boundaries
 
 API DTOs should not be database rows. Persistence can split or denormalize data for history, snapshots, and indexing. Domain models should not know table names, migration details, or storage-specific keys.
+
+Explicit mappings between Pydantic DTOs and domain models are preferred. Do not manually maintain duplicated API interfaces in Python and TypeScript; generate TypeScript types from OpenAPI instead.
+
+## Identifier Strategy
+
+Use application-generated UUIDv7 strings for internal transport identifiers such as analysis IDs, craft session IDs, session step IDs, valuation IDs, simulation IDs, advisor recommendation IDs, and economy snapshot IDs.
+
+Do not use display names as identifiers. Keep external source IDs and canonical game-data IDs in separate fields. Canonical PoE game-data identifiers should use stable source-backed IDs where available.
 
 ## SELL NOW
 

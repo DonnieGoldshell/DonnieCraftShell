@@ -34,12 +34,19 @@ Unknown values must be represented as `None` or explicit `NEEDS_VERIFICATION` st
 
 ## Boundaries
 
-Domain models represent business concepts and invariants. API DTOs may reshape them for transport. Persistence entities may use different tables optimized for storage, history, and indexing. Mapping between these layers should be explicit.
+Domain models represent business concepts and invariants. Keep core domain models framework-independent where practical.
+
+Do not migrate the entire domain model to Pydantic. Pydantic should be used primarily for API request DTOs, API response DTOs, external adapter/input validation, and FastAPI/OpenAPI schema generation.
+
+The Decision Engine, Craft Simulator, Valuation Engine, and related business logic must operate and be tested without FastAPI or Pydantic dependencies. Explicit mapping between Pydantic DTOs and domain models is preferred over coupling the domain directly to the API framework.
+
+Persistence entities may use different tables optimized for storage, history, snapshots, and indexing. Mapping between domain models, API DTOs, and persistence entities should be explicit.
 
 ## Identifier Strategy
 
-- Internal records use UUID strings.
-- Sessions use UUID strings.
+- Internal application entities use application-generated UUIDv7 strings by default.
+- Use UUIDv7 for analysis IDs, craft session IDs, session step IDs, valuation IDs, simulation IDs, advisor recommendation IDs, and economy snapshot IDs.
+- UUIDv7 is preferred because it is globally unique, sortable by creation time, suitable for session/history data, and can be created before persistence.
 - External source IDs are stored separately from internal IDs.
-- Canonical game-data IDs must be stable source-backed identifiers when verified.
+- Canonical PoE game-data IDs must use stable source-backed identifiers where available rather than generated replacements.
 - Display names are never stable identifiers.
