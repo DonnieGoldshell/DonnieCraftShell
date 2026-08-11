@@ -55,10 +55,19 @@ Store raw imported data separately from normalized application data. Keep derive
 
 - Source type: official API.
 - Authority level: highest for fields it actually returns.
-- Intended use: account/item API fields, league/currency endpoints where permitted, and source comparison.
+- Intended use: account/item API fields, league/currency endpoints where permitted, official Currency Exchange hourly history, and source comparison.
 - Refresh expectation: follow API changelog and rate-limit guidance.
 - Provenance requirements: endpoint, retrieved_at, game version or realm metadata where present, league, and response checksum for imports.
-- Known limitations: official docs currently describe limited PoE2 game-information APIs and do not provide a complete canonical modifier catalogue.
+- Known limitations: official docs currently describe limited PoE2 game-information APIs and do not provide a complete canonical modifier catalogue. Currency Exchange requires `service:cxapi` confidential-client credentials and returns historical hourly data, not the current in-progress hour.
+
+### poe.show / poe.ninja Economy API
+
+- Source type: community public economy API.
+- Authority level: non-official current-market convenience source.
+- Intended use: MVP 0.1 current PoE2 economy overview for currencies and crafting materials including Essences, Omens, Runes, Soul Cores, Catalysts, and related categories.
+- Refresh expectation: backend ingestion with HTTP cache/ETag handling; PoE2 source data refreshes roughly hourly, so do not poll per user.
+- Provenance requirements: endpoint, league ID/name, category, source line ID, observed/retrieved timestamps, cache metadata where available, source values, volume fields, and confidence/freshness.
+- Known limitations: no SLA or versioning guarantee, community source, may block excessive use, and must not be called directly from frontend or end-user machines.
 
 ### PoE2DB
 

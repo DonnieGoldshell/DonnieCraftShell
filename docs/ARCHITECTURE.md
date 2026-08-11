@@ -38,6 +38,7 @@ apps/web
 - **Craft Simulator**: models legal actions and outcomes only when mechanics are verified.
 
 See [DECISION_ENGINE.md](DECISION_ENGINE.md) for economic behavior.
+See [ECONOMY.md](ECONOMY.md) and [ECONOMY_SOURCES.md](ECONOMY_SOURCES.md) for provider architecture, source precedence, freshness, and normalized pricing rules.
 
 ## Item-Class Modularity
 
@@ -52,6 +53,8 @@ Important records should include provenance fields such as `source`, `retrieved_
 ## Integration Boundaries
 
 External data sources, trade data, and economy providers must be isolated behind adapters so they can be replaced, disabled, mocked, or compared. Do not implement unsupported automated Path of Exile trade scraping.
+
+Economy providers must ingest in the backend through replaceable adapters. Runtime application logic should consume normalized `EconomySnapshot`, `EconomyQuote`, and `ExchangeRate` records instead of poe.show/poe.ninja-shaped or GGG-shaped payloads.
 
 Community game-data sources such as PoE2DB must be imported through source adapters into raw snapshots and normalized records. Runtime analysis should use normalized data or database records, not live scraping.
 

@@ -21,6 +21,7 @@ The initial executable contracts live in `packages/shared/donniecraftshell_contr
 - `AffixState`: known prefixes/suffixes, observed prefix/suffix counts, optional capacities and open counts, and uncertainty. Unknown capacity remains `None`.
 - `ModifierRelevance`: relevance separated from objective modifier data, with origin as verified, derived/statistical, or curated.
 - `EconomyQuote`: league-specific normalized price, native pair/rate, timestamp, volume, confidence, and provenance.
+- Economy architecture should add explicit `EconomyAsset`, `EconomySnapshot`, and `ExchangeRate` concepts before implementation. See [ECONOMY.md](ECONOMY.md).
 - `Valuation`: estimate, plausible low/high range, confidence, comparable count, comparable strategy, timestamp, and provenance.
 - `CraftAction`: generic action candidate. `SELL_NOW` is represented by the same type as all other actions.
 - `CraftOutcome`: resulting item or state delta, optional probability, probability confidence, valuation, profit/loss, and provenance.

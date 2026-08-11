@@ -1,0 +1,85 @@
+# Economy Engine
+
+The Economy Engine provides league-scoped, time-aware market prices for Craft Advisor, Profit Finder, crafting cost calculation, and historical analysis. It must not fetch prices per user request, fabricate missing values, or hide stale data.
+
+## Architecture
+
+```text
+EconomyProvider
+  GggCurrencyExchangeProvider
+  PoeNinjaEconomyProvider
+        -> Raw Economy Observations
+        -> EconomyNormalizer
+        -> EconomySnapshot / EconomyQuote / ExchangeRate
+        -> EconomyRepository
+        -> Craft Advisor / Profit Finder
+```
+
+Provider payloads stay behind adapters. Domain logic consumes normalized records only.
+
+## Core Models
+
+- `EconomyAsset`: internal asset ID such as `dc:poe2:currency:divine-orb`, display name, category, game, aliases/source IDs, and provenance.
+- `EconomySnapshot`: source, game, league ID/name, observed/reference timestamp, retrieved_at, snapshot ID, freshness state, and provenance.
+- `EconomyQuote`: asset ID, normalized Exalted value, native/source price, source, league, observed_at, retrieved_at, volume, confidence, freshness, and snapshot ID.
+- `ExchangeRate`: explicit pair such as `divine -> exalted`, rate, volume, observed_at, source, confidence, and snapshot ID.
+- `EconomyProviderRun`: ingestion status, cache metadata, rate-limit state, failures, and next cursor where relevant.
+
+Persisted entities should map explicitly to domain records: `economy_assets`, `economy_asset_aliases`, `economy_snapshots`, `economy_quotes`, `exchange_rates`, and `economy_provider_runs`.
+
+## Normalized Unit
+
+Internal value remains:
+
+```text
+1 Exalted Orb = 1 economic unit
+```
+
+All arithmetic must use `Decimal`. Missing price is `None`, never zero.
+
+If a source quotes values in Divine, first obtain an explicit Divine to Exalted rate. With poe.show current Currency data, `core.primary = divine` and `core.rates.exalted = 338.2` means:
+
+```text
+1 Divine = 338.2 Exalted
+normalized_exalted_value = primaryValue_in_divine * 338.2
+```
+
+Example from live research on league `Runes of Aldur`: Divine Orb has `primaryValue = 1`; therefore its normalized value is `338.2` Exalted units at that snapshot. Perfect Exalted Orb has `primaryValue = 2.63`, so its conceptual normalized value is `2.63 * 338.2 = 889.466` Exalted units. These are research examples, not committed price fixtures.
+
+## Freshness
+
+Freshness is DonnieCraftShell policy, not source truth. Make thresholds configurable:
+
+- `FRESH`: observed/retrieved age <= 2 hours.
+- `AGING`: > 2 hours and <= 6 hours.
+- `STALE`: > 6 hours.
+- `UNAVAILABLE`: no usable quote.
+
+Recommendation confidence should later degrade when required economy data is aging or stale.
+
+## Repository Access
+
+Design repository methods:
+
+- `get_current_quote(league_id, asset_id, source_policy)`
+- `get_quote_at(league_id, asset_id, at)`
+- `get_snapshot(snapshot_id)`
+- `get_history(league_id, asset_id, range)`
+- `get_exchange_rate(league_id, base_asset_id, quote_asset_id, at=None)`
+
+Historical snapshots must be retained so craft sessions and recommendations remain reproducible.
+
+## Source Selection
+
+Do not blindly average sources. Keep observations separate, then choose according to policy:
+
+1. Prefer configured source precedence for the use case.
+2. Retain all source observations with provenance.
+3. If sources disagree beyond a configurable tolerance, surface a warning and lower confidence.
+4. If the preferred source is unavailable, use fallback only with explicit source/freshness metadata.
+
+MVP 0.1 should use poe.show/poe.ninja as the primary current economy provider. GGG Currency Exchange should be secondary/future until confidential-client credentials and ingestion are configured.
+
+## Failure Behavior
+
+Provider failures must be explicit: unavailable, unauthenticated, rate limited, malformed response, stale last-known snapshot, or missing asset mapping. Prefer last-known stale data with warnings over fabricated prices, but return no economy answer when the required quote is missing or too stale for the decision policy.

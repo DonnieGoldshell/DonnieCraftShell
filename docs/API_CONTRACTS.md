@@ -23,6 +23,8 @@ POST /api/v1/items/parse
 POST /api/v1/items/enrich
 POST /api/v1/items/analyze
 GET  /api/v1/economy/current
+GET  /api/v1/economy/assets
+GET  /api/v1/economy/history/{asset_id}
 POST /api/v1/valuation
 POST /api/v1/crafts/simulate
 POST /api/v1/advisor
@@ -37,6 +39,8 @@ Task 4 implements the first real behavior for `POST /api/v1/items/parse` only. A
 Task 5A defines the future contract for `POST /api/v1/items/enrich`: request contains a parsed item and optional game-data snapshot ID; response contains an `ItemEnrichment` or a structured error. Task 5B implements the offline domain/import/resolver pipeline, but the endpoint remains deferred until the backend has explicit Pydantic DTOs and DTO <-> domain mappings for `ParsedItem`, `ModifierResolution`, and `ItemEnrichment`.
 
 The current FastAPI route serializes framework-independent dataclasses through a small temporary `_to_jsonable()` helper. This is accepted technical debt until the backend API layer defines proper Pydantic DTOs and explicit DTO <-> domain mappings.
+
+Economy endpoints should accept explicit `league` and optional `asset_id`, `category`, and timestamp-range query parameters. Responses should include normalized Exalted values, source, snapshot ID, observed/retrieved timestamps, freshness, volume where available, and warnings for missing, stale, or conflicting data. Missing prices must be represented as unavailable/unknown, never zero.
 
 ## Error Model
 
