@@ -33,6 +33,8 @@ All endpoints are contract placeholders. They must return explicit `NOT_IMPLEMEN
 
 Task 4 implements the first real behavior for `POST /api/v1/items/parse` only. All other endpoints remain placeholders for later tasks.
 
+The current FastAPI route serializes framework-independent dataclasses through a small temporary `_to_jsonable()` helper. This is accepted technical debt until the backend API layer defines proper Pydantic DTOs and explicit DTO <-> domain mappings.
+
 ## Error Model
 
 Common API errors use:

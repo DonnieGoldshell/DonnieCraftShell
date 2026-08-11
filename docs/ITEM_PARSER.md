@@ -28,6 +28,10 @@ The parser extracts item class, rarity, item name, base type, required level, it
 
 Modifier placement and modifier origin are separate concepts. For example, a crafted prefix has `affix_type=PREFIX` and `origin=CRAFTED`.
 
+`ParseResult.unparsed_sections` contains only wholly unrecognized sections after section splitting. Partially parsed sections are not duplicated there; their unknown lines are preserved in `ParsedItem.unparsed_lines`.
+
+Generated parser analysis IDs use application-generated UUIDv7. DonnieCraftShell currently assumes a Python runtime with standard-library `uuid.uuid7` support.
+
 ## Limits
 
 The parser does not enrich from game data, infer tiers, infer open affix slots, calculate prefix/suffix capacity, validate crafting legality, estimate prices, or simulate outcomes.

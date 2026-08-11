@@ -112,14 +112,17 @@ def parse_clipboard_item(
         line for line in lines if line.startswith("Can only be equipped")
     )
     unparsed_lines = find_unparsed_lines(sections)
+    unparsed_sections = find_unparsed_sections(sections)
     if unparsed_lines:
         warnings.append("Some lines were preserved as unparsed text.")
+    if unparsed_sections:
+        warnings.append("Some sections were preserved as wholly unparsed text.")
     if clipboard_format == ClipboardFormat.NORMAL:
         warnings.append("Normal copy lacks explicit modifier metadata; tiers and affix types may be unknown.")
 
     confidence = parser_confidence(clipboard_format, warnings)
     item = ParsedItem(
-        analysis_id=f"analysis-{uuid.uuid7() if hasattr(uuid, 'uuid7') else uuid.uuid4()}",
+        analysis_id=generate_analysis_id(),
         raw_clipboard_text=normalized,
         game_context=game_context or GameContext(game="Path of Exile 2"),
         clipboard_format=clipboard_format,
@@ -154,7 +157,7 @@ def parse_clipboard_item(
         item=item,
         detected_format=clipboard_format,
         warnings=tuple(warnings),
-        unparsed_sections=tuple("\n".join(section) for section in sections if not section),
+        unparsed_sections=unparsed_sections,
     )
 
 
@@ -181,6 +184,12 @@ def split_sections(lines: list[str]) -> list[list[str]]:
         else:
             sections[-1].append(line)
     return [section for section in sections if section]
+
+
+def generate_analysis_id() -> str:
+    if not hasattr(uuid, "uuid7"):
+        raise RuntimeError("DonnieCraftShell requires Python with stdlib uuid.uuid7 support.")
+    return f"analysis-{uuid.uuid7()}"
 
 
 def detect_clipboard_format(lines: list[str]) -> ClipboardFormat:
@@ -390,6 +399,28 @@ def find_unparsed_lines(sections: list[list[str]]) -> tuple[str, ...]:
                 continue
             unparsed.append(line)
     return tuple(unparsed)
+
+
+def find_unparsed_sections(sections: list[list[str]]) -> tuple[str, ...]:
+    unparsed: list[str] = []
+    for section_index, section in enumerate(sections):
+        if section_index == 0:
+            continue
+        meaningful_lines = [line for line in section if line.strip()]
+        if meaningful_lines and all(is_unrecognized_line(line) for line in meaningful_lines):
+            unparsed.append("\n".join(section))
+    return tuple(unparsed)
+
+
+def is_unrecognized_line(line: str) -> bool:
+    return not (
+        line.startswith(("Item Class:", "Rarity:", "Requires:", "Item Level:", "Note:", "Grants Skill:"))
+        or line.startswith("Can only be equipped")
+        or line in {"Corrupted", "Twice Corrupted"}
+        or HEADER_RE.match(line)
+        or looks_like_normal_modifier_line(line)
+        or is_flavor_line(line)
+    )
 
 
 def build_normal_modifier(line: str) -> ItemModifier:

@@ -50,6 +50,7 @@ Persistence entities may use different tables optimized for storage, history, sn
 - Internal application entities use application-generated UUIDv7 strings by default.
 - Use UUIDv7 for analysis IDs, craft session IDs, session step IDs, valuation IDs, simulation IDs, advisor recommendation IDs, and economy snapshot IDs.
 - UUIDv7 is preferred because it is globally unique, sortable by creation time, suitable for session/history data, and can be created before persistence.
+- The current supported Python runtime must provide standard-library `uuid.uuid7`; the parser must not silently fall back to UUIDv4.
 - External source IDs are stored separately from internal IDs.
 - Canonical PoE game-data IDs must use stable source-backed identifiers where available rather than generated replacements.
 - Display names are never stable identifiers.

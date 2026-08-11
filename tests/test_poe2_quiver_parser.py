@@ -1,5 +1,6 @@
 import importlib.util
 import unittest
+import uuid
 from decimal import Decimal
 from pathlib import Path
 
@@ -140,11 +141,32 @@ class Poe2QuiverParserTests(unittest.TestCase):
 
     def test_unknown_lines_are_preserved_with_warning(self):
         raw = fixture("quiver_3_normal_advanced.txt") + "\n--------\nUnrecognized Future Section"
-        item = parse_clipboard_item(raw).item
+        result = parse_clipboard_item(raw)
+        item = result.item
 
         assert item is not None
         self.assertIn("Unrecognized Future Section", item.unparsed_lines)
+        self.assertIn("Unrecognized Future Section", result.unparsed_sections)
         self.assertIn("Some lines were preserved as unparsed text.", item.warnings)
+        self.assertIn("Some sections were preserved as wholly unparsed text.", item.warnings)
+
+    def test_partially_parsed_sections_are_not_duplicated_as_unparsed_sections(self):
+        raw = fixture("quiver_3_normal_advanced.txt").replace(
+            "40(25-40)% increased Stun Buildup",
+            "40(25-40)% increased Stun Buildup\nUnrecognized trailing line",
+        )
+        result = parse_clipboard_item(raw)
+
+        assert result.item is not None
+        self.assertIn("Unrecognized trailing line", result.item.unparsed_lines)
+        self.assertEqual(result.unparsed_sections, ())
+
+    def test_generated_analysis_id_is_uuid7(self):
+        item = parse_clipboard_item(fixture("quiver_1_rare_standard_advanced.txt")).item
+
+        assert item is not None
+        generated_uuid = uuid.UUID(item.analysis_id.removeprefix("analysis-"))
+        self.assertEqual(generated_uuid.version, 7)
 
     def test_malformed_modifier_header_fails_gracefully(self):
         raw = fixture("quiver_3_normal_advanced.txt").replace(
