@@ -55,6 +55,14 @@ External data sources, trade data, and economy providers must be isolated behind
 
 Community game-data sources such as PoE2DB must be imported through source adapters into raw snapshots and normalized records. Runtime analysis should use normalized data or database records, not live scraping.
 
+Task 5B implements this boundary with local JSON fixtures:
+
+- `game_data_import.py` loads raw research snapshots and writes normalized datasets.
+- `game_data_repository.py` loads explicit dataset versions.
+- `modifier_resolver.py` resolves parsed modifiers into `ItemEnrichment` without mutating `ParsedItem`.
+
+See [GAME_DATA_IMPORT.md](GAME_DATA_IMPORT.md) and [MODIFIER_RESOLUTION.md](MODIFIER_RESOLUTION.md).
+
 ## Architecture Adjustments Before Implementation
 
 - Define shared API contracts before building frontend-backend flows.

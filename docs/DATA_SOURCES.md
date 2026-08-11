@@ -72,6 +72,8 @@ Store raw imported data separately from normalized application data. Keep derive
 - Identifier policy: hash-like PoE2DB hover/cache keys may be stored as `source_record_key` or `source_locator`, but must not be treated as permanently stable canonical game-data IDs until verified. DonnieCraftShell canonical IDs and external source keys remain separate concepts.
 - Known limitations: community data is not official, page structure may change, licensing/terms need review, stable IDs may need to be derived from source-backed locators or verified game-file identifiers, and modifier weight information is explicitly not available from game files according to the Quivers page.
 
+Task 5B uses one manually captured PoE2DB hover/cache record for `of Mastery` as an offline research fixture. It is enough to validate the import and resolver architecture, but it is not a complete Quiver catalogue and must not be treated as production coverage.
+
 ## Open Questions
 
 - Which PoE2 APIs are available, stable, and permitted for this use case?

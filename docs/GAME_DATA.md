@@ -23,6 +23,8 @@ Canonical IDs must be source-backed and namespaced. Display names such as `of Ma
 
 External source keys and DonnieCraftShell canonical IDs are separate concepts. A hash-like PoE2DB hover/cache key may be stored as `source_record_key` or `source_locator`, but must not be treated as a permanently stable canonical game-data ID until verified.
 
+For the Task 5B fixture dataset, modifier-tier canonical IDs use deterministic DonnieCraftShell semantic hashes with the form `dc:poe2:modifier-tier:<hash-prefix>`. The hash input includes game, domain, modifier family, generation type, tier, normalized stat template, and roll-range identity. This is a DonnieCraftShell dataset identity, not an official GGG identifier.
+
 ## Storage Layout
 
 Use this structure until database import is implemented:
@@ -34,6 +36,8 @@ data/research/
 ```
 
 Raw source snapshots should be immutable where practical. Normalized data should be generated from raw snapshots. Runtime code should read normalized data or database records, not scrape community pages per user request.
+
+Task 5B implements the first offline JSON-backed version of this flow. See [GAME_DATA_IMPORT.md](GAME_DATA_IMPORT.md) for the raw schema, normalized schema, validation rules, canonical ID strategy, and current fixture coverage.
 
 ## Versioning
 

@@ -34,7 +34,7 @@ All endpoints are contract placeholders. They must return explicit `NOT_IMPLEMEN
 
 Task 4 implements the first real behavior for `POST /api/v1/items/parse` only. All other endpoints remain placeholders for later tasks.
 
-Task 5A defines the future contract for `POST /api/v1/items/enrich`: request contains a parsed item and optional game-data snapshot ID; response contains an `ItemEnrichment` or a structured error. The endpoint is not implemented yet.
+Task 5A defines the future contract for `POST /api/v1/items/enrich`: request contains a parsed item and optional game-data snapshot ID; response contains an `ItemEnrichment` or a structured error. Task 5B implements the offline domain/import/resolver pipeline, but the endpoint remains deferred until the backend has explicit Pydantic DTOs and DTO <-> domain mappings for `ParsedItem`, `ModifierResolution`, and `ItemEnrichment`.
 
 The current FastAPI route serializes framework-independent dataclasses through a small temporary `_to_jsonable()` helper. This is accepted technical debt until the backend API layer defines proper Pydantic DTOs and explicit DTO <-> domain mappings.
 

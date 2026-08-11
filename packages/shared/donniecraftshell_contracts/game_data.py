@@ -88,6 +88,8 @@ class ModifierTierDefinition:
     display_name: str | None = None
     required_item_level: int | None = None
     roll_ranges: tuple[RollValue, ...] = ()
+    source_record_key: str | None = None
+    source_locator: str | None = None
     provenance: tuple[DataProvenance, ...] = ()
     dataset_version: str | None = None
 

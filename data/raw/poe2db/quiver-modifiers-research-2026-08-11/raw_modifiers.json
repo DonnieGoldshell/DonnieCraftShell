@@ -1,0 +1,45 @@
+{
+  "snapshot": {
+    "snapshot_id": "poe2db-quiver-modifiers-research-2026-08-11",
+    "source": "poe2db",
+    "source_uri": "https://poe2db.tw/us/Quivers",
+    "retrieved_at": "2026-08-11T00:00:00+02:00",
+    "game": "Path of Exile 2",
+    "game_version": null,
+    "locale": "us",
+    "checksum": "research-fixture-needs-review",
+    "verification_status": "NEEDS_VERIFICATION",
+    "notes": "Manual research fixture. PoE2DB is not official; licensing and bulk normalized storage need review."
+  },
+  "records": [
+    {
+      "source_record_key": "3ac5789a09e2d27363a60b889aa4dedc668f8e920fb1109617905b626ad921db",
+      "source_uri": "https://poe2db.tw/cache2/us/Poe_Data_Mods_hover/3ac5789a09e2d27363a60b889aa4dedc668f8e920fb1109617905b626ad921db",
+      "retrieved_at": "2026-08-11T00:00:00+02:00",
+      "display_name": "of Mastery",
+      "family": "IncreasedAttackSpeed",
+      "domain": "Item",
+      "generation_type": "Suffix",
+      "required_level": 37,
+      "tier": "2",
+      "stats": [
+        {
+          "text": "attack speed +%",
+          "min": 11,
+          "max": 13,
+          "scope": "Global"
+        }
+      ],
+      "spawn_tags": {
+        "gloves": 1,
+        "quiver": 1,
+        "default": 0
+      },
+      "craft_tags": ["Attack", "Speed"],
+      "notes": [
+        "Source record key is a locator, not a verified permanent canonical game-data ID.",
+        "Weights are intentionally not imported in Task 5B."
+      ]
+    }
+  ]
+}

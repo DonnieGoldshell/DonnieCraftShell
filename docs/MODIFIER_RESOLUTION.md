@@ -31,19 +31,26 @@ Each resolution includes confidence, match reasons, provenance, warnings, and ei
 
 ## Matching Signals
 
-A future resolver may use:
+The Task 5B resolver uses controlled structured matching against a selected normalized dataset version:
 
 - Item class
-- Affix type
-- Modifier origin
+- Affix type / generation type
 - Display name
 - Tier
-- Tags
-- Normalized stat text
-- Observed value and displayed range
-- Dataset version
+- Displayed allowed roll range
+- Tags as supporting evidence
 
 Do not silently fuzzy-match to a single modifier. If multiple source records remain plausible, return `AMBIGUOUS`.
+
+Matching precedence:
+
+1. Load candidates from the explicit `dataset_version`.
+2. Filter by item class applicability when available.
+3. Filter by affix type, display name, and tier when the clipboard provides them.
+4. Reject candidates whose canonical roll ranges conflict with displayed clipboard ranges.
+5. Treat tag overlap as supporting evidence only; tag ordering does not matter.
+
+If exactly one candidate remains, the resolver returns `RESOLVED`. If multiple candidates remain, it returns `AMBIGUOUS` with candidate IDs and no selected canonical ID. If no candidate remains, it returns `UNRESOLVED` without fabricating an ID.
 
 ## Enrichment Model
 
@@ -62,18 +69,18 @@ Possible future enrichment:
 
 ```text
 status: RESOLVED
-selected_canonical_modifier_id: dc:mod:<uuidv7-or-derived-internal-id>
-source_record_key: poe2db:hover:3ac5789...
+selected_canonical_modifier_id: dc:poe2:modifier-tier:0ab181defaafc7fe
+source_record_key: 3ac5789a09e2d27363a60b889aa4dedc668f8e920fb1109617905b626ad921db
 match reasons:
 - affix type matched Suffix
 - display name matched "of Mastery"
-- family matched IncreasedAttackSpeed
+- tier matched 2
 - roll range matched 11-13
 - spawn tags include quiver
 ```
 
-This example is based on manually captured PoE2DB research and remains `NEEDS VERIFICATION` until a repeatable import and source review exist.
+This example is based on the Task 5B offline research fixture. It remains `NEEDS VERIFICATION`; PoE2DB is not an official GGG source, and the external hover/cache key is stored only as a source locator.
 
 ## Non-Goals
 
-Task 5A does not implement a production resolver, scraper, modifier weights, probabilities, valuation, economy, crafting simulation, or meta scoring.
+Task 5B does not implement a production scraper, modifier weights, probabilities, valuation, economy, crafting simulation, Craft Advisor logic, or meta scoring.

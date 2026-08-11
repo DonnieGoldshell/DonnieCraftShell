@@ -1,0 +1,150 @@
+{
+  "snapshot": {
+    "snapshot_id": "poe2db-quiver-modifiers-research-2026-08-11",
+    "source": "poe2db",
+    "source_uri": "https://poe2db.tw/us/Quivers",
+    "retrieved_at": "2026-08-11T00:00:00+02:00",
+    "game_context": {
+      "game": "Path of Exile 2",
+      "league": null,
+      "game_version": null,
+      "locale": "us",
+      "snapshot_at": null
+    },
+    "checksum": "research-fixture-needs-review",
+    "verification_status": "NEEDS_VERIFICATION",
+    "notes": "Manual research fixture. PoE2DB is not official; licensing and bulk normalized storage need review.",
+    "provenance": []
+  },
+  "dataset_version": "poe2db-unknown-version-2026-08-11-research-fix",
+  "modifier_families": [
+    {
+      "canonical_id": "dc:poe2:modifier-family:increasedattackspeed",
+      "normalized_stat_template": "attack speed +%",
+      "affix_type": "SUFFIX",
+      "tags": [
+        "Attack",
+        "Speed"
+      ],
+      "modifier_group": "IncreasedAttackSpeed",
+      "provenance": [
+        {
+          "source_id": "poe2db",
+          "source_type": "COMMUNITY",
+          "source_uri": "https://poe2db.tw/cache2/us/Poe_Data_Mods_hover/3ac5789a09e2d27363a60b889aa4dedc668f8e920fb1109617905b626ad921db",
+          "retrieved_at": "2026-08-11T00:00:00+02:00",
+          "game_version": null,
+          "league": null,
+          "verification_status": "NEEDS_VERIFICATION",
+          "confidence": {
+            "score": "0.60",
+            "level": null,
+            "reasons": [
+              "Community source; licensing/source stability needs review."
+            ],
+            "sample_size": null
+          },
+          "notes": "source_record_key is an external locator, not a canonical game-data ID"
+        }
+      ]
+    }
+  ],
+  "modifier_tiers": [
+    {
+      "canonical_id": "dc:poe2:modifier-tier:0ab181defaafc7fe",
+      "modifier_family_id": "dc:poe2:modifier-family:increasedattackspeed",
+      "tier": "2",
+      "display_name": "of Mastery",
+      "required_item_level": 37,
+      "roll_ranges": [
+        {
+          "label": "attack speed +%",
+          "value": null,
+          "min_value": "11",
+          "max_value": "13"
+        }
+      ],
+      "source_record_key": "3ac5789a09e2d27363a60b889aa4dedc668f8e920fb1109617905b626ad921db",
+      "source_locator": "https://poe2db.tw/cache2/us/Poe_Data_Mods_hover/3ac5789a09e2d27363a60b889aa4dedc668f8e920fb1109617905b626ad921db",
+      "provenance": [
+        {
+          "source_id": "poe2db",
+          "source_type": "COMMUNITY",
+          "source_uri": "https://poe2db.tw/cache2/us/Poe_Data_Mods_hover/3ac5789a09e2d27363a60b889aa4dedc668f8e920fb1109617905b626ad921db",
+          "retrieved_at": "2026-08-11T00:00:00+02:00",
+          "game_version": null,
+          "league": null,
+          "verification_status": "NEEDS_VERIFICATION",
+          "confidence": {
+            "score": "0.60",
+            "level": null,
+            "reasons": [
+              "Community source; licensing/source stability needs review."
+            ],
+            "sample_size": null
+          },
+          "notes": "source_record_key is an external locator, not a canonical game-data ID"
+        }
+      ],
+      "dataset_version": "poe2db-unknown-version-2026-08-11-research-fix"
+    }
+  ],
+  "modifier_applicability": [
+    {
+      "modifier_id": "dc:poe2:modifier-tier:0ab181defaafc7fe",
+      "item_class": "Gloves",
+      "base_restrictions": [],
+      "tags_or_conditions": [
+        "spawn_tag:gloves"
+      ],
+      "provenance": [
+        {
+          "source_id": "poe2db",
+          "source_type": "COMMUNITY",
+          "source_uri": "https://poe2db.tw/cache2/us/Poe_Data_Mods_hover/3ac5789a09e2d27363a60b889aa4dedc668f8e920fb1109617905b626ad921db",
+          "retrieved_at": "2026-08-11T00:00:00+02:00",
+          "game_version": null,
+          "league": null,
+          "verification_status": "NEEDS_VERIFICATION",
+          "confidence": {
+            "score": "0.60",
+            "level": null,
+            "reasons": [
+              "Community source; licensing/source stability needs review."
+            ],
+            "sample_size": null
+          },
+          "notes": "source_record_key is an external locator, not a canonical game-data ID"
+        }
+      ]
+    },
+    {
+      "modifier_id": "dc:poe2:modifier-tier:0ab181defaafc7fe",
+      "item_class": "Quivers",
+      "base_restrictions": [],
+      "tags_or_conditions": [
+        "spawn_tag:quiver"
+      ],
+      "provenance": [
+        {
+          "source_id": "poe2db",
+          "source_type": "COMMUNITY",
+          "source_uri": "https://poe2db.tw/cache2/us/Poe_Data_Mods_hover/3ac5789a09e2d27363a60b889aa4dedc668f8e920fb1109617905b626ad921db",
+          "retrieved_at": "2026-08-11T00:00:00+02:00",
+          "game_version": null,
+          "league": null,
+          "verification_status": "NEEDS_VERIFICATION",
+          "confidence": {
+            "score": "0.60",
+            "level": null,
+            "reasons": [
+              "Community source; licensing/source stability needs review."
+            ],
+            "sample_size": null
+          },
+          "notes": "source_record_key is an external locator, not a canonical game-data ID"
+        }
+      ]
+    }
+  ]
+}
