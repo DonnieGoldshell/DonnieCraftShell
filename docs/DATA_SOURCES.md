@@ -49,6 +49,29 @@ Store raw imported data separately from normalized application data. Keep derive
 - Community-maintained databases: `NEEDS VERIFICATION`.
 - Manual curated data files: permitted only with source notes, verification dates, and clear labeling.
 
+## Source Register
+
+### Official Path of Exile Developer API
+
+- Source type: official API.
+- Authority level: highest for fields it actually returns.
+- Intended use: account/item API fields, league/currency endpoints where permitted, and source comparison.
+- Refresh expectation: follow API changelog and rate-limit guidance.
+- Provenance requirements: endpoint, retrieved_at, game version or realm metadata where present, league, and response checksum for imports.
+- Known limitations: official docs currently describe limited PoE2 game-information APIs and do not provide a complete canonical modifier catalogue.
+
+### PoE2DB
+
+- Source type: community-maintained database / game-file presentation site.
+- Authority level: non-official; use as provisional or derived until validated.
+- Intended use: candidate source for item bases, modifier families, prefix/suffix classification, modifier names, tiers, roll ranges, required item levels, tags, and item-class applicability.
+- Refresh expectation: snapshot per PoE2 patch or when source content changes; never scrape per user request at runtime.
+- Provenance requirements: source URI, retrieved_at, locale, game version if available, checksum, source-specific IDs/URLs, confidence, and verification status.
+- Licensing and source policy: PoE2DB pages state that wiki content is available under CC BY-NC-SA 3.0 unless otherwise noted, and also acknowledge Grinding Gear Games' copyright/trademark rights over Path of Exile material. Do not document extracted/cache game data as unquestionably licensed under CC BY-NC-SA. Bulk normalized PoE2DB game-data storage is `NEEDS REVIEW / NEEDS VERIFICATION`, and commercial use may require additional review because CC BY-NC-SA includes a NonCommercial restriction.
+- Reuse policy: require attribution for any content intentionally reused under CC BY-NC-SA. Do not add copied prose/wiki articles to DonnieCraftShell datasets. Prefer factual structured fields needed for modifier resolution, and preserve source URI plus retrieval timestamp for imported records.
+- Identifier policy: hash-like PoE2DB hover/cache keys may be stored as `source_record_key` or `source_locator`, but must not be treated as permanently stable canonical game-data IDs until verified. DonnieCraftShell canonical IDs and external source keys remain separate concepts.
+- Known limitations: community data is not official, page structure may change, licensing/terms need review, stable IDs may need to be derived from source-backed locators or verified game-file identifiers, and modifier weight information is explicitly not available from game files according to the Quivers page.
+
 ## Open Questions
 
 - Which PoE2 APIs are available, stable, and permitted for this use case?
@@ -56,3 +79,4 @@ Store raw imported data separately from normalized application data. Keep derive
 - Which sources can support comparable item valuation?
 - What rate limits, terms, or attribution requirements apply?
 - How should confidence be calculated for sparse comparable data?
+- What stable source-backed identifiers should be used for PoE2DB records when no explicit game-data ID is exposed?

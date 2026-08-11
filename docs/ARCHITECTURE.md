@@ -9,6 +9,8 @@ apps/web
   -> services/api
     -> application services
       -> item parser
+      -> game-data adapters
+      -> modifier resolver
       -> item-class modules
       -> modifier intelligence
       -> valuation engine
@@ -32,6 +34,7 @@ apps/web
 - **Valuation Engine**: estimates current and outcome market values with ranges, confidence, comparables, and timestamps.
 - **Economy Engine**: provides league-specific normalized prices and historical snapshots.
 - **Modifier Intelligence**: separates verified game data, derived statistical data, and curated relevance.
+- **Game Data Enrichment**: maps parsed clipboard observations to canonical source-backed records without mutating parser output.
 - **Craft Simulator**: models legal actions and outcomes only when mechanics are verified.
 
 See [DECISION_ENGINE.md](DECISION_ENGINE.md) for economic behavior.
@@ -49,6 +52,8 @@ Important records should include provenance fields such as `source`, `retrieved_
 ## Integration Boundaries
 
 External data sources, trade data, and economy providers must be isolated behind adapters so they can be replaced, disabled, mocked, or compared. Do not implement unsupported automated Path of Exile trade scraping.
+
+Community game-data sources such as PoE2DB must be imported through source adapters into raw snapshots and normalized records. Runtime analysis should use normalized data or database records, not live scraping.
 
 ## Architecture Adjustments Before Implementation
 

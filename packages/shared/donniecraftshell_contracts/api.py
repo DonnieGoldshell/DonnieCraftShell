@@ -21,6 +21,7 @@ from .domain import (
     SimulationResult,
     Valuation,
 )
+from .game_data import ItemEnrichment
 
 
 class ApiErrorCode(str, Enum):
@@ -104,6 +105,18 @@ class ValuationResponse:
 
 
 @dataclass(frozen=True)
+class EnrichItemRequest:
+    item: ParsedItem
+    snapshot_id: str | None = None
+
+
+@dataclass(frozen=True)
+class EnrichItemResponse:
+    enrichment: ItemEnrichment | None
+    error: ApiError | None = None
+
+
+@dataclass(frozen=True)
 class SimulateCraftRequest:
     source_item: ParsedItem
     action: CraftAction
@@ -164,6 +177,7 @@ class EndpointContract:
 
 ENDPOINT_CONTRACTS: tuple[EndpointContract, ...] = (
     EndpointContract("POST", "/api/v1/items/parse", "ParseItemRequest", "ParseItemResponse"),
+    EndpointContract("POST", "/api/v1/items/enrich", "EnrichItemRequest", "EnrichItemResponse"),
     EndpointContract("POST", "/api/v1/items/analyze", "AnalyzeItemRequest", "AnalyzeItemResponse"),
     EndpointContract("GET", "/api/v1/economy/current", "EconomyCurrentRequest", "EconomyCurrentResponse"),
     EndpointContract("POST", "/api/v1/valuation", "ValuationRequest", "ValuationResponse"),

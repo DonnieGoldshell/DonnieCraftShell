@@ -1,0 +1,43 @@
+{
+  "status": "RESEARCH_FIXTURE_NEEDS_VERIFICATION",
+  "source": "poe2db",
+  "source_uri": "https://poe2db.tw/cache2/us/Poe_Data_Mods_hover/3ac5789a09e2d27363a60b889aa4dedc668f8e920fb1109617905b626ad921db",
+  "source_record_key": "3ac5789a09e2d27363a60b889aa4dedc668f8e920fb1109617905b626ad921db",
+  "source_record_key_status": "SOURCE_LOCATOR_NEEDS_STABILITY_VERIFICATION",
+  "license_policy": {
+    "wiki_content_license_claim": "CC BY-NC-SA 3.0 unless otherwise noted",
+    "bulk_extracted_game_data_storage": "NEEDS REVIEW / NEEDS VERIFICATION",
+    "commercial_use": "NEEDS REVIEW because CC BY-NC-SA includes a NonCommercial restriction",
+    "attribution_required_for_reused_cc_content": true,
+    "copied_prose_allowed_in_datasets": false
+  },
+  "captured_for": "Task 5A modifier-resolution design",
+  "example": {
+    "display_text": "(11-13)% increased Attack Speed",
+    "display_name": "of Mastery",
+    "family": "IncreasedAttackSpeed",
+    "generation_type": "Suffix",
+    "required_level": 37,
+    "effective_required_level": 29,
+    "stats": [
+      {
+        "text": "attack speed +%",
+        "min": 11,
+        "max": 13,
+        "scope": "Global"
+      }
+    ],
+    "spawn_tags": {
+      "gloves": 1,
+      "quiver": 1,
+      "default": 0
+    },
+    "craft_tags": ["Attack", "Speed"]
+  },
+  "notes": [
+    "This is manually captured research data, not a production import.",
+    "Do not use this as authoritative game data until source semantics and licensing are reviewed.",
+    "The source_record_key may be stored as a locator but is not yet verified as a permanently stable canonical game-data ID.",
+    "Canonical DonnieCraftShell IDs should be separate from external source keys and not display-name-only."
+  ]
+}

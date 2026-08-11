@@ -2,3 +2,4 @@
 
 from .api import *
 from .domain import *
+from .game_data import *

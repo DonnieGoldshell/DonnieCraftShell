@@ -20,6 +20,7 @@ OpenAPI is authoritative for transport contracts, not for the internal domain mo
 
 ```text
 POST /api/v1/items/parse
+POST /api/v1/items/enrich
 POST /api/v1/items/analyze
 GET  /api/v1/economy/current
 POST /api/v1/valuation
@@ -32,6 +33,8 @@ POST /api/v1/sessions/{id}/steps
 All endpoints are contract placeholders. They must return explicit `NOT_IMPLEMENTED` responses until real behavior exists.
 
 Task 4 implements the first real behavior for `POST /api/v1/items/parse` only. All other endpoints remain placeholders for later tasks.
+
+Task 5A defines the future contract for `POST /api/v1/items/enrich`: request contains a parsed item and optional game-data snapshot ID; response contains an `ItemEnrichment` or a structured error. The endpoint is not implemented yet.
 
 The current FastAPI route serializes framework-independent dataclasses through a small temporary `_to_jsonable()` helper. This is accepted technical debt until the backend API layer defines proper Pydantic DTOs and explicit DTO <-> domain mappings.
 

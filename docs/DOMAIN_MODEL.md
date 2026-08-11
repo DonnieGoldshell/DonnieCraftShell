@@ -28,12 +28,15 @@ The initial executable contracts live in `packages/shared/donniecraftshell_contr
 - `AdvisorRecommendation`: current valuation, candidates, selected action when available, comparisons, risk, bankroll exposure, confidence, reasons, warnings, and timestamp. It supports `NO_RECOMMENDATION`.
 - `BankrollContext` and `RiskProfile`: user risk preference and bankroll constraints, kept separate from raw EV calculations.
 - `CraftSession`: session ID, game context, item states, actions/costs, total invested, current value, unrealized P/L, and timestamps.
+- Game-data and enrichment contracts live in `game_data.py`: `GameDataSnapshot`, `ItemBaseDefinition`, `ModifierFamily`, `ModifierTierDefinition`, `ModifierApplicability`, `ModifierWeight`, `ModifierResolution`, and `ItemEnrichment`.
 
 ## Unknown Data
 
 Unknown values must be represented as `None` or explicit `NEEDS_VERIFICATION` status. Do not infer modifier tiers, probabilities, crafting legality, or source quality from display text alone.
 
 Clipboard parsing may extract displayed values and displayed ranges, but it must not enrich with external game data or infer missing metadata. See [ITEM_PARSER.md](ITEM_PARSER.md).
+
+Modifier enrichment must preserve the original parsed observation and attach resolution records beside it. See [GAME_DATA.md](GAME_DATA.md) and [MODIFIER_RESOLUTION.md](MODIFIER_RESOLUTION.md).
 
 ## Boundaries
 
