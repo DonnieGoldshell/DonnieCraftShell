@@ -52,6 +52,8 @@ Matching precedence:
 
 If exactly one candidate remains, the resolver returns `RESOLVED`. If multiple candidates remain, it returns `AMBIGUOUS` with candidate IDs and no selected canonical ID. If no candidate remains, it returns `UNRESOLVED` without fabricating an ID.
 
+Task 5C also requires minimum structured identity evidence. A parsed modifier with neither display name nor tier is returned as `UNRESOLVED` instead of triggering a broad dataset search.
+
 ## Enrichment Model
 
 Use `ItemEnrichment` and `ModifierResolution` beside `ParsedItem`. Clipboard observations remain immutable. External game-data truth is represented as linked enrichment, not copied over parser fields.
@@ -79,8 +81,8 @@ match reasons:
 - spawn tags include quiver
 ```
 
-This example is based on the Task 5B offline research fixture. It remains `NEEDS VERIFICATION`; PoE2DB is not an official GGG source, and the external hover/cache key is stored only as a source locator.
+This example is based on the offline research fixture. It remains `NEEDS VERIFICATION`; PoE2DB is not an official GGG source, and the external hover/cache key is stored only as a source locator.
 
 ## Non-Goals
 
-Task 5B does not implement a production scraper, modifier weights, probabilities, valuation, economy, crafting simulation, Craft Advisor logic, or meta scoring.
+Task 5C does not implement a production scraper, modifier weights, probabilities, valuation, economy, crafting simulation, Craft Advisor logic, or meta scoring.

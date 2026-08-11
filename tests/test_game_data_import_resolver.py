@@ -1,3 +1,4 @@
+import json
 import tempfile
 import unittest
 from dataclasses import replace
@@ -35,26 +36,41 @@ from packages.shared.donniecraftshell_contracts.modifier_resolver import (
     enrich_item,
 )
 from packages.shared.donniecraftshell_contracts.parser import parse_clipboard_item
+from tools.quiver_resolution_coverage import collect_coverage
 
 
 ROOT = Path(__file__).resolve().parents[1]
 RAW_PATH = ROOT / "data" / "raw" / "poe2db" / "quiver-modifiers-research-2026-08-11" / "raw_modifiers.json"
-NORMALIZED_PATH = (
-    ROOT
-    / "data"
-    / "normalized"
-    / "poe2db-unknown-version-2026-08-11-research-fix"
-    / "game_data.json"
-)
+DATASET_VERSION = "poe2db-unknown-version-2026-08-11-task5c-quiver"
+NORMALIZED_PATH = ROOT / "data" / "normalized" / DATASET_VERSION / "game_data.json"
 FIXTURE_DIR = ROOT / "tests" / "fixtures" / "poe2" / "quivers"
 SOURCE_KEY = "3ac5789a09e2d27363a60b889aa4dedc668f8e920fb1109617905b626ad921db"
+PRIORITY_NAMES = {
+    "Shocking",
+    "Annealed",
+    "Frozen",
+    "of the Falcon",
+    "of Valour",
+    "of Infusion",
+    "Glaciated",
+    "Polished",
+    "Rapid",
+    "of the Archer",
+    "of Mastery",
+    "of the Panther",
+    "Entombing",
+    "Nimble",
+    "Lacerating",
+    "of Destruction",
+    "of Calamity",
+}
 
 
 def fixture(name: str) -> str:
     return (FIXTURE_DIR / name).read_text(encoding="utf-8")
 
 
-def mastery_modifier() -> tuple:
+def parsed_mastery():
     parsed = parse_clipboard_item(fixture("quiver_2_rare_trade_note_advanced.txt")).item
     assert parsed is not None
     modifier = next(item for item in parsed.modifiers if item.display_name == "of Mastery")
@@ -66,36 +82,43 @@ def repository() -> GameDataRepository:
 
 
 class GameDataImportTests(unittest.TestCase):
-    def test_raw_snapshot_parses_source_backed_mastery_record(self):
+    def test_raw_snapshot_contains_priority_source_backed_records(self):
         snapshot, records = load_raw_poe2db_snapshot(RAW_PATH)
 
         self.assertEqual(snapshot.source, "poe2db")
-        self.assertEqual(len(records), 1)
-        self.assertEqual(records[0].display_name, "of Mastery")
-        self.assertEqual(records[0].source_record_key, SOURCE_KEY)
-        self.assertEqual(records[0].stats[0].min, Decimal("11"))
-        self.assertEqual(records[0].stats[0].max, Decimal("13"))
+        self.assertEqual(len(records), 17)
+        self.assertEqual({record.display_name for record in records}, PRIORITY_NAMES)
+
+    def test_raw_snapshot_preserves_mastery_source_locator(self):
+        _, records = load_raw_poe2db_snapshot(RAW_PATH)
+        mastery = next(record for record in records if record.display_name == "of Mastery")
+
+        self.assertEqual(mastery.source_record_key, SOURCE_KEY)
+        self.assertEqual(mastery.stats[0].min, Decimal("11"))
+        self.assertEqual(mastery.stats[0].max, Decimal("13"))
 
     def test_normalization_preserves_source_key_separate_from_canonical_id(self):
         dataset = normalize_poe2db_snapshot(RAW_PATH)
-        tier = dataset.modifier_tiers[0]
+        tier = next(item for item in dataset.modifier_tiers if item.display_name == "of Mastery")
 
         self.assertTrue(tier.canonical_id.startswith("dc:poe2:modifier-tier:"))
         self.assertNotEqual(tier.canonical_id, tier.display_name)
         self.assertNotEqual(tier.canonical_id, tier.source_record_key)
         self.assertEqual(tier.source_record_key, SOURCE_KEY)
 
-    def test_canonical_ids_are_deterministic(self):
-        _, records = load_raw_poe2db_snapshot(RAW_PATH)
+    def test_normalization_counts_and_version(self):
+        dataset = normalize_poe2db_snapshot(RAW_PATH)
 
-        self.assertEqual(
-            canonical_modifier_tier_id(records[0]),
-            canonical_modifier_tier_id(records[0]),
-        )
-        self.assertEqual(
-            normalize_poe2db_snapshot(RAW_PATH).modifier_tiers[0].canonical_id,
-            normalize_poe2db_snapshot(RAW_PATH).modifier_tiers[0].canonical_id,
-        )
+        self.assertEqual(dataset.dataset_version, DATASET_VERSION)
+        self.assertEqual(len(dataset.modifier_families), 12)
+        self.assertEqual(len(dataset.modifier_tiers), 17)
+
+    def test_canonical_ids_are_deterministic_and_order_independent(self):
+        _, records = load_raw_poe2db_snapshot(RAW_PATH)
+        original = {record.display_name: canonical_modifier_tier_id(record) for record in records}
+        reordered = {record.display_name: canonical_modifier_tier_id(record) for record in reversed(records)}
+
+        self.assertEqual(original, reordered)
 
     def test_normalized_dataset_round_trips_and_validates(self):
         dataset = normalize_poe2db_snapshot(RAW_PATH)
@@ -112,12 +135,22 @@ class GameDataImportTests(unittest.TestCase):
         )
 
     def test_repository_requires_explicit_dataset_version(self):
-        dataset = load_normalized_dataset(NORMALIZED_PATH)
         repo = repository()
 
-        self.assertIs(repo.get_dataset(dataset.dataset_version), repo.get_dataset(dataset.dataset_version))
+        self.assertEqual(repo.get_dataset(DATASET_VERSION).dataset_version, DATASET_VERSION)
         with self.assertRaises(KeyError):
             repo.get_dataset("latest")
+
+    def test_duplicate_semantic_raw_records_fail_normalization(self):
+        raw = json.loads(RAW_PATH.read_text(encoding="utf-8"))
+        raw["records"].append(raw["records"][0])
+
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "raw.json"
+            path.write_text(json.dumps(raw), encoding="utf-8")
+
+            with self.assertRaisesRegex(ValueError, "duplicate modifier tier"):
+                normalize_poe2db_snapshot(path)
 
     def test_validation_rejects_duplicate_canonical_ids(self):
         dataset = load_normalized_dataset(NORMALIZED_PATH)
@@ -151,9 +184,10 @@ class GameDataImportTests(unittest.TestCase):
     def test_validation_rejects_missing_provenance_and_bad_required_level(self):
         dataset = load_normalized_dataset(NORMALIZED_PATH)
         bad_family = replace(dataset.modifier_families[0], provenance=())
+        families = (bad_family, *dataset.modifier_families[1:])
 
         with self.assertRaisesRegex(ValueError, "provenance"):
-            validate_normalized_dataset(replace(dataset, modifier_families=(bad_family,)))
+            validate_normalized_dataset(replace(dataset, modifier_families=families))
         with self.assertRaisesRegex(ValueError, "required_item_level cannot be negative"):
             replace(dataset.modifier_tiers[0], required_item_level=-1)
 
@@ -170,8 +204,8 @@ class GameDataImportTests(unittest.TestCase):
                 {
                     "source_uri": records[0].source_uri,
                     "retrieved_at": records[0].retrieved_at.isoformat(),
-                    "display_name": "of Mastery",
-                    "family": "IncreasedAttackSpeed",
+                    "display_name": records[0].display_name,
+                    "family": records[0].family,
                     "generation_type": "UnknownFutureType",
                     "stats": [{"text": "attack speed +%", "min": "11", "max": "13"}],
                 }
@@ -179,7 +213,7 @@ class GameDataImportTests(unittest.TestCase):
         }
         with tempfile.TemporaryDirectory() as tmp:
             path = Path(tmp) / "raw.json"
-            path.write_text(__import__("json").dumps(raw), encoding="utf-8")
+            path.write_text(json.dumps(raw), encoding="utf-8")
 
             with self.assertRaisesRegex(ValueError, "invalid affix/generation type"):
                 normalize_poe2db_snapshot(path)
@@ -190,13 +224,33 @@ class ModifierResolverTests(unittest.TestCase):
         self.dataset = load_normalized_dataset(NORMALIZED_PATH)
         self.repo = repository()
         self.resolver = CanonicalModifierResolver(self.repo, self.dataset.dataset_version)
-        self.parsed_item, self.modifier = mastery_modifier()
+        self.parsed_item, self.modifier = parsed_mastery()
+
+    def test_each_source_backed_modifier_resolves_when_present_in_fixtures(self):
+        seen: set[str] = set()
+        for path in FIXTURE_DIR.glob("*_advanced.txt"):
+            parsed = parse_clipboard_item(path.read_text(encoding="utf-8")).item
+            assert parsed is not None
+            for modifier in parsed.modifiers:
+                if modifier.display_name not in PRIORITY_NAMES:
+                    continue
+                resolution = self.resolver.resolve_modifier(parsed, modifier)
+                self.assertEqual(resolution.status, ResolutionStatus.RESOLVED, modifier.display_name)
+                selected = next(
+                    tier for tier in self.dataset.modifier_tiers if tier.canonical_id == resolution.selected_canonical_modifier_id
+                )
+                self.assertEqual(selected.display_name, modifier.display_name)
+                self.assertEqual(selected.tier, modifier.tier)
+                seen.add(modifier.display_name)
+
+        self.assertTrue(PRIORITY_NAMES - {"of the Panther"} <= seen)
 
     def test_of_mastery_resolves_with_structured_evidence(self):
         resolution = self.resolver.resolve_modifier(self.parsed_item, self.modifier)
+        selected = next(tier for tier in self.dataset.modifier_tiers if tier.display_name == "of Mastery")
 
         self.assertEqual(resolution.status, ResolutionStatus.RESOLVED)
-        self.assertEqual(resolution.selected_canonical_modifier_id, self.dataset.modifier_tiers[0].canonical_id)
+        self.assertEqual(resolution.selected_canonical_modifier_id, selected.canonical_id)
         self.assertIn("displayed range matched", resolution.match_reasons)
 
     def test_tag_order_does_not_affect_resolution(self):
@@ -226,6 +280,20 @@ class ModifierResolverTests(unittest.TestCase):
         self.assertIsNone(resolution.selected_canonical_modifier_id)
         self.assertIn("displayed range conflicts", resolution.warnings[0])
 
+    def test_similar_family_records_disambiguate_by_tier_and_range(self):
+        parsed = parse_clipboard_item(fixture("quiver_2_rare_trade_note_advanced.txt")).item
+        assert parsed is not None
+        glaciated = next(modifier for modifier in parsed.modifiers if modifier.display_name == "Glaciated")
+
+        resolution = self.resolver.resolve_modifier(parsed, glaciated)
+        selected = next(
+            tier for tier in self.dataset.modifier_tiers if tier.canonical_id == resolution.selected_canonical_modifier_id
+        )
+
+        self.assertEqual(resolution.status, ResolutionStatus.RESOLVED)
+        self.assertEqual(selected.display_name, "Glaciated")
+        self.assertEqual(selected.tier, "3")
+
     def test_unknown_modifier_is_unresolved_not_exception(self):
         modifier = ItemModifier(
             raw_text="{ Suffix Modifier \"of Unknown\" (Tier: 1) }\n+999 to Mystery",
@@ -238,6 +306,17 @@ class ModifierResolverTests(unittest.TestCase):
 
         self.assertEqual(resolution.status, ResolutionStatus.UNRESOLVED)
         self.assertIsNone(resolution.selected_canonical_modifier_id)
+
+    def test_modifier_without_structured_identity_is_unresolved_without_broad_search(self):
+        modifier = ItemModifier(
+            raw_text="Blind Targets when you Poison them - Unscalable Value",
+            normalized_text="Blind Targets when you Poison them - Unscalable Value",
+        )
+
+        resolution = self.resolver.resolve_modifier(self.parsed_item, modifier)
+
+        self.assertEqual(resolution.status, ResolutionStatus.UNRESOLVED)
+        self.assertIn("Insufficient structured modifier identity", resolution.warnings[0])
 
     def test_ambiguous_candidates_do_not_select_winner(self):
         repo = GameDataRepository({"synthetic-v1": synthetic_ambiguous_dataset()})
@@ -260,19 +339,28 @@ class ModifierResolverTests(unittest.TestCase):
         self.assertIn(ResolutionStatus.RESOLVED, statuses)
         self.assertIn(ResolutionStatus.UNRESOLVED, statuses)
 
-    def test_quiver_6_has_honest_zero_resolution_coverage_with_current_dataset(self):
+    def test_quiver_6_has_partial_resolution_coverage_with_current_dataset(self):
         parsed_item = parse_clipboard_item(fixture("quiver_6_crafted_desecrated_advanced.txt")).item
         assert parsed_item is not None
 
         enrichment = enrich_item(parsed_item, self.repo, self.dataset.dataset_version)
-
         resolved = [
             resolution
             for resolution in enrichment.modifier_resolutions
             if resolution.status == ResolutionStatus.RESOLVED
         ]
-        self.assertEqual(len(resolved), 0)
+
+        self.assertEqual(len(resolved), 6)
         self.assertEqual(len(enrichment.modifier_resolutions), len(parsed_item.modifiers))
+
+    def test_rare_fixture_coverage_is_measured_honestly(self):
+        rows = collect_coverage(FIXTURE_DIR, NORMALIZED_PATH, DATASET_VERSION)
+        by_fixture = {row.fixture: row for row in rows}
+
+        self.assertEqual(by_fixture["quiver_1_rare_standard_advanced.txt"].explicit_resolved, 6)
+        self.assertEqual(by_fixture["quiver_5_rare_corrupted_advanced.txt"].explicit_resolved, 1)
+        self.assertEqual(by_fixture["quiver_6_crafted_desecrated_advanced.txt"].explicit_resolved, 6)
+        self.assertIn("Consistent", by_fixture["quiver_5_rare_corrupted_advanced.txt"].unresolved_modifiers)
 
 
 def synthetic_ambiguous_dataset() -> NormalizedGameDataSet:

@@ -7,11 +7,186 @@
     "game": "Path of Exile 2",
     "game_version": null,
     "locale": "us",
-    "checksum": "research-fixture-needs-review",
+    "checksum": "task5c-quiver-fixture-v1",
     "verification_status": "NEEDS_VERIFICATION",
     "notes": "Manual research fixture. PoE2DB is not official; licensing and bulk normalized storage need review."
   },
   "records": [
+    {
+      "source_record_key": "43bf418406f177bd4f06801fa628ec9df403c32c6abf0902b69732390ca496d4",
+      "source_uri": "https://poe2db.tw/cache2/us/Poe_Data_Mods_hover/43bf418406f177bd4f06801fa628ec9df403c32c6abf0902b69732390ca496d4",
+      "retrieved_at": "2026-08-11T00:00:00+02:00",
+      "display_name": "Shocking",
+      "family": "LightningDamage",
+      "domain": "Item",
+      "generation_type": "Prefix",
+      "required_level": 60,
+      "tier": "3",
+      "stats": [
+        {"text": "attack maximum added lightning damage", "min": 41, "max": 47, "scope": "Global"},
+        {"text": "attack minimum added lightning damage", "min": 1, "max": 2, "scope": "Global"}
+      ],
+      "spawn_tags": {"ring": 1, "gloves": 1, "quiver": 1, "default": 0},
+      "craft_tags": ["elemental_damage", "damage", "elemental", "lightning", "attack"],
+      "notes": ["Source record key is a locator, not a verified permanent canonical game-data ID."]
+    },
+    {
+      "source_record_key": "7b65c79b1413418df7f429251681647e50af55b512ec9b4071a73c5784e16549",
+      "source_uri": "https://poe2db.tw/cache2/us/Poe_Data_Mods_hover/7b65c79b1413418df7f429251681647e50af55b512ec9b4071a73c5784e16549",
+      "retrieved_at": "2026-08-11T00:00:00+02:00",
+      "display_name": "Annealed",
+      "family": "PhysicalDamage",
+      "domain": "Item",
+      "generation_type": "Prefix",
+      "required_level": 54,
+      "tier": "4",
+      "stats": [
+        {"text": "attack maximum added physical damage", "min": 12, "max": 17, "scope": "Global"},
+        {"text": "attack minimum added physical damage", "min": 6, "max": 10, "scope": "Global"}
+      ],
+      "spawn_tags": {"ring": 1, "gloves": 1, "quiver": 1, "default": 0},
+      "craft_tags": ["physical_damage", "Damage", "Physical", "Attack"],
+      "notes": ["Source record key is a locator, not a verified permanent canonical game-data ID."]
+    },
+    {
+      "source_record_key": "abe3aee0fab146819360eb457fc26207a8e78192472994bedaf5139dfdf296e9",
+      "source_uri": "https://poe2db.tw/cache2/us/Poe_Data_Mods_hover/abe3aee0fab146819360eb457fc26207a8e78192472994bedaf5139dfdf296e9",
+      "retrieved_at": "2026-08-11T00:00:00+02:00",
+      "display_name": "Frozen",
+      "family": "ColdDamage",
+      "domain": "Item",
+      "generation_type": "Prefix",
+      "required_level": 54,
+      "tier": "4",
+      "stats": [
+        {"text": "attack maximum added cold damage", "min": 18, "max": 21, "scope": "Global"},
+        {"text": "attack minimum added cold damage", "min": 11, "max": 13, "scope": "Global"}
+      ],
+      "spawn_tags": {"ring": 1, "gloves": 1, "quiver": 1, "default": 0},
+      "craft_tags": ["elemental_damage", "Damage", "Elemental", "Cold", "Attack"],
+      "notes": ["Source record key is a locator, not a verified permanent canonical game-data ID."]
+    },
+    {
+      "source_record_key": "50cdb9041766274f9d1b293f3ed52c1c26a5174d0a0ca0f7c72c5cb30bbada85",
+      "source_uri": "https://poe2db.tw/cache2/us/Poe_Data_Mods_hover/50cdb9041766274f9d1b293f3ed52c1c26a5174d0a0ca0f7c72c5cb30bbada85",
+      "retrieved_at": "2026-08-11T00:00:00+02:00",
+      "display_name": "of the Falcon",
+      "family": "Dexterity",
+      "domain": "Item",
+      "generation_type": "Suffix",
+      "required_level": 33,
+      "tier": "5",
+      "stats": [
+        {"text": "additional dexterity", "min": 17, "max": 20, "scope": "Global"}
+      ],
+      "spawn_tags": {"ring": 1, "amulet": 1, "gloves": 1, "quiver": 1, "dex_armour": 1, "dex_int_armour": 1, "str_dex_armour": 1, "str_dex_int_armour": 1, "sword": 1, "spear": 1, "claw": 1, "warstaff": 1, "dagger": 1, "bow": 1, "crossbow": 1, "trap": 1, "default": 0},
+      "craft_tags": ["Attribute"],
+      "notes": ["Source record key is a locator, not a verified permanent canonical game-data ID."]
+    },
+    {
+      "source_record_key": "43466937444733d4180772def4ddc20ce82ffe3ad8053a4fe66d9d351efd21e0",
+      "source_uri": "https://poe2db.tw/cache2/us/Poe_Data_Mods_hover/43466937444733d4180772def4ddc20ce82ffe3ad8053a4fe66d9d351efd21e0",
+      "retrieved_at": "2026-08-11T00:00:00+02:00",
+      "display_name": "of Valour",
+      "family": "LifeGainedFromEnemyDeath",
+      "domain": "Item",
+      "generation_type": "Suffix",
+      "required_level": 55,
+      "tier": "1",
+      "stats": [
+        {"text": "base life gained on enemy death", "min": 41, "max": 53, "scope": "Global"}
+      ],
+      "spawn_tags": {"weapon": 1, "wand": 1, "staff": 1, "ring": 1, "gloves": 1, "quiver": 1, "trap": 1, "default": 0},
+      "craft_tags": ["resource", "Life"],
+      "notes": ["Source record key is a locator, not a verified permanent canonical game-data ID."]
+    },
+    {
+      "source_record_key": "480181879a148e5b146facbf72173cfe3df43cd522866befe92933b77e72c10e",
+      "source_uri": "https://poe2db.tw/cache2/us/Poe_Data_Mods_hover/480181879a148e5b146facbf72173cfe3df43cd522866befe92933b77e72c10e",
+      "retrieved_at": "2026-08-11T00:00:00+02:00",
+      "display_name": "of Infusion",
+      "family": "ManaGainedFromEnemyDeath",
+      "domain": "Item",
+      "generation_type": "Suffix",
+      "required_level": 23,
+      "tier": "4",
+      "stats": [
+        {"text": "base mana gained on enemy death", "min": 6, "max": 9, "scope": "Global"}
+      ],
+      "spawn_tags": {"weapon": 1, "wand": 1, "staff": 1, "ring": 1, "gloves": 1, "quiver": 1, "trap": 1, "default": 0},
+      "craft_tags": ["resource", "Mana"],
+      "notes": ["Source record key is a locator, not a verified permanent canonical game-data ID."]
+    },
+    {
+      "source_record_key": "88497ef0797750023a53e2fcb153dc9320702c688a8164b9a6d9e8f23a3a9cfb",
+      "source_uri": "https://poe2db.tw/cache2/us/Poe_Data_Mods_hover/88497ef0797750023a53e2fcb153dc9320702c688a8164b9a6d9e8f23a3a9cfb",
+      "retrieved_at": "2026-08-11T00:00:00+02:00",
+      "display_name": "Glaciated",
+      "family": "ColdDamage",
+      "domain": "Item",
+      "generation_type": "Prefix",
+      "required_level": 60,
+      "tier": "3",
+      "stats": [
+        {"text": "attack maximum added cold damage", "min": 22, "max": 24, "scope": "Global"},
+        {"text": "attack minimum added cold damage", "min": 14, "max": 15, "scope": "Global"}
+      ],
+      "spawn_tags": {"ring": 1, "gloves": 1, "quiver": 1, "default": 0},
+      "craft_tags": ["elemental_damage", "damage", "elemental", "cold", "attack"],
+      "notes": ["Source record key is a locator, not a verified permanent canonical game-data ID."]
+    },
+    {
+      "source_record_key": "6dddd69fe4dde4fdc7b32323c674ca913565d6ae26c7b57bd9934493c44230bb",
+      "source_uri": "https://poe2db.tw/cache2/us/Poe_Data_Mods_hover/6dddd69fe4dde4fdc7b32323c674ca913565d6ae26c7b57bd9934493c44230bb",
+      "retrieved_at": "2026-08-11T00:00:00+02:00",
+      "display_name": "Polished",
+      "family": "PhysicalDamage",
+      "domain": "Item",
+      "generation_type": "Prefix",
+      "required_level": 16,
+      "tier": "7",
+      "stats": [
+        {"text": "attack maximum added physical damage", "min": 5, "max": 8, "scope": "Global"},
+        {"text": "attack minimum added physical damage", "min": 2, "max": 4, "scope": "Global"}
+      ],
+      "spawn_tags": {"ring": 1, "gloves": 1, "quiver": 1, "default": 0},
+      "craft_tags": ["physical_damage", "Damage", "Physical", "Attack"],
+      "notes": ["Source record key is a locator, not a verified permanent canonical game-data ID."]
+    },
+    {
+      "source_record_key": "1ccb945734255792a026f9abfe969f3f9092f0bbcceed3e3abef0158fe4db40c",
+      "source_uri": "https://poe2db.tw/cache2/us/Poe_Data_Mods_hover/1ccb945734255792a026f9abfe969f3f9092f0bbcceed3e3abef0158fe4db40c",
+      "retrieved_at": "2026-08-11T00:00:00+02:00",
+      "display_name": "Rapid",
+      "family": "ProjectileSpeed",
+      "domain": "Item",
+      "generation_type": "Prefix",
+      "required_level": 55,
+      "tier": "2",
+      "stats": [
+        {"text": "base projectile speed +%", "min": 34, "max": 41, "scope": "Global"}
+      ],
+      "spawn_tags": {"quiver": 1, "default": 0},
+      "craft_tags": ["Speed"],
+      "notes": ["Source record key is a locator, not a verified permanent canonical game-data ID."]
+    },
+    {
+      "source_record_key": "f2bc51ff97ad2d19cac0130a8f7b0edee144cccb36de500674a4ff502401d973",
+      "source_uri": "https://poe2db.tw/cache2/us/Poe_Data_Mods_hover/f2bc51ff97ad2d19cac0130a8f7b0edee144cccb36de500674a4ff502401d973",
+      "retrieved_at": "2026-08-11T00:00:00+02:00",
+      "display_name": "of the Archer",
+      "family": "IncreaseSocketedGemLevel",
+      "domain": "Item",
+      "generation_type": "Suffix",
+      "required_level": 5,
+      "tier": "1",
+      "stats": [
+        {"text": "projectile skill gem level +", "min": 1, "max": 1, "scope": "Global"}
+      ],
+      "spawn_tags": {"quiver": 1, "amulet": 1, "default": 0},
+      "craft_tags": [],
+      "notes": ["Source record key is a locator, not a verified permanent canonical game-data ID."]
+    },
     {
       "source_record_key": "3ac5789a09e2d27363a60b889aa4dedc668f8e920fb1109617905b626ad921db",
       "source_uri": "https://poe2db.tw/cache2/us/Poe_Data_Mods_hover/3ac5789a09e2d27363a60b889aa4dedc668f8e920fb1109617905b626ad921db",
@@ -23,23 +198,117 @@
       "required_level": 37,
       "tier": "2",
       "stats": [
-        {
-          "text": "attack speed +%",
-          "min": 11,
-          "max": 13,
-          "scope": "Global"
-        }
+        {"text": "attack speed +%", "min": 11, "max": 13, "scope": "Global"}
       ],
-      "spawn_tags": {
-        "gloves": 1,
-        "quiver": 1,
-        "default": 0
-      },
+      "spawn_tags": {"gloves": 1, "quiver": 1, "default": 0},
       "craft_tags": ["Attack", "Speed"],
       "notes": [
         "Source record key is a locator, not a verified permanent canonical game-data ID.",
-        "Weights are intentionally not imported in Task 5B."
+        "Weights are intentionally not imported."
       ]
+    },
+    {
+      "source_record_key": "739ecdca0dcf68f666a63b6e4d3a5c1c503f34eb95c6e722906c12cd1570bc79",
+      "source_uri": "https://poe2db.tw/cache2/us/Poe_Data_Mods_hover/739ecdca0dcf68f666a63b6e4d3a5c1c503f34eb95c6e722906c12cd1570bc79",
+      "retrieved_at": "2026-08-11T00:00:00+02:00",
+      "display_name": "of the Panther",
+      "family": "Dexterity",
+      "domain": "Item",
+      "generation_type": "Suffix",
+      "required_level": 44,
+      "tier": "4",
+      "stats": [
+        {"text": "additional dexterity", "min": 21, "max": 24, "scope": "Global"}
+      ],
+      "spawn_tags": {"ring": 1, "amulet": 1, "gloves": 1, "quiver": 1, "dex_armour": 1, "dex_int_armour": 1, "str_dex_armour": 1, "str_dex_int_armour": 1, "sword": 1, "spear": 1, "claw": 1, "warstaff": 1, "dagger": 1, "bow": 1, "crossbow": 1, "trap": 1, "default": 0},
+      "craft_tags": ["Attribute"],
+      "notes": ["Source record key is a locator, not a verified permanent canonical game-data ID."]
+    },
+    {
+      "source_record_key": "b8ec542bdb30885a212c771085278717ff0373a907f6ab5f708931b108f59126",
+      "source_uri": "https://poe2db.tw/cache2/us/Poe_Data_Mods_hover/b8ec542bdb30885a212c771085278717ff0373a907f6ab5f708931b108f59126",
+      "retrieved_at": "2026-08-11T00:00:00+02:00",
+      "display_name": "Entombing",
+      "family": "ColdDamage",
+      "domain": "Item",
+      "generation_type": "Prefix",
+      "required_level": 75,
+      "tier": "1",
+      "stats": [
+        {"text": "attack maximum added cold damage", "min": 32, "max": 37, "scope": "Global"},
+        {"text": "attack minimum added cold damage", "min": 21, "max": 24, "scope": "Global"}
+      ],
+      "spawn_tags": {"ring": 1, "gloves": 1, "quiver": 1, "default": 0},
+      "craft_tags": ["elemental_damage", "Damage", "Elemental", "Cold", "Attack"],
+      "notes": ["Source record key is a locator, not a verified permanent canonical game-data ID."]
+    },
+    {
+      "source_record_key": "47aeda5436f9a7875b563179ac3b1a4482e1935f0d3e38afb51965a1f0e579fb",
+      "source_uri": "https://poe2db.tw/cache2/us/Poe_Data_Mods_hover/47aeda5436f9a7875b563179ac3b1a4482e1935f0d3e38afb51965a1f0e579fb",
+      "retrieved_at": "2026-08-11T00:00:00+02:00",
+      "display_name": "Nimble",
+      "family": "ProjectileSpeed",
+      "domain": "Item",
+      "generation_type": "Prefix",
+      "required_level": 82,
+      "tier": "1",
+      "stats": [
+        {"text": "base projectile speed +%", "min": 42, "max": 46, "scope": "Global"}
+      ],
+      "spawn_tags": {"quiver": 1, "default": 0},
+      "craft_tags": ["Speed"],
+      "notes": ["Source record key is a locator, not a verified permanent canonical game-data ID."]
+    },
+    {
+      "source_record_key": "f4188ebc5197bf991604cbc7d71129cd9f35f5bf8ef7bc5a7970a57dc2e0d1b0",
+      "source_uri": "https://poe2db.tw/cache2/us/Poe_Data_Mods_hover/f4188ebc5197bf991604cbc7d71129cd9f35f5bf8ef7bc5a7970a57dc2e0d1b0",
+      "retrieved_at": "2026-08-11T00:00:00+02:00",
+      "display_name": "Lacerating",
+      "family": "DamageWithWeaponTypeSkill",
+      "domain": "Item",
+      "generation_type": "Prefix",
+      "required_level": 60,
+      "tier": "2",
+      "stats": [
+        {"text": "damage +% with bow skills", "min": 43, "max": 50, "scope": "Global"}
+      ],
+      "spawn_tags": {"quiver": 1, "default": 0},
+      "craft_tags": ["Damage"],
+      "notes": ["Source record key is a locator, not a verified permanent canonical game-data ID."]
+    },
+    {
+      "source_record_key": "b5f3a0cbcb09325b98d62e2abe7e251c1e6a731656242797434319efe0ceace3",
+      "source_uri": "https://poe2db.tw/cache2/us/Poe_Data_Mods_hover/b5f3a0cbcb09325b98d62e2abe7e251c1e6a731656242797434319efe0ceace3",
+      "retrieved_at": "2026-08-11T00:00:00+02:00",
+      "display_name": "of Destruction",
+      "family": "CriticalStrikeMultiplier",
+      "domain": "Item",
+      "generation_type": "Suffix",
+      "required_level": 74,
+      "tier": "1",
+      "stats": [
+        {"text": "attack critical strike multiplier +", "min": 35, "max": 39, "scope": "Global"}
+      ],
+      "spawn_tags": {"quiver": 1, "default": 0},
+      "craft_tags": ["Attack", "Critical"],
+      "notes": ["Source record key is a locator, not a verified permanent canonical game-data ID."]
+    },
+    {
+      "source_record_key": "55641ff7d5f9752d8fc0c06fa56f151a57518a2f97dcb24a4e154a6a18304ac9",
+      "source_uri": "https://poe2db.tw/cache2/us/Poe_Data_Mods_hover/55641ff7d5f9752d8fc0c06fa56f151a57518a2f97dcb24a4e154a6a18304ac9",
+      "retrieved_at": "2026-08-11T00:00:00+02:00",
+      "display_name": "of Calamity",
+      "family": "CriticalStrikeChanceIncrease",
+      "domain": "Item",
+      "generation_type": "Suffix",
+      "required_level": 44,
+      "tier": "3",
+      "stats": [
+        {"text": "attack critical strike chance +%", "min": 25, "max": 29, "scope": "Global"}
+      ],
+      "spawn_tags": {"quiver": 1, "default": 0},
+      "craft_tags": ["Attack", "Critical"],
+      "notes": ["Source record key is a locator, not a verified permanent canonical game-data ID."]
     }
   ]
 }

@@ -344,7 +344,7 @@ def _provenance_from_json(data: dict[str, Any]) -> DataProvenance:
 
 
 def _dataset_version(snapshot: GameDataSnapshot) -> str:
-    hash_part = (snapshot.checksum or hashlib.sha256(snapshot.snapshot_id.encode("utf-8")).hexdigest())[:12]
+    hash_part = (snapshot.checksum or hashlib.sha256(snapshot.snapshot_id.encode("utf-8")).hexdigest())[:13]
     date_part = snapshot.retrieved_at.date().isoformat() if snapshot.retrieved_at else "unknown-date"
     game_version = snapshot.game_context.game_version if snapshot.game_context and snapshot.game_context.game_version else "unknown-version"
     return f"{snapshot.source}-{game_version}-{date_part}-{hash_part}"

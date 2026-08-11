@@ -1,6 +1,6 @@
 # Game Data Import
 
-Task 5B implements the first offline, fixture-backed game-data pipeline. It proves modifier resolution without runtime scraping, valuation, crafting simulation, economy data, modifier weights, or meta scoring.
+Task 5B implemented the first offline, fixture-backed game-data pipeline. Task 5C expands it with a larger source-backed Quiver modifier fixture set. The pipeline proves modifier resolution without runtime scraping, valuation, crafting simulation, economy data, modifier weights, or meta scoring.
 
 ## Pipeline
 
@@ -56,11 +56,23 @@ The hash input includes game, domain, modifier family, generation type, tier, no
 
 ## Current Coverage
 
-The fixture dataset contains one source-backed Quiver-applicable record:
+The Task 5C fixture dataset contains 17 source-backed Quiver-applicable records across 12 normalized modifier families. Dataset version:
 
-- `of Mastery`, Suffix, Tier 2, `11-13% increased Attack Speed`
+```text
+poe2db-unknown-version-2026-08-11-task5c-quiver
+```
 
-All other Quiver fixture modifiers remain unresolved until source-backed raw records are added.
+See [QUIVER_DATASET_STATUS.md](QUIVER_DATASET_STATUS.md) for coverage, unresolved modifiers, and dataset quality notes.
+
+## Regeneration
+
+Regenerate normalized JSON from raw fixtures with:
+
+```bash
+python -m packages.shared.donniecraftshell_contracts.normalize_game_data data/raw/poe2db/quiver-modifiers-research-2026-08-11/raw_modifiers.json --out-root data/normalized
+```
+
+This command performs no network I/O.
 
 ## Validation
 
@@ -68,4 +80,4 @@ Dataset loading fails on duplicate canonical IDs, missing snapshot/dataset ident
 
 ## Future Imports
 
-A later Task 5C can expand the raw snapshot set manually or through an offline importer. The same normalizer and repository boundaries should remain in place so the runtime application never depends on PoE2DB availability.
+A later task can expand the raw snapshot set manually or through an offline importer. The same normalizer and repository boundaries should remain in place so the runtime application never depends on PoE2DB availability.

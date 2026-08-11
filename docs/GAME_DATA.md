@@ -37,7 +37,7 @@ data/research/
 
 Raw source snapshots should be immutable where practical. Normalized data should be generated from raw snapshots. Runtime code should read normalized data or database records, not scrape community pages per user request.
 
-Task 5B implements the first offline JSON-backed version of this flow. See [GAME_DATA_IMPORT.md](GAME_DATA_IMPORT.md) for the raw schema, normalized schema, validation rules, canonical ID strategy, and current fixture coverage.
+Task 5B implements the first offline JSON-backed version of this flow, and Task 5C expands the Quiver modifier fixture set. See [GAME_DATA_IMPORT.md](GAME_DATA_IMPORT.md) for the raw schema, normalized schema, validation rules, canonical ID strategy, and current fixture coverage. See [QUIVER_DATASET_STATUS.md](QUIVER_DATASET_STATUS.md) for measured resolver coverage.
 
 ## Versioning
 

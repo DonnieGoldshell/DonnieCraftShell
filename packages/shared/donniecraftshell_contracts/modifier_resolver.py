@@ -28,6 +28,17 @@ class CanonicalModifierResolver(ModifierResolver):
         modifier: ItemModifier,
         snapshot: GameDataSnapshot | None = None,
     ) -> ModifierResolution:
+        if not modifier.display_name and not modifier.tier:
+            return ModifierResolution(
+                parsed_modifier=modifier,
+                status=ResolutionStatus.UNRESOLVED,
+                confidence=Confidence(
+                    Decimal("0"),
+                    ConfidenceLevel.LOW,
+                    reasons=("Structured display name or tier evidence is required for canonical resolution.",),
+                ),
+                warnings=("Insufficient structured modifier identity; no broad dataset search attempted.",),
+            )
         candidates = self.repository.candidates_for_modifier(
             self.dataset_version,
             parsed_item.item_class,
@@ -132,10 +143,18 @@ def _ranges_match(observed: tuple[RollValue, ...], canonical: tuple[RollValue, .
         return True, "range evidence unavailable or not required"
     if len(observed_ranges) != len(canonical):
         return False, "range count mismatch"
-    for parsed_roll, canonical_roll in zip(observed_ranges, canonical):
-        if parsed_roll.min_value != canonical_roll.min_value or parsed_roll.max_value != canonical_roll.max_value:
-            return False, "displayed range conflicts with canonical range"
+    parsed_ranges = sorted(_range_pair(roll) for roll in observed_ranges)
+    canonical_ranges = sorted(_range_pair(roll) for roll in canonical)
+    if parsed_ranges != canonical_ranges:
+        return False, "displayed range conflicts with canonical range"
     return True, "displayed range matched"
+
+
+def _range_pair(roll: RollValue) -> tuple[str, str]:
+    return (
+        str(roll.min_value) if roll.min_value is not None else "",
+        str(roll.max_value) if roll.max_value is not None else "",
+    )
 
 
 def _tags_reason(observed_tags: tuple[str, ...], canonical_tags: tuple[str, ...]) -> str:
