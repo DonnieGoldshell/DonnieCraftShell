@@ -12,6 +12,7 @@ from typing import Mapping
 from .domain import (
     AdvisorRecommendation,
     BankrollContext,
+    ClipboardFormat,
     CraftAction,
     CraftSession,
     EconomyQuote,
@@ -58,6 +59,9 @@ class ParseItemRequest:
 @dataclass(frozen=True)
 class ParseItemResponse:
     item: ParsedItem | None
+    detected_format: ClipboardFormat = ClipboardFormat.UNKNOWN
+    warnings: tuple[str, ...] = ()
+    unparsed_sections: tuple[str, ...] = ()
     error: ApiError | None = None
 
 

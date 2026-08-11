@@ -1,0 +1,30 @@
+Item Class: Quivers
+Rarity: Unique
+Murkshaft
+Toxic Quiver
+--------
+Requires: Level 39
+--------
+Item Level: 80
+--------
+{ Implicit Modifier — Chaos, Attack, Ailment }
+25(20-30)% chance to Poison on Hit with Attacks
+--------
+Grants Skill: Level 18 Bursting Fen Toad
+--------
+{ Unique Modifier — Damage, Physical, Attack }
+Adds 9(6-10) to 17(13-17) Physical Damage to Attacks
+{ Unique Modifier — Mana }
+Gain 13(10-15) Mana per enemy killed
+{ Unique Modifier — Chaos, Ailment }
+16(10-20)% increased Poison Duration
+{ Unique Modifier — Chaos, Attack, Ailment }
+27(20-30)% chance to Poison on Hit with Attacks
+{ Unique Modifier }
+Blind Targets when you Poison them — Unscalable Value
+--------
+"Boiling frogs isn't for spells, dear. That's a disgusting
+rumour. They're actually for brewing poisons."
+- Selassie of the Black Fen
+--------
+Can only be equipped if you are wielding a Bow.

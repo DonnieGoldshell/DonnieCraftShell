@@ -1,0 +1,30 @@
+Item Class: Quivers
+Rarity: Rare
+Grim Impaler
+Visceral Quiver
+--------
+Requires: Level 64
+--------
+Item Level: 66
+--------
+{ Implicit Modifier — Attack, Critical }
+25(20-30)% increased Critical Hit Chance for Attacks
+--------
+{ Prefix Modifier "Annealed" (Tier: 4) — Damage, Physical, Attack }
+Adds 10(6-10) to 12(12-17) Physical Damage to Attacks
+{ Prefix Modifier "Consistent" (Tier: 5) — Attack }
++156(124-167) to Accuracy Rating
+{ Prefix Modifier "Humming" (Tier: 9) — Damage, Elemental, Lightning, Attack }
+Adds 1 to 6(4-6) Lightning damage to Attacks
+{ Suffix Modifier "of the Fox" (Tier: 6) — Attribute }
++16(13-16) to Dexterity
+{ Suffix Modifier "of Victory" (Tier: 5) — Life }
+Gain 9(7-9) Life per enemy killed
+{ Suffix Modifier "of Disaster" (Tier: 4) — Attack, Critical }
+20(20-24)% increased Critical Hit Chance for Attacks
+--------
+Can only be equipped if you are wielding a Bow.
+--------
+Corrupted
+--------
+Note: ~b/o 1 transmute

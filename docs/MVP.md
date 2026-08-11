@@ -33,6 +33,7 @@ PASTE QUIVER
 - The Advisor must never recommend crafting only because improvement is possible.
 - Recommendations must include the economic reason, uncertainty, and comparison against selling.
 - Any unverified PoE2 rule or data point must be marked `NEEDS VERIFICATION`.
+- The MVP parser should prefer PoE2 Advanced Copy because it exposes modifier metadata. Normal Copy may parse with lower confidence and incomplete modifier metadata.
 
 ## MVP Boundaries
 

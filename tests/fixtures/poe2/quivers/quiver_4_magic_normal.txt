@@ -1,0 +1,16 @@
+Item Class: Quivers
+Rarity: Magic
+Lacerating Penetrating Quiver of Valour
+--------
+Requires: Level 55
+--------
+Item Level: 73
+--------
+100% chance to Pierce an Enemy (implicit)
+--------
+43% increased Damage with Bow Skills
+Gain 41 Life per enemy killed
+--------
+Can only be equipped if you are wielding a Bow.
+--------
+Note: ~b/o 1 transmute

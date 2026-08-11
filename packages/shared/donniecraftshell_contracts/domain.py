@@ -52,7 +52,34 @@ class AffixType(str, Enum):
     IMPLICIT = "IMPLICIT"
     ENCHANT = "ENCHANT"
     CORRUPTED = "CORRUPTED"
+    CORRUPTION_ENHANCEMENT = "CORRUPTION_ENHANCEMENT"
     UNKNOWN = "UNKNOWN"
+
+
+class ModifierOrigin(str, Enum):
+    NATURAL = "NATURAL"
+    CRAFTED = "CRAFTED"
+    DESECRATED = "DESECRATED"
+    FRACTURED = "FRACTURED"
+    UNIQUE = "UNIQUE"
+    CORRUPTION_ENHANCEMENT = "CORRUPTION_ENHANCEMENT"
+    IMPLICIT = "IMPLICIT"
+    OTHER = "OTHER"
+    UNKNOWN = "UNKNOWN"
+
+
+class ClipboardFormat(str, Enum):
+    ADVANCED = "ADVANCED"
+    NORMAL = "NORMAL"
+    UNKNOWN = "UNKNOWN"
+
+
+class ItemSpecialState(str, Enum):
+    CORRUPTED = "CORRUPTED"
+    TWICE_CORRUPTED = "TWICE_CORRUPTED"
+    FRACTURED = "FRACTURED"
+    SANCTIFIED = "SANCTIFIED"
+    OTHER = "OTHER"
 
 
 class RelevanceOrigin(str, Enum):
@@ -166,6 +193,8 @@ class ItemModifier:
     canonical_id: str | None = None
     normalized_text: str | None = None
     affix_type: AffixType = AffixType.UNKNOWN
+    origin: ModifierOrigin = ModifierOrigin.UNKNOWN
+    display_name: str | None = None
     family: str | None = None
     group: str | None = None
     tier: str | None = None
@@ -180,6 +209,8 @@ class ItemModifier:
 class AffixState:
     known_prefixes: tuple[ItemModifier, ...] = ()
     known_suffixes: tuple[ItemModifier, ...] = ()
+    observed_prefix_count: int | None = None
+    observed_suffix_count: int | None = None
     prefix_capacity: int | None = None
     suffix_capacity: int | None = None
     open_prefix_count: int | None = None
@@ -190,6 +221,8 @@ class AffixState:
         for name in (
             "prefix_capacity",
             "suffix_capacity",
+            "observed_prefix_count",
+            "observed_suffix_count",
             "open_prefix_count",
             "open_suffix_count",
         ):
@@ -203,17 +236,32 @@ class ParsedItem:
     analysis_id: str
     raw_clipboard_text: str
     game_context: GameContext
+    clipboard_format: ClipboardFormat = ClipboardFormat.UNKNOWN
     rarity: Rarity = Rarity.UNKNOWN
+    item_name: str | None = None
     item_class: str | None = None
     base_type: str | None = None
+    required_level: int | None = None
     item_level: int | None = None
     properties: Mapping[str, Any] = field(default_factory=dict)
     modifiers: tuple[ItemModifier, ...] = ()
+    implicit_modifiers: tuple[ItemModifier, ...] = ()
+    explicit_modifiers: tuple[ItemModifier, ...] = ()
+    special_modifiers: tuple[ItemModifier, ...] = ()
     affix_state: AffixState | None = None
+    special_states: tuple[ItemSpecialState, ...] = ()
+    granted_skills: tuple[str, ...] = ()
+    trade_note: str | None = None
+    equipment_restrictions: tuple[str, ...] = ()
+    raw_sections: tuple[str, ...] = ()
+    unparsed_lines: tuple[str, ...] = ()
+    warnings: tuple[str, ...] = ()
     parser_confidence: Confidence | None = None
     provenance: tuple[DataProvenance, ...] = ()
 
     def __post_init__(self) -> None:
+        if self.required_level is not None and self.required_level < 0:
+            raise ValueError("required_level cannot be negative")
         if self.item_level is not None and self.item_level < 0:
             raise ValueError("item_level cannot be negative")
 

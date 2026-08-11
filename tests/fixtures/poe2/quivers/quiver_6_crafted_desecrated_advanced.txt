@@ -1,0 +1,28 @@
+Item Class: Quivers
+Rarity: Rare
+Bramble Spike
+Primed Quiver
+--------
+Requires: Level 65
+--------
+Item Level: 82
+--------
+{ Implicit Modifier — Attack, Speed }
+7(7-10)% increased Attack Speed
+--------
+{ Prefix Modifier "Entombing" (Tier: 1) — Damage, Elemental, Cold, Attack }
+Adds 22(21-24) to 37(32-37) Cold damage to Attacks
+{ Prefix Modifier "Nimble" (Tier: 1) — Speed }
+42(42-46)% increased Projectile Speed
+{ Crafted Prefix Modifier "Lacerating" (Tier: 2) — Damage }
+49(43-50)% increased Damage with Bow Skills
+{ Suffix Modifier "of Destruction" (Tier: 1) — Damage, Attack, Critical }
+38(35-39)% increased Critical Damage Bonus for Attack Damage
+{ Suffix Modifier "of Calamity" (Tier: 3) — Attack, Critical }
+29(25-29)% increased Critical Hit Chance for Attacks
+{ Desecrated Suffix Modifier "of the Archer" (Tier: 1) }
++1 to Level of all Projectile Skills
+--------
+Can only be equipped if you are wielding a Bow.
+--------
+Note: ~b/o 100 divine

@@ -16,8 +16,9 @@ The initial executable contracts live in `packages/shared/donniecraftshell_contr
 - `EconomicValue`: decimal-safe normalized value where `1 Exalted Orb = 1 economic unit`.
 - `CurrencyAmount`: native asset amount plus optional normalized economic value.
 - `ParsedItem`: normalized clipboard-derived item state with raw text, game context, rarity, item class, base type, item level, flexible properties, modifiers, affix state, confidence, and provenance.
-- `ItemModifier`: raw and normalized modifier text, optional canonical ID, affix type, group/family, tier, rolls, tags, confidence, and provenance.
-- `AffixState`: known prefixes/suffixes, optional capacities and open counts, and uncertainty. Unknown capacity remains `None`.
+- `ParsedItem`: also carries detected clipboard format, item name, required level, implicit/explicit/special modifier groupings, special states, granted skills, trade note, equipment restrictions, raw sections, unparsed lines, and parser warnings.
+- `ItemModifier`: raw and normalized modifier text, optional canonical ID, affix type, modifier origin, display name, group/family, tier, rolls, tags, confidence, and provenance.
+- `AffixState`: known prefixes/suffixes, observed prefix/suffix counts, optional capacities and open counts, and uncertainty. Unknown capacity remains `None`.
 - `ModifierRelevance`: relevance separated from objective modifier data, with origin as verified, derived/statistical, or curated.
 - `EconomyQuote`: league-specific normalized price, native pair/rate, timestamp, volume, confidence, and provenance.
 - `Valuation`: estimate, plausible low/high range, confidence, comparable count, comparable strategy, timestamp, and provenance.
@@ -31,6 +32,8 @@ The initial executable contracts live in `packages/shared/donniecraftshell_contr
 ## Unknown Data
 
 Unknown values must be represented as `None` or explicit `NEEDS_VERIFICATION` status. Do not infer modifier tiers, probabilities, crafting legality, or source quality from display text alone.
+
+Clipboard parsing may extract displayed values and displayed ranges, but it must not enrich with external game data or infer missing metadata. See [ITEM_PARSER.md](ITEM_PARSER.md).
 
 ## Boundaries
 

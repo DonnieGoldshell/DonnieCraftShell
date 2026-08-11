@@ -1,0 +1,28 @@
+Item Class: Quivers
+Rarity: Rare
+Vengeance Spike
+Broadhead Quiver
+--------
+Requires: Level 48
+--------
+Item Level: 63
+--------
+{ Implicit Modifier — Damage, Physical, Attack }
+Adds 1 to 3 Physical Damage to Attacks
+--------
+{ Prefix Modifier "Glaciated" (Tier: 3) — Damage, Elemental, Cold, Attack }
+Adds 15(14-15) to 24(22-24) Cold damage to Attacks
+{ Prefix Modifier "Polished" (Tier: 7) — Damage, Physical, Attack }
+Adds 3(2-4) to 6(5-8) Physical Damage to Attacks
+{ Prefix Modifier "Rapid" (Tier: 2) — Speed }
+37(34-41)% increased Projectile Speed
+{ Suffix Modifier "of the Archer" (Tier: 1) }
++1 to Level of all Projectile Skills
+{ Suffix Modifier "of Mastery" (Tier: 2) — Attack, Speed }
+13(11-13)% increased Attack Speed
+{ Suffix Modifier "of the Panther" (Tier: 4) — Attribute }
++21(21-24) to Dexterity
+--------
+Can only be equipped if you are wielding a Bow.
+--------
+Note: ~b/o 1 divine

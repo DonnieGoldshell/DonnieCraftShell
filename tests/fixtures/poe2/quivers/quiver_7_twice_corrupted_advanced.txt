@@ -1,0 +1,35 @@
+Item Class: Quivers
+Rarity: Rare
+Spirit Impaler
+Visceral Quiver
+--------
+Requires: Level 64
+--------
+Item Level: 81
+--------
+{ Corruption Enhancement — Mana }
++23(20-25) to maximum Mana
+{ Corruption Enhancement — Life }
+Gain 22(20-25) Life per enemy killed
+--------
+{ Implicit Modifier — Attack, Critical }
+25(20-30)% increased Critical Hit Chance for Attacks
+--------
+{ Prefix Modifier "Sparking" (Tier: 5) — Damage, Elemental, Lightning, Attack }
+Adds 1 to 32(28-32) Lightning damage to Attacks
+{ Prefix Modifier "Impaling" (Tier: 1) — Damage }
+51(51-59)% increased Damage with Bow Skills
+{ Prefix Modifier "Honed" (Tier: 6) — Damage, Physical, Attack }
+Adds 4(4-6) to 8(8-11) Physical Damage to Attacks
+{ Suffix Modifier "of Disaster" (Tier: 4) — Attack, Critical }
+22(20-24)% increased Critical Hit Chance for Attacks
+{ Suffix Modifier "of Splintering" (Tier: 1) — Attack }
++50(41-60)% Surpassing chance to fire an additional Arrow
+{ Suffix Modifier "of the Falcon" (Tier: 5) — Attribute }
++18(17-20) to Dexterity
+--------
+Can only be equipped if you are wielding a Bow.
+--------
+Twice Corrupted
+--------
+Note: ~b/o 4 chaos

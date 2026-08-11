@@ -1,0 +1,13 @@
+Item Class: Quivers
+Rarity: Normal
+Blunt Quiver
+--------
+Requires: Level 32
+--------
+Item Level: 33
+--------
+40% increased Stun Buildup (implicit)
+--------
+Can only be equipped if you are wielding a Bow.
+--------
+Note: ~b/o 1 transmute

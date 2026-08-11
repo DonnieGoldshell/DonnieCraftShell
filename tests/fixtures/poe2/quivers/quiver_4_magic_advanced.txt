@@ -1,0 +1,19 @@
+Item Class: Quivers
+Rarity: Magic
+Lacerating Penetrating Quiver of Valour
+--------
+Requires: Level 55
+--------
+Item Level: 73
+--------
+{ Implicit Modifier }
+100% chance to Pierce an Enemy
+--------
+{ Prefix Modifier "Lacerating" (Tier: 2) — Damage }
+43(43-50)% increased Damage with Bow Skills
+{ Suffix Modifier "of Valour" (Tier: 1) — Life }
+Gain 41(41-53) Life per enemy killed
+--------
+Can only be equipped if you are wielding a Bow.
+--------
+Note: ~b/o 1 transmute

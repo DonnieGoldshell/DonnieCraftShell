@@ -31,6 +31,8 @@ POST /api/v1/sessions/{id}/steps
 
 All endpoints are contract placeholders. They must return explicit `NOT_IMPLEMENTED` responses until real behavior exists.
 
+Task 4 implements the first real behavior for `POST /api/v1/items/parse` only. All other endpoints remain placeholders for later tasks.
+
 ## Error Model
 
 Common API errors use:
