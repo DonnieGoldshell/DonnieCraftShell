@@ -63,6 +63,8 @@ Documented PoE2 exchange categories:
 
 Live Task 6A research confirmed all categories returned data for league `Runes of Aldur`. The Currency response used `core.primary = divine` and `core.secondary = chaos`; `core.rates.exalted = 338.2` and `core.rates.chaos = 8.15` in the sampled response. Currency also included `perfect-exalted-orb`.
 
+Task 6B captured a bounded offline Currency response for `Runes of Aldur` at `2026-08-11T13:10:57.2395462Z`. Automated tests and runtime normalization use this fixture only and do not call poe.show.
+
 Response concepts:
 
 - `lines[].id`: stable identifier within the overview.

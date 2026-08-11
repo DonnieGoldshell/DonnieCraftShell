@@ -1,0 +1,88 @@
+{
+  "source": "poe.show",
+  "snapshot_id": "economy-snapshot-019ff0f4-83a6-76a7-b304-8afe521778ff",
+  "source_uri": "https://poe.show/poe2/api/economy/exchange/current/overview?league=Runes%20of%20Aldur&type=Currency",
+  "retrieved_at": "2026-08-11T13:10:57.2395462Z",
+  "game": "Path of Exile 2",
+  "league": "Runes of Aldur",
+  "category": "Currency",
+  "response": {
+    "core": {
+      "items": [
+        {
+          "id": "divine",
+          "name": "Divine Orb",
+          "image": "/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3VycmVuY3kvQ3VycmVuY3lNb2RWYWx1ZXMiLCJzY2FsZSI6MSwicmVhbG0iOiJwb2UyIn1d/2986e220b3/CurrencyModValues.png",
+          "category": "Currency",
+          "detailsId": "divine-orb"
+        },
+        {
+          "id": "exalted",
+          "name": "Exalted Orb",
+          "image": "/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3VycmVuY3kvQ3VycmVuY3lBZGRNb2RUb1JhcmUiLCJzY2FsZSI6MSwicmVhbG0iOiJwb2UyIn1d/ad7c366789/CurrencyAddModToRare.png",
+          "category": "Currency",
+          "detailsId": "exalted-orb"
+        },
+        {
+          "id": "chaos",
+          "name": "Chaos Orb",
+          "image": "/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3VycmVuY3kvQ3VycmVuY3lSZXJvbGxSYXJlIiwic2NhbGUiOjEsInJlYWxtIjoicG9lMiJ9XQ/c0ca392a78/CurrencyRerollRare.png",
+          "category": "Currency",
+          "detailsId": "chaos-orb"
+        }
+      ],
+      "rates": {
+        "exalted": 338.2,
+        "chaos": 8.15
+      },
+      "primary": "divine",
+      "secondary": "chaos"
+    },
+    "lines": [
+      {
+        "id": "exalted",
+        "primaryValue": 0.002957,
+        "volumePrimaryValue": 4353,
+        "maxVolumeCurrency": "divine",
+        "maxVolumeRate": 338.2,
+        "sparkline": {
+          "totalChange": 13.95,
+          "data": [0.18, 2.38, 2.99, 4.52, 6.93, 14.29, 13.95]
+        }
+      },
+      {
+        "id": "greater-exalted-orb",
+        "primaryValue": 0.0164,
+        "volumePrimaryValue": 78.0,
+        "maxVolumeCurrency": "divine",
+        "maxVolumeRate": 60.98,
+        "sparkline": {
+          "totalChange": -12.1,
+          "data": [12.25, -5.74, -4.82, -14.89, -15.72, -17.67, -12.1]
+        }
+      },
+      {
+        "id": "divine",
+        "primaryValue": 1,
+        "volumePrimaryValue": 29510,
+        "maxVolumeCurrency": "chaos",
+        "maxVolumeRate": 0.1227,
+        "sparkline": {
+          "totalChange": 3.07,
+          "data": [-0.94, -1.12, -1.93, -2.3, -2.21, -0.71, 3.07]
+        }
+      },
+      {
+        "id": "perfect-exalted-orb",
+        "primaryValue": 2.63,
+        "volumePrimaryValue": 4366,
+        "maxVolumeCurrency": "divine",
+        "maxVolumeRate": 0.3799,
+        "sparkline": {
+          "totalChange": 0.55,
+          "data": [1.25, 1.12, 0.38, 0.07, 1.06, 1.1, 0.55]
+        }
+      }
+    ]
+  }
+}

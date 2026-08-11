@@ -69,6 +69,8 @@ Store raw imported data separately from normalized application data. Keep derive
 - Provenance requirements: endpoint, league ID/name, category, source line ID, observed/retrieved timestamps, cache metadata where available, source values, volume fields, and confidence/freshness.
 - Known limitations: no SLA or versioning guarantee, community source, may block excessive use, and must not be called directly from frontend or end-user machines.
 
+Task 6B uses one bounded offline Currency response from poe.show for `Runes of Aldur` captured at `2026-08-11T13:10:57.2395462Z`. Automated tests must use this fixture and must not depend on live network access.
+
 ### PoE2DB
 
 - Source type: community-maintained database / game-file presentation site.

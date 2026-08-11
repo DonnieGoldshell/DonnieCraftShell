@@ -42,6 +42,8 @@ The current FastAPI route serializes framework-independent dataclasses through a
 
 Economy endpoints should accept explicit `league` and optional `asset_id`, `category`, and timestamp-range query parameters. Responses should include normalized Exalted values, source, snapshot ID, observed/retrieved timestamps, freshness, volume where available, and warnings for missing, stale, or conflicting data. Missing prices must be represented as unavailable/unknown, never zero.
 
+Task 6B implements the framework-independent economy domain, adapter, normalizer, and repository first. `GET /api/v1/economy/current` remains deferred until API-layer Pydantic DTOs can map explicitly to `EconomyQuote` without leaking provider-specific payload fields.
+
 ## Error Model
 
 Common API errors use:

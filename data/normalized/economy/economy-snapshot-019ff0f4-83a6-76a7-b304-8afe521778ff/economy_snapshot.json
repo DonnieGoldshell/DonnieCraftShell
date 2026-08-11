@@ -1,0 +1,248 @@
+{
+  "snapshot_id": "economy-snapshot-019ff0f4-83a6-76a7-b304-8afe521778ff",
+  "provider": "poe.show",
+  "game": "Path of Exile 2",
+  "league": "Runes of Aldur",
+  "retrieved_at": "2026-08-11T13:10:57.239546+00:00",
+  "freshness": "FRESH",
+  "quotes": [
+    {
+      "asset_id": "dc:poe2:economy-asset:currency:exalted-orb",
+      "league": "Runes of Aldur",
+      "normalized_value": {
+        "amount": "1",
+        "unit": "EXALTED_ECONOMIC_UNIT"
+      },
+      "source_native_value": "0.002957",
+      "native_reference_asset_id": "dc:poe2:economy-asset:currency:divine-orb",
+      "source": "poe.show",
+      "snapshot_id": "economy-snapshot-019ff0f4-83a6-76a7-b304-8afe521778ff",
+      "observed_at": null,
+      "retrieved_at": "2026-08-11T13:10:57.239546+00:00",
+      "volume": "4353",
+      "confidence": {
+        "score": null,
+        "level": "MEDIUM",
+        "reasons": [
+          "Community economy source; confidence formula not implemented in Task 6B."
+        ],
+        "sample_size": null
+      },
+      "freshness": "FRESH",
+      "provenance": [
+        {
+          "source_id": "poe.show",
+          "source_type": "COMMUNITY",
+          "source_uri": "https://poe.show/poe2/api/economy/exchange/current/overview?league=Runes%20of%20Aldur&type=Currency",
+          "retrieved_at": "2026-08-11T13:10:57.239546+00:00",
+          "game_version": null,
+          "league": "Runes of Aldur",
+          "verification_status": "PROVISIONAL",
+          "confidence": {
+            "score": null,
+            "level": "MEDIUM",
+            "reasons": [
+              "Public community economy API; no SLA."
+            ],
+            "sample_size": null
+          },
+          "notes": "Offline captured poe.show Currency response for Task 6B."
+        }
+      ]
+    },
+    {
+      "asset_id": "dc:poe2:economy-asset:currency:greater-exalted-orb",
+      "league": "Runes of Aldur",
+      "normalized_value": {
+        "amount": "5.54648",
+        "unit": "EXALTED_ECONOMIC_UNIT"
+      },
+      "source_native_value": "0.0164",
+      "native_reference_asset_id": "dc:poe2:economy-asset:currency:divine-orb",
+      "source": "poe.show",
+      "snapshot_id": "economy-snapshot-019ff0f4-83a6-76a7-b304-8afe521778ff",
+      "observed_at": null,
+      "retrieved_at": "2026-08-11T13:10:57.239546+00:00",
+      "volume": "78.0",
+      "confidence": {
+        "score": null,
+        "level": "MEDIUM",
+        "reasons": [
+          "Community economy source; confidence formula not implemented in Task 6B."
+        ],
+        "sample_size": null
+      },
+      "freshness": "FRESH",
+      "provenance": [
+        {
+          "source_id": "poe.show",
+          "source_type": "COMMUNITY",
+          "source_uri": "https://poe.show/poe2/api/economy/exchange/current/overview?league=Runes%20of%20Aldur&type=Currency",
+          "retrieved_at": "2026-08-11T13:10:57.239546+00:00",
+          "game_version": null,
+          "league": "Runes of Aldur",
+          "verification_status": "PROVISIONAL",
+          "confidence": {
+            "score": null,
+            "level": "MEDIUM",
+            "reasons": [
+              "Public community economy API; no SLA."
+            ],
+            "sample_size": null
+          },
+          "notes": "Offline captured poe.show Currency response for Task 6B."
+        }
+      ]
+    },
+    {
+      "asset_id": "dc:poe2:economy-asset:currency:divine-orb",
+      "league": "Runes of Aldur",
+      "normalized_value": {
+        "amount": "338.2",
+        "unit": "EXALTED_ECONOMIC_UNIT"
+      },
+      "source_native_value": "1",
+      "native_reference_asset_id": "dc:poe2:economy-asset:currency:divine-orb",
+      "source": "poe.show",
+      "snapshot_id": "economy-snapshot-019ff0f4-83a6-76a7-b304-8afe521778ff",
+      "observed_at": null,
+      "retrieved_at": "2026-08-11T13:10:57.239546+00:00",
+      "volume": "29510",
+      "confidence": {
+        "score": null,
+        "level": "MEDIUM",
+        "reasons": [
+          "Community economy source; confidence formula not implemented in Task 6B."
+        ],
+        "sample_size": null
+      },
+      "freshness": "FRESH",
+      "provenance": [
+        {
+          "source_id": "poe.show",
+          "source_type": "COMMUNITY",
+          "source_uri": "https://poe.show/poe2/api/economy/exchange/current/overview?league=Runes%20of%20Aldur&type=Currency",
+          "retrieved_at": "2026-08-11T13:10:57.239546+00:00",
+          "game_version": null,
+          "league": "Runes of Aldur",
+          "verification_status": "PROVISIONAL",
+          "confidence": {
+            "score": null,
+            "level": "MEDIUM",
+            "reasons": [
+              "Public community economy API; no SLA."
+            ],
+            "sample_size": null
+          },
+          "notes": "Offline captured poe.show Currency response for Task 6B."
+        }
+      ]
+    },
+    {
+      "asset_id": "dc:poe2:economy-asset:currency:perfect-exalted-orb",
+      "league": "Runes of Aldur",
+      "normalized_value": {
+        "amount": "889.466",
+        "unit": "EXALTED_ECONOMIC_UNIT"
+      },
+      "source_native_value": "2.63",
+      "native_reference_asset_id": "dc:poe2:economy-asset:currency:divine-orb",
+      "source": "poe.show",
+      "snapshot_id": "economy-snapshot-019ff0f4-83a6-76a7-b304-8afe521778ff",
+      "observed_at": null,
+      "retrieved_at": "2026-08-11T13:10:57.239546+00:00",
+      "volume": "4366",
+      "confidence": {
+        "score": null,
+        "level": "MEDIUM",
+        "reasons": [
+          "Community economy source; confidence formula not implemented in Task 6B."
+        ],
+        "sample_size": null
+      },
+      "freshness": "FRESH",
+      "provenance": [
+        {
+          "source_id": "poe.show",
+          "source_type": "COMMUNITY",
+          "source_uri": "https://poe.show/poe2/api/economy/exchange/current/overview?league=Runes%20of%20Aldur&type=Currency",
+          "retrieved_at": "2026-08-11T13:10:57.239546+00:00",
+          "game_version": null,
+          "league": "Runes of Aldur",
+          "verification_status": "PROVISIONAL",
+          "confidence": {
+            "score": null,
+            "level": "MEDIUM",
+            "reasons": [
+              "Public community economy API; no SLA."
+            ],
+            "sample_size": null
+          },
+          "notes": "Offline captured poe.show Currency response for Task 6B."
+        }
+      ]
+    }
+  ],
+  "exchange_rates": [
+    {
+      "base_asset_id": "dc:poe2:economy-asset:currency:divine-orb",
+      "quote_asset_id": "dc:poe2:economy-asset:currency:exalted-orb",
+      "rate": "338.2",
+      "source": "poe.show",
+      "league": "Runes of Aldur",
+      "snapshot_id": "economy-snapshot-019ff0f4-83a6-76a7-b304-8afe521778ff",
+      "observed_at": null,
+      "retrieved_at": "2026-08-11T13:10:57.239546+00:00",
+      "confidence": {
+        "score": null,
+        "level": "MEDIUM",
+        "reasons": [
+          "Explicit poe.show core.rates cross-rate."
+        ],
+        "sample_size": null
+      },
+      "provenance": [
+        {
+          "source_id": "poe.show",
+          "source_type": "COMMUNITY",
+          "source_uri": "https://poe.show/poe2/api/economy/exchange/current/overview?league=Runes%20of%20Aldur&type=Currency",
+          "retrieved_at": "2026-08-11T13:10:57.239546+00:00",
+          "game_version": null,
+          "league": "Runes of Aldur",
+          "verification_status": "PROVISIONAL",
+          "confidence": {
+            "score": null,
+            "level": "MEDIUM",
+            "reasons": [
+              "Public community economy API; no SLA."
+            ],
+            "sample_size": null
+          },
+          "notes": "Offline captured poe.show Currency response for Task 6B."
+        }
+      ]
+    }
+  ],
+  "observed_at": null,
+  "provenance": [
+    {
+      "source_id": "poe.show",
+      "source_type": "COMMUNITY",
+      "source_uri": "https://poe.show/poe2/api/economy/exchange/current/overview?league=Runes%20of%20Aldur&type=Currency",
+      "retrieved_at": "2026-08-11T13:10:57.239546+00:00",
+      "game_version": null,
+      "league": "Runes of Aldur",
+      "verification_status": "PROVISIONAL",
+      "confidence": {
+        "score": null,
+        "level": "MEDIUM",
+        "reasons": [
+          "Public community economy API; no SLA."
+        ],
+        "sample_size": null
+      },
+      "notes": "Offline captured poe.show Currency response for Task 6B."
+    }
+  ],
+  "warnings": []
+}

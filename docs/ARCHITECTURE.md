@@ -56,6 +56,8 @@ External data sources, trade data, and economy providers must be isolated behind
 
 Economy providers must ingest in the backend through replaceable adapters. Runtime application logic should consume normalized `EconomySnapshot`, `EconomyQuote`, and `ExchangeRate` records instead of poe.show/poe.ninja-shaped or GGG-shaped payloads.
 
+Task 6B proves this boundary with an offline poe.show Currency fixture and local normalized JSON. No runtime network polling or background scheduling is implemented.
+
 Community game-data sources such as PoE2DB must be imported through source adapters into raw snapshots and normalized records. Runtime analysis should use normalized data or database records, not live scraping.
 
 Task 5B implements this boundary with local JSON fixtures:
