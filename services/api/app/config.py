@@ -1,0 +1,49 @@
+"""Explicit API configuration for local/offline DonnieCraftShell services."""
+
+from __future__ import annotations
+
+import os
+from dataclasses import dataclass
+from pathlib import Path
+
+
+ROOT = Path(__file__).resolve().parents[3]
+
+
+@dataclass(frozen=True)
+class ApiSettings:
+    environment: str
+    default_game_data_dataset_id: str
+    default_game_data_path: Path
+    default_crafting_dataset_id: str
+    default_crafting_path: Path
+    default_affix_capacity_dataset_id: str
+    default_affix_capacity_path: Path
+    economy_snapshot_paths: tuple[Path, ...]
+    supported_leagues: tuple[str, ...]
+
+
+def get_settings() -> ApiSettings:
+    game_data_id = os.getenv("DCS_GAME_DATA_DATASET_ID", "poe2db-unknown-version-2026-08-12-task8c-fullx1")
+    crafting_id = os.getenv("DCS_CRAFTING_DATASET_ID", "crafting-actions-poe2-quiver-2026-08-12-research")
+    affix_id = os.getenv("DCS_AFFIX_CAPACITY_DATASET_ID", "affix-capacity-poe2-2026-08-12-research")
+    economy_paths = (
+        ROOT / "data" / "normalized" / "economy" / "economy-snapshot-019ff0f4-83a6-76a7-b304-8afe521778ff" / "economy_snapshot.json",
+        ROOT / "data" / "normalized" / "economy" / "economy-snapshot-019ff11a-0000-7000-8000-000000000001" / "economy_snapshot.json",
+        ROOT / "data" / "normalized" / "economy" / "economy-snapshot-019ff11a-0000-7000-8000-000000000002" / "economy_snapshot.json",
+    )
+    return ApiSettings(
+        environment=os.getenv("DCS_ENVIRONMENT", "local-offline"),
+        default_game_data_dataset_id=game_data_id,
+        default_game_data_path=ROOT / "data" / "normalized" / game_data_id / "game_data.json",
+        default_crafting_dataset_id=crafting_id,
+        default_crafting_path=ROOT / "data" / "normalized" / "crafting" / crafting_id / "actions.json",
+        default_affix_capacity_dataset_id=affix_id,
+        default_affix_capacity_path=ROOT / "data" / "normalized" / "crafting" / affix_id / "capacity.json",
+        economy_snapshot_paths=economy_paths,
+        supported_leagues=tuple(
+            league.strip()
+            for league in os.getenv("DCS_SUPPORTED_LEAGUES", "Runes of Aldur").split(",")
+            if league.strip()
+        ),
+    )

@@ -1,4 +1,4 @@
-fastapi
-uvicorn
-pydantic
+fastapi>=0.115
+uvicorn>=0.30
+pydantic>=2.8
 httpx2

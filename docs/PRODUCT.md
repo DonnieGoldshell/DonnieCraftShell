@@ -29,6 +29,8 @@ Risk policy must remain separate from raw economic ranking. It may veto or downg
 
 The vertical Advisor orchestration layer may return partial analysis as a successful product result. Missing valuation, probability, economy, or verified-mechanic evidence should be shown as next requirements, not hidden behind a forced recommendation.
 
+The first Advisor API endpoint exposes this partial-analysis behavior directly. HTTP success does not imply a recommendation; it means the analysis request was processed and the response explains how far the evidence supports the pipeline.
+
 ## Major Modules
 
 ### Craft Advisor

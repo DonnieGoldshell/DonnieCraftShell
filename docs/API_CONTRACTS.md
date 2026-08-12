@@ -69,7 +69,9 @@ Future Advisor DTOs should expose [ADVISOR_DECISION_ENGINE.md](ADVISOR_DECISION_
 
 Advisor request DTOs may later include risk fields from [RISK_AND_BANKROLL.md](RISK_AND_BANKROLL.md): bankroll, risk profile, maximum bankroll exposure, maximum acceptable loss, and minimum reserve. Responses should expose raw Advisor decision and risk-adjusted decision separately, including risk policy version and triggered rules.
 
-Future `POST /api/v1/advisor/analyze` should expose the orchestration contract from [ADVISOR_ORCHESTRATION.md](ADVISOR_ORCHESTRATION.md). Requests should include clipboard text, explicit league, selected dataset versions, optional current valuation evidence, optional outcome valuation evidence keyed by deterministic outcome ID, and optional risk context. Responses should preserve partial results per action, missing requirements, raw Advisor decision, optional risk-adjusted decision, and all relevant evidence references. The endpoint must not fetch external data at request time or fabricate valuations/probabilities.
+Task 13B implements `POST /api/v1/advisor/analyze`. See [ADVISOR_API.md](ADVISOR_API.md). Requests include clipboard text, explicit league, selected dataset versions, optional manual current valuation evidence, optional manual outcome valuation evidence keyed by deterministic outcome ID, and optional risk context. Responses preserve partial results per action, missing requirements, raw Advisor decision, optional risk-adjusted decision, and all relevant evidence references. The endpoint does not fetch external data at request time or fabricate valuations/probabilities.
+
+See [API_DEVELOPMENT.md](API_DEVELOPMENT.md) for FastAPI/Pydantic version assumptions, local startup, configuration, and future OpenAPI-to-TypeScript generation.
 
 ## Error Model
 

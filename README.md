@@ -48,4 +48,36 @@ tests/             Cross-service integration and acceptance tests
 
 ## Current Status
 
-This repository currently contains project structure and documentation scaffolding only. Application functionality has not been implemented yet.
+The repository now contains the framework-independent DonnieCraftShell domain engines for the rare Quiver vertical slice plus a FastAPI transport layer for item parsing and Advisor analysis.
+
+Implemented API endpoints:
+
+- `GET /health`
+- `GET /api/v1/health`
+- `POST /api/v1/items/parse`
+- `POST /api/v1/advisor/analyze`
+
+The Advisor API uses local/offline datasets and request-supplied manual valuation evidence only. It does not scrape Trade, poll economy sources, fabricate probabilities, or execute gameplay actions.
+
+## API Development
+
+Install backend dependencies:
+
+```bash
+python -m pip install -r services/api/requirements.txt
+```
+
+Run the API:
+
+```bash
+python -m uvicorn services.api.app.main:app --reload
+```
+
+OpenAPI is available at:
+
+```text
+http://localhost:8000/openapi.json
+http://localhost:8000/docs
+```
+
+See `docs/ADVISOR_API.md` and `docs/API_DEVELOPMENT.md` for the Advisor endpoint contract, local configuration, and future TypeScript generation plan.

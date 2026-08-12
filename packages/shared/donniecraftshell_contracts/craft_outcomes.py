@@ -331,7 +331,7 @@ class CraftOutcomeEngine:
 
 
 def _state(item: ParsedItem, action_id: str, deltas: tuple[ItemStateDelta, ...]) -> HypotheticalItemState:
-    payload = "|".join((item.analysis_id, action_id, *(delta.fingerprint_payload() for delta in deltas)))
+    payload = "|".join((_source_item_fingerprint(item), action_id, *(delta.fingerprint_payload() for delta in deltas)))
     digest = hashlib.sha256(payload.encode("utf-8")).hexdigest()[:24]
     return HypotheticalItemState(
         outcome_id=f"outcome-{digest}",
@@ -339,6 +339,21 @@ def _state(item: ParsedItem, action_id: str, deltas: tuple[ItemStateDelta, ...])
         action_id=action_id,
         deltas=deltas,
     )
+
+
+def _source_item_fingerprint(item: ParsedItem) -> str:
+    modifier_payload = "|".join(modifier.raw_text for modifier in item.modifiers)
+    payload = "|".join(
+        (
+            item.raw_clipboard_text,
+            item.item_class or "",
+            item.base_type or "",
+            item.rarity.value,
+            str(item.item_level or ""),
+            modifier_payload,
+        )
+    )
+    return hashlib.sha256(payload.encode("utf-8")).hexdigest()
 
 
 def _modifier_in_scope(modifier: ItemModifier, scope: SlotScope) -> bool:
