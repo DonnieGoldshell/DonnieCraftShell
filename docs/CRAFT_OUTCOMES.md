@@ -49,6 +49,8 @@ Probability completeness remains `UNKNOWN` for Exalted-style additions because m
 
 Essence of Hysteria is `PARTIAL` because the guaranteed family is represented, but atomic replacement/addition behavior and full pool interactions still need stronger source backing.
 
+Task 9A probability research confirms that possible outcome does not imply equally likely outcome. See [PROBABILITY_RESEARCH.md](PROBABILITY_RESEARCH.md) and [PROBABILITY_SOURCES.md](PROBABILITY_SOURCES.md). Numeric probabilities must remain absent unless explicit probability evidence is attached.
+
 ## Deterministic Outcome IDs
 
 Outcome IDs are derived from:

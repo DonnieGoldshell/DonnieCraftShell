@@ -51,6 +51,7 @@ PASTE QUIVER
 - MVP action candidates can be generated from a versioned crafting-action dataset, but actions requiring unknown open affix capacity must remain `UNKNOWN`.
 - Action candidates may include current material costs when economy quotes exist. Missing material prices make cost incomplete but do not change crafting applicability.
 - Outcome enumeration may produce hypothetical item states, but MVP recommendations must still wait for verified probability, valuation, EV, and SELL NOW comparison.
+- Complete outcome enumeration is not enough for EV. Probability evidence must be explicit; no MVP recommendation may use equal-probability fallback for random crafting outcomes.
 - Current value and outcome values include estimated value, plausible range, confidence, comparable count or quality where available, and timestamp.
 - Expected value, ROI, probability of profit, downside risk, and required capital are represented in the recommendation model, even if early implementations mark inputs as `NEEDS VERIFICATION`.
 - Craft session data can track item states, actions, costs, total invested, current estimated value, and unrealized profit/loss.

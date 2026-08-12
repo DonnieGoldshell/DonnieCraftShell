@@ -38,6 +38,7 @@ apps/web
 - **Craft Action Engine**: evaluates source-backed crafting action applicability and required materials without simulating outcomes or calculating costs.
 - **Affix Capacity Resolver**: derives open explicit prefix/suffix slots from parsed modifiers and source-backed capacity definitions.
 - **Craft Outcome Engine**: enumerates mechanically possible hypothetical item-state deltas without probability, valuation, or recommendations.
+- **Probability Evidence Layer**: future layer that may attach exact, derived, empirical, or unknown probabilities to outcome states only when provenance supports them.
 - **Modifier Pool Resolver**: filters natural explicit modifier candidates by item class, side, item level, capacity, and source-backed modifier-group conflicts.
 - **Craft Simulator**: models legal actions and outcomes only when mechanics are verified.
 
@@ -79,6 +80,8 @@ Task 7C adds [CRAFT_ACTION_COSTS.md](CRAFT_ACTION_COSTS.md). Candidate enumerati
 Task 8A adds [CRAFT_OUTCOMES.md](CRAFT_OUTCOMES.md). Outcome possibility and outcome probability are separate architecture layers; probability/EV belongs to later tasks.
 
 Task 8C updates [QUIVER_MODIFIER_POOL_STATUS.md](QUIVER_MODIFIER_POOL_STATUS.md). Legal modifier-pool filtering now uses the expanded natural Quiver Base Prefix/Suffix dataset, but completeness remains scoped and probability remains separate.
+
+Task 9A adds [PROBABILITY_RESEARCH.md](PROBABILITY_RESEARCH.md) and [PROBABILITY_SOURCES.md](PROBABILITY_SOURCES.md). Outcome-space completeness must not be converted into equal probability; probability evidence remains a separate architecture boundary.
 
 Community game-data sources such as PoE2DB must be imported through source adapters into raw snapshots and normalized records. Runtime analysis should use normalized data or database records, not live scraping.
 
