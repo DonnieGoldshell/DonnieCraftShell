@@ -51,7 +51,7 @@ Craft action candidates are not recommendations. They expose mechanics status an
 
 Craft outcome sets are hypothetical derived data. They must retain source item identity, action identity, dataset versions, provenance, outcome-space completeness, and probability completeness. Missing weights mean probability remains `UNKNOWN`.
 
-Task 9A defines the future probability evidence boundary in documentation only. Probability evidence must distinguish exact mechanics, derived mechanics, empirical estimates, and unknowns; it must carry source, methodology, dataset/game version, confidence, sample size where relevant, and uncertainty interval where empirical. See [PROBABILITY_RESEARCH.md](PROBABILITY_RESEARCH.md).
+Task 9B implements the probability evidence boundary in `probability.py`. Probability evidence distinguishes deterministic, exact mechanics, derived mechanics, empirical estimates, and unknowns; it carries source, methodology, dataset/game version, confidence, sample size where relevant, and uncertainty interval where empirical. See [PROBABILITY_MODEL.md](PROBABILITY_MODEL.md).
 
 ## Boundaries
 

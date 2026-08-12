@@ -81,7 +81,7 @@ Task 8A adds [CRAFT_OUTCOMES.md](CRAFT_OUTCOMES.md). Outcome possibility and out
 
 Task 8C updates [QUIVER_MODIFIER_POOL_STATUS.md](QUIVER_MODIFIER_POOL_STATUS.md). Legal modifier-pool filtering now uses the expanded natural Quiver Base Prefix/Suffix dataset, but completeness remains scoped and probability remains separate.
 
-Task 9A adds [PROBABILITY_RESEARCH.md](PROBABILITY_RESEARCH.md) and [PROBABILITY_SOURCES.md](PROBABILITY_SOURCES.md). Outcome-space completeness must not be converted into equal probability; probability evidence remains a separate architecture boundary.
+Task 9B adds [PROBABILITY_MODEL.md](PROBABILITY_MODEL.md). Outcome-space completeness must not be converted into equal probability; `ProbabilityProvider` attaches probability evidence beside `CraftOutcomeSet` so later EV logic can require complete probability mass.
 
 Community game-data sources such as PoE2DB must be imported through source adapters into raw snapshots and normalized records. Runtime analysis should use normalized data or database records, not live scraping.
 

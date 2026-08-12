@@ -96,10 +96,11 @@ ProbabilityEvidence
 
 ## Task 9B Recommendation
 
-Task 9B should implement probability contracts and propagation only, not Exalted numeric probabilities. Recommended scope:
+Task 9B implements probability contracts and propagation only, not Exalted numeric probabilities. Implemented scope:
 
-- Add framework-independent `ProbabilityEvidence` / `OutcomeProbabilityModel` contracts.
-- Keep all currently supported action probabilities `UNKNOWN` except deterministic guaranteed components.
-- Allow removal actions to expose eligible outcome sets with a blocked reason: `UNIFORM_SELECTION_NOT_VERIFIED`.
-- Keep Exalted-style candidate weights absent.
-- Add tests proving no equal distribution fallback exists.
+- Framework-independent `ProbabilityEvidence` / `OutcomeProbabilityModel` contracts.
+- Current supported final outcome probabilities remain `UNKNOWN` except deterministic guaranteed components.
+- Exalted-style candidate weights remain absent.
+- Tests prove no equal distribution fallback exists.
+
+See [PROBABILITY_MODEL.md](PROBABILITY_MODEL.md).

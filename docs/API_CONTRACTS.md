@@ -29,6 +29,7 @@ GET  /api/v1/crafting/actions
 POST /api/v1/crafting/actions/evaluate
 POST /api/v1/valuation
 POST /api/v1/crafts/simulate
+POST /api/v1/crafts/probabilities
 POST /api/v1/advisor
 POST /api/v1/sessions
 POST /api/v1/sessions/{id}/steps
@@ -51,6 +52,8 @@ When exposed later, economy DTOs should include category filters for materials a
 Crafting-action endpoints should expose versioned action definitions and applicability results from a selected crafting dataset. Responses must distinguish `APPLICABLE`, `NOT_APPLICABLE`, and `UNKNOWN`, include required material EconomyAsset IDs, and avoid outcome simulation fields. See [CRAFTING_ACTIONS.md](CRAFTING_ACTIONS.md).
 
 Future action-candidate DTOs may include material costs, but they must keep `applicability.status` separate from `material_cost.complete`. A candidate response must not include ranking, EV, valuation, or recommendation fields until Advisor contracts are implemented.
+
+Future probability DTOs should expose `OutcomeProbabilityModel` from [PROBABILITY_MODEL.md](PROBABILITY_MODEL.md). Unknown probability must serialize as `null`, not `0`. Responses must preserve probability completeness, total known probability mass, evidence provenance, dataset versions, deterministic operation evidence, and warnings. The endpoint must not normalize partial/unknown probabilities or divide unknown mass equally.
 
 ## Error Model
 
