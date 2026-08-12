@@ -62,6 +62,7 @@ PASTE QUIVER
 - Task 11A can report `SCENARIO_ONLY`, `INSUFFICIENT_DATA`, `NOT_APPLICABLE`, or `EV_READY`; it must not calculate EV or recommend an action.
 - Task 11B calculates EV only for complete synthetic/verified-ready inputs and keeps real actions EV-unavailable when probabilities remain unknown.
 - Task 12A compares SELL NOW and craft candidates only through the Advisor candidate layer. Scenario-only actions remain visible but non-rankable, and `NO_RECOMMENDATION` is allowed.
+- Task 12B applies risk and bankroll policy after raw EV ranking. Risk-adjusted decisions preserve raw economic results and never promote scenario-only actions.
 - Expected value, ROI, probability of profit, downside risk, and required capital are represented in the recommendation model, even if early implementations mark inputs as `NEEDS VERIFICATION`.
 - Craft session data can track item states, actions, costs, total invested, current estimated value, and unrealized profit/loss.
 

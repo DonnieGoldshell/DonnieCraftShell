@@ -32,6 +32,7 @@ The initial executable contracts live in `packages/shared/donniecraftshell_contr
 - Task 11A adds `scenario_analysis.py`: `OutcomeValuation`, `ScenarioValue`, `ScenarioAnalysis`, `DecisionReadiness`, and `ScenarioAnalysisService`. These compose current valuation, action candidates, outcome sets, probability models, and outcome valuations without calculating EV or ranking actions.
 - Task 11B adds `expected_value.py`: `ExpectedValueEngine`, `ExpectedValueResult`, and `OutcomeExpectedValueContribution`. EV is calculated only from `EV_READY` scenarios with complete probability mass, complete aligned outcome valuations, complete normalized craft cost, and retained evidence references. See [EXPECTED_VALUE.md](EXPECTED_VALUE.md).
 - Task 12A adds `advisor_decision.py`: `AdvisorCandidate`, `AdvisorDecision`, `AdvisorPolicy`, and `AdvisorDecisionEngine`. SELL NOW and craft actions share a candidate layer; only EV-ready craft candidates are rankable. See [ADVISOR_DECISION_ENGINE.md](ADVISOR_DECISION_ENGINE.md).
+- Task 12B adds `advisor_risk.py`: `AdvisorRiskContext`, `RiskPolicy`, `CapitalExposure`, `AdvisorRiskAssessment`, and `RiskAdjustedAdvisorDecision`. Risk policy filters raw Advisor decisions without mutating EV. See [RISK_AND_BANKROLL.md](RISK_AND_BANKROLL.md).
 - `CraftOutcome`: resulting item or state delta, optional probability, probability confidence, valuation, profit/loss, and provenance.
 - `SimulationResult`: action cost, outcomes, probability coverage, EV/ROI/risk fields, confidence, assumptions, warnings, and completeness.
 - `AdvisorRecommendation`: current valuation, candidates, selected action when available, comparisons, risk, bankroll exposure, confidence, reasons, warnings, and timestamp. It supports `NO_RECOMMENDATION`.
@@ -64,6 +65,8 @@ Scenario analysis is descriptive. Scenario median is not Expected Value, best/wo
 Expected Value results are not recommendations. Expected Gain vs Sell Now is based on listing-derived valuation and must not be labeled guaranteed profit.
 
 Advisor decisions must preserve non-rankable actions for explanation and may return `NO_RECOMMENDATION` instead of forcing a choice.
+
+Risk-adjusted decisions must preserve the raw economic winner, risk-adjusted winner, triggered policy rules, and policy version.
 
 ## Boundaries
 

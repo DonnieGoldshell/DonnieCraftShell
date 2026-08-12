@@ -66,6 +66,8 @@ Future expected-value DTOs should expose [EXPECTED_VALUE.md](EXPECTED_VALUE.md) 
 
 Future Advisor DTOs should expose [ADVISOR_DECISION_ENGINE.md](ADVISOR_DECISION_ENGINE.md). Responses must include SELL NOW candidate, craft candidates, rankable/non-rankable status, selected decision type, selected candidate when any, policy/version, decision reasons, evidence references, and warnings. Scenario-only candidates must not serialize as ranked EV candidates.
 
+Advisor request DTOs may later include risk fields from [RISK_AND_BANKROLL.md](RISK_AND_BANKROLL.md): bankroll, risk profile, maximum bankroll exposure, maximum acceptable loss, and minimum reserve. Responses should expose raw Advisor decision and risk-adjusted decision separately, including risk policy version and triggered rules.
+
 ## Error Model
 
 Common API errors use:

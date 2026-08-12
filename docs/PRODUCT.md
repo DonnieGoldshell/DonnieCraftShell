@@ -25,6 +25,8 @@ Expected Gain vs Sell Now must be presented as a calculation from listing-derive
 
 The Advisor may return `NO_RECOMMENDATION` when evidence is incomplete. It must not force SELL or CRAFT when current valuation, probabilities, or EV evidence are insufficient.
 
+Risk policy must remain separate from raw economic ranking. It may veto or downgrade a craft for bankroll exposure, but must not alter Expected Value.
+
 ## Major Modules
 
 ### Craft Advisor

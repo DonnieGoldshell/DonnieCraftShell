@@ -33,6 +33,8 @@ The system should eventually calculate expected net value, expected profit/loss,
 
 Advisor ranking must use `ExpectedValueResult` produced by the EV Engine. It must not recalculate EV or substitute scenario median/best-case values for EV.
 
+Risk policy is applied after raw EV ranking. It may filter candidates by bankroll exposure or downside policy, but the raw EV result and raw economic winner must remain visible.
+
 ## Risk And Bankroll
 
 Users should eventually provide a bankroll and risk profile: conservative, balanced, or aggressive.

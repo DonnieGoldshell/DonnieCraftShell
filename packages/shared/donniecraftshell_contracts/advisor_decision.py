@@ -82,6 +82,7 @@ class AdvisorCandidate:
     action_id: str | None = None
     applicability: CraftApplicabilityStatus | None = None
     scenario_readiness: DecisionReadiness | None = None
+    scenario_analysis: ScenarioAnalysis | None = None
     expected_value_result: ExpectedValueResult | None = None
     current_valuation: ValuationResult | None = None
     baseline_value: EconomicValue | None = None
@@ -307,6 +308,7 @@ def _craft_candidate(
         action_id=action_candidate.action.action_id,
         applicability=action_candidate.applicability.status,
         scenario_readiness=scenario.decision_readiness if scenario is not None else None,
+        scenario_analysis=scenario,
         expected_value_result=ev,
         current_valuation=current_valuation,
         action_cost=action_cost,

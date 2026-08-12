@@ -60,3 +60,5 @@ These are DonnieCraftShell policy settings, not market facts.
 The engine returns `NO_RECOMMENDATION` when current valuation is insufficient, all crafts are scenario-only/non-rankable, or evidence quality prevents a defensible choice.
 
 The engine does not automate gameplay, scrape Trade, estimate probabilities, rank Profit Finder strategies, or execute crafts.
+
+Risk and bankroll policy is separate. See [RISK_AND_BANKROLL.md](RISK_AND_BANKROLL.md). Risk may veto or annotate an EV-positive craft, but it must preserve the raw Advisor decision and raw EV values.
