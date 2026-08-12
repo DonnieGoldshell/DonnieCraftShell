@@ -61,6 +61,7 @@ PASTE QUIVER
 - Task 10C can aggregate manual comparable evidence into a `LISTING_DERIVED` valuation estimate when readiness policy is satisfied. This remains listing evidence, not realized sale value or a SELL NOW recommendation.
 - Task 11A can report `SCENARIO_ONLY`, `INSUFFICIENT_DATA`, `NOT_APPLICABLE`, or `EV_READY`; it must not calculate EV or recommend an action.
 - Task 11B calculates EV only for complete synthetic/verified-ready inputs and keeps real actions EV-unavailable when probabilities remain unknown.
+- Task 12A compares SELL NOW and craft candidates only through the Advisor candidate layer. Scenario-only actions remain visible but non-rankable, and `NO_RECOMMENDATION` is allowed.
 - Expected value, ROI, probability of profit, downside risk, and required capital are represented in the recommendation model, even if early implementations mark inputs as `NEEDS VERIFICATION`.
 - Craft session data can track item states, actions, costs, total invested, current estimated value, and unrealized profit/loss.
 

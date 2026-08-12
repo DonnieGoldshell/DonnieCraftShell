@@ -8,6 +8,8 @@ The Decision Engine compares legal crafting actions against selling immediately.
 
 **SELL NOW is always a first-class action.** Continuing to craft is recommended only when the economic case beats selling after cost, risk, uncertainty, and bankroll constraints are considered.
 
+Task 12A implements the first Advisor candidate layer. SELL NOW is a first-class candidate, EV-ready craft actions are rankable, and scenario-only actions remain informative but non-rankable. `NO_RECOMMENDATION` is valid when evidence is insufficient.
+
 ## Core Concepts
 
 - **Parsed item**: normalized representation of pasted PoE2 clipboard text.
@@ -28,6 +30,8 @@ EV = sum(probability_of_outcome * market_value_of_outcome) - crafting_cost
 ```
 
 The system should eventually calculate expected net value, expected profit/loss, ROI, probability of profit, probability of significant loss, downside, upside, and required capital.
+
+Advisor ranking must use `ExpectedValueResult` produced by the EV Engine. It must not recalculate EV or substitute scenario median/best-case values for EV.
 
 ## Risk And Bankroll
 

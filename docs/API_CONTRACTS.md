@@ -64,6 +64,8 @@ Future scenario DTOs should expose [SCENARIO_ANALYSIS.md](SCENARIO_ANALYSIS.md) 
 
 Future expected-value DTOs should expose [EXPECTED_VALUE.md](EXPECTED_VALUE.md) concepts. Responses must return either `AVAILABLE` with gross expected outcome value, net expected value, expected gain vs sell-now, ROI where valid, contribution breakdowns, EV bounds where complete, evidence references, and algorithm version, or `NOT_AVAILABLE` with structured readiness reasons. They must not include action ranking or recommendations.
 
+Future Advisor DTOs should expose [ADVISOR_DECISION_ENGINE.md](ADVISOR_DECISION_ENGINE.md). Responses must include SELL NOW candidate, craft candidates, rankable/non-rankable status, selected decision type, selected candidate when any, policy/version, decision reasons, evidence references, and warnings. Scenario-only candidates must not serialize as ranked EV candidates.
+
 ## Error Model
 
 Common API errors use:

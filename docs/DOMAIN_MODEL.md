@@ -31,6 +31,7 @@ The initial executable contracts live in `packages/shared/donniecraftshell_contr
 - Task 8A adds `craft_outcomes.py`: `CraftOutcomeDefinition`, `ItemStateDelta`, `HypotheticalItemState`, `CraftOutcomeSet`, and `CraftOutcomeEngine`. These model hypothetical outcome states without probabilities, valuation, EV, or recommendations.
 - Task 11A adds `scenario_analysis.py`: `OutcomeValuation`, `ScenarioValue`, `ScenarioAnalysis`, `DecisionReadiness`, and `ScenarioAnalysisService`. These compose current valuation, action candidates, outcome sets, probability models, and outcome valuations without calculating EV or ranking actions.
 - Task 11B adds `expected_value.py`: `ExpectedValueEngine`, `ExpectedValueResult`, and `OutcomeExpectedValueContribution`. EV is calculated only from `EV_READY` scenarios with complete probability mass, complete aligned outcome valuations, complete normalized craft cost, and retained evidence references. See [EXPECTED_VALUE.md](EXPECTED_VALUE.md).
+- Task 12A adds `advisor_decision.py`: `AdvisorCandidate`, `AdvisorDecision`, `AdvisorPolicy`, and `AdvisorDecisionEngine`. SELL NOW and craft actions share a candidate layer; only EV-ready craft candidates are rankable. See [ADVISOR_DECISION_ENGINE.md](ADVISOR_DECISION_ENGINE.md).
 - `CraftOutcome`: resulting item or state delta, optional probability, probability confidence, valuation, profit/loss, and provenance.
 - `SimulationResult`: action cost, outcomes, probability coverage, EV/ROI/risk fields, confidence, assumptions, warnings, and completeness.
 - `AdvisorRecommendation`: current valuation, candidates, selected action when available, comparisons, risk, bankroll exposure, confidence, reasons, warnings, and timestamp. It supports `NO_RECOMMENDATION`.
@@ -61,6 +62,8 @@ Task 9B implements the probability evidence boundary in `probability.py`. Probab
 Scenario analysis is descriptive. Scenario median is not Expected Value, best/worst scenario uses only currently valuated outcomes, and `EV_READY` means a future EV engine may run only after strict probability, valuation, applicability, cost, and normalization prerequisites are satisfied.
 
 Expected Value results are not recommendations. Expected Gain vs Sell Now is based on listing-derived valuation and must not be labeled guaranteed profit.
+
+Advisor decisions must preserve non-rankable actions for explanation and may return `NO_RECOMMENDATION` instead of forcing a choice.
 
 ## Boundaries
 
