@@ -92,6 +92,7 @@ class ComparableStrategy(str, Enum):
     STRICT = "STRICT"
     MODERATE = "MODERATE"
     BUILD_EQUIVALENT = "BUILD_EQUIVALENT"
+    COST_TO_REPRODUCE = "COST_TO_REPRODUCE"
     OTHER = "OTHER"
 
 

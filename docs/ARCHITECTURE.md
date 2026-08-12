@@ -84,7 +84,7 @@ Task 8C updates [QUIVER_MODIFIER_POOL_STATUS.md](QUIVER_MODIFIER_POOL_STATUS.md)
 
 Task 9B adds [PROBABILITY_MODEL.md](PROBABILITY_MODEL.md). Outcome-space completeness must not be converted into equal probability; `ProbabilityProvider` attaches probability evidence beside `CraftOutcomeSet` so later EV logic can require complete probability mass.
 
-Task 10A adds the Valuation Engine design. Current and hypothetical item states must share one valuation interface, and trade evidence must flow through replaceable providers rather than undocumented scraping.
+Task 10B adds [VALUATION_MODEL.md](VALUATION_MODEL.md) and [MANUAL_TRADE_WORKFLOW.md](MANUAL_TRADE_WORKFLOW.md). Current and hypothetical item states share `ValuationSubject`, and manual comparable evidence flows through `ManualTradeProvider` with no network calls or undocumented Trade access.
 
 Community game-data sources such as PoE2DB must be imported through source adapters into raw snapshots and normalized records. Runtime analysis should use normalized data or database records, not live scraping.
 

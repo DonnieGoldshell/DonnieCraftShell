@@ -1,6 +1,6 @@
 # Valuation Engine
 
-Task 10A designs the rare-item Valuation Engine. It does not implement trade scraping, EV, recommendations, or automated decisions.
+Task 10A designs the rare-item Valuation Engine. Task 10B implements the first framework-independent comparable-evidence contracts and manual workflow. It does not implement trade scraping, market-value aggregation, EV, recommendations, or automated decisions.
 
 ## Core Principle
 
@@ -33,11 +33,13 @@ CraftOutcomeSet
 
 The Valuation Engine must not depend on `ParsedItem` only.
 
+See [VALUATION_MODEL.md](VALUATION_MODEL.md) for the Task 10B executable contracts.
+
 ## Readiness
 
 Use readiness states:
 
-- `VALUABLE`: enough comparable evidence to produce an estimate and range.
+- `READY`: enough comparable evidence exists for future aggregation to attempt an estimate.
 - `PARTIAL`: some evidence exists, but confidence is low or conversion/query quality is incomplete.
 - `INSUFFICIENT_DATA`: no defensible estimate should be produced.
 
@@ -110,9 +112,11 @@ Recommended MVP 0.1 valuation workflow:
 2. User opens official Trade search URLs or reconstructs the filters manually.
 3. User supplies listing observations.
 4. Economy Engine normalizes listing currencies.
-5. ValuationAggregator returns `VALUABLE`, `PARTIAL`, or `INSUFFICIENT_DATA`.
+5. ComparableEvidenceSet returns `READY`, `PARTIAL`, or `INSUFFICIENT_DATA`.
 
 This is safer than unsupported scraping and still produces reproducible evidence.
+
+Task 10B implements this as `ManualTradeProvider`; see [MANUAL_TRADE_WORKFLOW.md](MANUAL_TRADE_WORKFLOW.md).
 
 ## Aggregation Recommendation
 

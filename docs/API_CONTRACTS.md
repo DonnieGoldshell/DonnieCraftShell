@@ -56,7 +56,7 @@ Future action-candidate DTOs may include material costs, but they must keep `app
 
 Future probability DTOs should expose `OutcomeProbabilityModel` from [PROBABILITY_MODEL.md](PROBABILITY_MODEL.md). Unknown probability must serialize as `null`, not `0`. Responses must preserve probability completeness, total known probability mass, evidence provenance, dataset versions, deterministic operation evidence, and warnings. The endpoint must not normalize partial/unknown probabilities or divide unknown mass equally.
 
-Future valuation DTOs should expose the contracts from [VALUATION.md](VALUATION.md). Requests should accept a current or hypothetical valuation subject plus comparable strategy and modifier-role inputs. Responses must distinguish listing-derived estimate, plausible range, confidence, liquidity, readiness, comparable evidence, economy conversion snapshots, provenance, and warnings. `INSUFFICIENT_DATA` must be valid and must not fabricate an estimate.
+Future valuation DTOs should expose the contracts from [VALUATION_MODEL.md](VALUATION_MODEL.md). Requests should accept a current or hypothetical valuation subject plus comparable strategy and modifier-role inputs. Comparable endpoints should return query definitions, manual workflow instructions, listing observations, normalized comparable evidence where available, readiness, economy conversion snapshots, provenance, and warnings. `INSUFFICIENT_DATA` must be valid and must not fabricate an estimate.
 
 ## Error Model
 
