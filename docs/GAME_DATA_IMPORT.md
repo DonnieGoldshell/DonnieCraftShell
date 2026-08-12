@@ -78,6 +78,8 @@ This command performs no network I/O.
 
 Dataset loading fails on duplicate canonical IDs, missing snapshot/dataset identity, invalid tier values, invalid required levels, `min > max` roll ranges, invalid affix/generation types, missing provenance, or applicability that references an unknown modifier.
 
+Task 8B adds regression coverage that raw Quiver modifier fixtures regenerate the normalized family/tier counts and duplicate semantic tier records are rejected through deterministic canonical ID collisions.
+
 ## Future Imports
 
 A later task can expand the raw snapshot set manually or through an offline importer. The same normalizer and repository boundaries should remain in place so the runtime application never depends on PoE2DB availability.

@@ -38,6 +38,7 @@ apps/web
 - **Craft Action Engine**: evaluates source-backed crafting action applicability and required materials without simulating outcomes or calculating costs.
 - **Affix Capacity Resolver**: derives open explicit prefix/suffix slots from parsed modifiers and source-backed capacity definitions.
 - **Craft Outcome Engine**: enumerates mechanically possible hypothetical item-state deltas without probability, valuation, or recommendations.
+- **Modifier Pool Resolver**: filters natural explicit modifier candidates by item class, side, item level, capacity, and source-backed modifier-group conflicts.
 - **Craft Simulator**: models legal actions and outcomes only when mechanics are verified.
 
 See [DECISION_ENGINE.md](DECISION_ENGINE.md) for economic behavior.
@@ -76,6 +77,8 @@ Task 7B adds [AFFIX_CAPACITY.md](AFFIX_CAPACITY.md). Parser output remains immut
 Task 7C adds [CRAFT_ACTION_COSTS.md](CRAFT_ACTION_COSTS.md). Candidate enumeration composes Craft Action Engine output with Economy cost output while keeping mechanics and market data separate.
 
 Task 8A adds [CRAFT_OUTCOMES.md](CRAFT_OUTCOMES.md). Outcome possibility and outcome probability are separate architecture layers; probability/EV belongs to later tasks.
+
+Task 8B adds [QUIVER_MODIFIER_POOL_STATUS.md](QUIVER_MODIFIER_POOL_STATUS.md). Legal modifier-pool filtering improves Exalted-style outcome coverage, but completeness remains explicit and probability remains separate.
 
 Community game-data sources such as PoE2DB must be imported through source adapters into raw snapshots and normalized records. Runtime analysis should use normalized data or database records, not live scraping.
 

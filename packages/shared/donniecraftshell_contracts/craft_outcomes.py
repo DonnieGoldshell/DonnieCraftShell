@@ -15,6 +15,7 @@ from .crafting_actions import CraftActionApplicability, CraftActionDefinition, C
 from .domain import AffixType, DataProvenance, ItemModifier, ModifierOrigin, ParsedItem
 from .game_data import ModifierFamily, ModifierTierDefinition
 from .game_data_repository import GameDataRepository
+from .modifier_pool import ModifierPoolCompleteness, ModifierPoolResolver
 
 
 class CraftOutcomeOperation(str, Enum):
@@ -227,7 +228,15 @@ class CraftOutcomeEngine:
         warnings = ["Modifier pool is incomplete; no weights are loaded."]
         dataset_versions: tuple[str, ...] = ()
         if game_data_repository is not None and game_data_dataset_version is not None:
-            candidates = _addition_candidates(item, scope, game_data_repository, game_data_dataset_version)
+            pool = ModifierPoolResolver().get_legal_candidates(
+                item,
+                affix_state,
+                scope,
+                game_data_repository,
+                game_data_dataset_version,
+            )
+            candidates = pool.candidates
+            warnings = list(pool.warnings)
             dataset_versions = (game_data_dataset_version,)
         else:
             warnings.append("No game-data repository supplied for modifier pool enumeration.")
@@ -262,7 +271,11 @@ class CraftOutcomeEngine:
                 warnings=tuple(warnings),
             ),
             hypothetical_states=states,
-            outcome_space_completeness=OutcomeSpaceCompleteness.PARTIAL if states else OutcomeSpaceCompleteness.UNKNOWN,
+            outcome_space_completeness=(
+                OutcomeSpaceCompleteness.COMPLETE
+                if states and "pool" in locals() and pool.completeness == ModifierPoolCompleteness.COMPLETE
+                else OutcomeSpaceCompleteness.PARTIAL if states else OutcomeSpaceCompleteness.UNKNOWN
+            ),
             probability_completeness=OutcomeProbabilityStatus.UNKNOWN,
             dataset_versions=dataset_versions,
             provenance=action.provenance,
@@ -312,37 +325,6 @@ class CraftOutcomeEngine:
             provenance=action.provenance,
             warnings=("Atomic replacement/addition capacity behavior remains not fully modeled.",),
         )
-
-
-def _addition_candidates(
-    item: ParsedItem,
-    scope: SlotScope,
-    repository: GameDataRepository,
-    dataset_version: str,
-) -> tuple[tuple[ModifierTierDefinition, ModifierFamily], ...]:
-    dataset = repository.get_dataset(dataset_version)
-    families = {family.canonical_id: family for family in dataset.modifier_families}
-    applicability = {entry.modifier_id for entry in dataset.modifier_applicability if entry.item_class == item.item_class}
-    existing_groups = {
-        modifier.family or modifier.group
-        for modifier in item.explicit_modifiers
-        if modifier.family or modifier.group
-    }
-    candidates = []
-    for tier in dataset.modifier_tiers:
-        if tier.canonical_id not in applicability:
-            continue
-        family = families[tier.modifier_family_id]
-        if scope == SlotScope.PREFIX and family.affix_type != AffixType.PREFIX:
-            continue
-        if scope == SlotScope.SUFFIX and family.affix_type != AffixType.SUFFIX:
-            continue
-        if tier.required_item_level is not None and item.item_level is not None and tier.required_item_level > item.item_level:
-            continue
-        if family.modifier_group and family.modifier_group in existing_groups:
-            continue
-        candidates.append((tier, family))
-    return tuple(candidates)
 
 
 def _state(item: ParsedItem, action_id: str, deltas: tuple[ItemStateDelta, ...]) -> HypotheticalItemState:

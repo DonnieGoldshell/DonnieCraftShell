@@ -49,3 +49,5 @@ Unresolved:
 ## Probability
 
 No Task 8A source provides usable modifier weights or verified equal selection probabilities. Probability completeness therefore remains `UNKNOWN`; no equal distribution fallback is allowed.
+
+Task 8B improves modifier-pool filtering but does not add weights. See [QUIVER_MODIFIER_POOL_STATUS.md](QUIVER_MODIFIER_POOL_STATUS.md).

@@ -43,6 +43,8 @@ Annulment on a parsed item can be `COMPLETE` for outcome space when the eligible
 
 Exalted-style additions are currently `PARTIAL` because the Quiver modifier dataset is a fixture-backed subset, modifier groups/conflicts are incomplete, and modifier weights are unavailable.
 
+Task 8B moves Exalted-style candidate filtering into `ModifierPoolResolver`; see [QUIVER_MODIFIER_POOL_STATUS.md](QUIVER_MODIFIER_POOL_STATUS.md) for current pool counts and completeness.
+
 Essence of Hysteria is `PARTIAL` because the guaranteed family is represented, but atomic replacement/addition behavior and full pool interactions still need stronger source backing.
 
 ## Deterministic Outcome IDs

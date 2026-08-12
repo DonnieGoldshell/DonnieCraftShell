@@ -86,3 +86,7 @@ This example is based on the offline research fixture. It remains `NEEDS VERIFIC
 ## Non-Goals
 
 Task 5C does not implement a production scraper, modifier weights, probabilities, valuation, economy, crafting simulation, Craft Advisor logic, or meta scoring.
+
+## Task 8B Modifier Pool Use
+
+Task 8B uses resolved or otherwise source-backed modifier group information to filter legal Exalted-style candidate pools. If an existing parsed modifier is unresolved and lacks group data, the pool resolver warns that conflict filtering is incomplete instead of assuming the modifier conflicts with nothing.

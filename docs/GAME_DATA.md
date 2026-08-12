@@ -61,4 +61,10 @@ Official Path of Exile developer docs state that current APIs expose limited PoE
 
 See [DATA_SOURCES.md](DATA_SOURCES.md) for source authority and provenance rules.
 
+## Task 8B Modifier Pools
+
+Task 8B introduces `ModifierPoolResolver` for legal Exalted-style candidate filtering. It uses item class, affix side, required item level, open side, and source-backed modifier group conflicts. See [QUIVER_MODIFIER_POOL_STATUS.md](QUIVER_MODIFIER_POOL_STATUS.md).
+
+The current Quiver pool remains `PARTIAL`; probability completeness remains `UNKNOWN` because weights are unavailable.
+
 Task 8A uses the current fixture-backed Quiver modifier dataset to enumerate partial Exalted-style candidate modifier pools. Because the dataset is incomplete and modifier weights are unavailable, outcome-space completeness for addition actions is `PARTIAL` and probability completeness is `UNKNOWN`.
