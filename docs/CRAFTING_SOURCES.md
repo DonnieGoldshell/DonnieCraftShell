@@ -22,6 +22,10 @@ Every normalized action definition must preserve:
 - PoE2DB Essence of Hysteria page: rare-item essence behavior and Quiver listed guaranteed modifier.
 - PoE2 Wiki Orb of Annulment page: magic/rare targeting text and related Omen references.
 - PoE2 Wiki Corrupted page: regular crafting cannot modify corrupted items.
+- PoE2 Wiki Rarity page: community evidence for Magic `1 prefix / 1 suffix` and Rare `3 prefixes / 3 suffixes`.
+- PoE2 Wiki Modifier page: community evidence separating implicit, explicit, enchantment, corruption, and desecrated modifiers.
+- PoE2 Wiki Desecrated Modifier page: community evidence that desecrated modifiers take prefix or suffix slots.
+- PoE2DB Crafted Modifiers page: community evidence that crafted modifiers otherwise behave identically to other modifiers.
 
 These sources are community sources and remain `PROVISIONAL` until verified against official or in-game evidence.
 
@@ -32,6 +36,8 @@ These sources are community sources and remain `PROVISIONAL` until verified agai
 - Greater/Perfect Exalted Orb: source-backed minimum modifier level text is captured, but its exact downstream outcome meaning is not implemented.
 - Omens: Sinistral/Dextral Annulment and Catalysing Exaltation are captured as modifier actions. Their effects are not simulated.
 - Essence of Hysteria: source-backed for Rare items and Quivers in PoE2DB. Applicability is separate from its future guaranteed outcome simulation.
+- Affix capacity: Magic `1/1` and Rare `3/3` are modeled as `PROVISIONAL` community-source-backed rules. Unique capacity remains unknown.
+- Slot consumption: implicit and corruption enhancement modifiers are separate from explicit affixes; crafted and desecrated prefix/suffix modifiers are treated as consuming the matching explicit slot under current source evidence. Fractured behavior remains unresolved.
 
 ## Needs Verification
 
@@ -40,3 +46,4 @@ These sources are community sources and remain `PROVISIONAL` until verified agai
 - Full Omen set relevant to Quiver crafting.
 - Full Essence set and exact item-class applicability.
 - Official GGG source for action mechanics, if available.
+- Stronger official or in-game confirmation for affix capacity and special-origin slot consumption.

@@ -1,0 +1,42 @@
+{
+  "snapshot_id": "poe2-affix-capacity-research-2026-08-12",
+  "source": "manual-research",
+  "retrieved_at": "2026-08-12T00:00:00+02:00",
+  "game": "Path of Exile 2",
+  "game_version": null,
+  "notes": [
+    "Task 7B source register for affix capacity and slot-consumption behavior.",
+    "Community evidence only; do not classify as official.",
+    "No runtime scraping."
+  ],
+  "sources": [
+    {
+      "source_id": "poe2wiki-rarity",
+      "source_type": "COMMUNITY",
+      "source_uri": "https://www.poe2wiki.net/wiki/Rarity",
+      "retrieved_at": "2026-08-12T00:00:00+02:00",
+      "factual_summary": "Magic items can have a prefix and a suffix; rare items can have up to 3 prefixes and 3 suffixes."
+    },
+    {
+      "source_id": "poe2wiki-modifier",
+      "source_type": "COMMUNITY",
+      "source_uri": "https://www.poe2wiki.net/wiki/Modifier",
+      "retrieved_at": "2026-08-12T00:00:00+02:00",
+      "factual_summary": "Implicit, explicit, enchantment, corruption, and desecrated modifier categories are distinct; magic and rare capacity is described."
+    },
+    {
+      "source_id": "poe2wiki-desecrated-modifier",
+      "source_type": "COMMUNITY",
+      "source_uri": "https://www.poe2wiki.net/wiki/Desecrated_modifier",
+      "retrieved_at": "2026-08-12T00:00:00+02:00",
+      "factual_summary": "Desecrated modifiers take either a prefix or suffix modifier slot, even while unrevealed."
+    },
+    {
+      "source_id": "poe2db-crafted-modifiers",
+      "source_type": "COMMUNITY",
+      "source_uri": "https://poe2db.tw/us/Crafted_Modifiers",
+      "retrieved_at": "2026-08-12T00:00:00+02:00",
+      "factual_summary": "Crafted modifiers behave identically to other modifiers, except an item can have one crafted modifier."
+    }
+  ]
+}

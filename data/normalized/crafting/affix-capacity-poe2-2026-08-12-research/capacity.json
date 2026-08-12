@@ -1,0 +1,131 @@
+{
+  "dataset_id": "affix-capacity-poe2-2026-08-12-research",
+  "source": "manual-research",
+  "retrieved_at": "2026-08-12T00:00:00+02:00",
+  "game": "Path of Exile 2",
+  "game_version": null,
+  "notes": [
+    "Task 7B normalized affix-capacity dataset.",
+    "Community evidence only; verification status remains PROVISIONAL.",
+    "Capacities are generic by rarity until item-class exceptions are source-backed."
+  ],
+  "provenance": [
+    {
+      "source_id": "poe2wiki-rarity",
+      "source_type": "COMMUNITY",
+      "source_uri": "https://www.poe2wiki.net/wiki/Rarity",
+      "retrieved_at": "2026-08-12T00:00:00+02:00",
+      "verification_status": "PROVISIONAL",
+      "confidence_level": "MEDIUM",
+      "notes": "Community wiki rarity tooltip/mechanics summary."
+    }
+  ],
+  "definitions": [
+    {
+      "definition_id": "dc:poe2:affix-capacity:normal:any",
+      "item_class": null,
+      "rarity": "NORMAL",
+      "prefix_capacity": 0,
+      "suffix_capacity": 0,
+      "exceptions": ["Unique base-specific, corruption, enchantment, or special mechanics are outside this explicit capacity definition."],
+      "verification_status": "PROVISIONAL",
+      "provenance": [
+        {
+          "source_id": "poe2wiki-modifier",
+          "source_type": "COMMUNITY",
+          "source_uri": "https://www.poe2wiki.net/wiki/Modifier",
+          "retrieved_at": "2026-08-12T00:00:00+02:00",
+          "verification_status": "PROVISIONAL",
+          "confidence_level": "MEDIUM"
+        }
+      ],
+      "slot_consumption_rules": []
+    },
+    {
+      "definition_id": "dc:poe2:affix-capacity:magic:any",
+      "item_class": null,
+      "rarity": "MAGIC",
+      "prefix_capacity": 1,
+      "suffix_capacity": 1,
+      "exceptions": ["Item-class or special-mechanic exceptions are not represented until source-backed."],
+      "verification_status": "PROVISIONAL",
+      "provenance": [
+        {
+          "source_id": "poe2wiki-rarity",
+          "source_type": "COMMUNITY",
+          "source_uri": "https://www.poe2wiki.net/wiki/Rarity",
+          "retrieved_at": "2026-08-12T00:00:00+02:00",
+          "verification_status": "PROVISIONAL",
+          "confidence_level": "MEDIUM"
+        }
+      ],
+      "slot_consumption_rules": []
+    },
+    {
+      "definition_id": "dc:poe2:affix-capacity:rare:any",
+      "item_class": null,
+      "rarity": "RARE",
+      "prefix_capacity": 3,
+      "suffix_capacity": 3,
+      "exceptions": ["Item-class or special-mechanic exceptions are not represented until source-backed."],
+      "verification_status": "PROVISIONAL",
+      "provenance": [
+        {
+          "source_id": "poe2wiki-rarity",
+          "source_type": "COMMUNITY",
+          "source_uri": "https://www.poe2wiki.net/wiki/Rarity",
+          "retrieved_at": "2026-08-12T00:00:00+02:00",
+          "verification_status": "PROVISIONAL",
+          "confidence_level": "MEDIUM"
+        }
+      ],
+      "slot_consumption_rules": [
+        {
+          "origin": "DESECRATED",
+          "affix_type": "PREFIX",
+          "status": "CONSUMES_SLOT",
+          "verification_status": "VERIFIED",
+          "notes": "Desecrated prefix modifiers take prefix slots according to community source.",
+          "provenance": [
+            {
+              "source_id": "poe2wiki-desecrated-modifier",
+              "source_type": "COMMUNITY",
+              "source_uri": "https://www.poe2wiki.net/wiki/Desecrated_modifier",
+              "retrieved_at": "2026-08-12T00:00:00+02:00",
+              "verification_status": "PROVISIONAL",
+              "confidence_level": "MEDIUM"
+            }
+          ]
+        },
+        {
+          "origin": "DESECRATED",
+          "affix_type": "SUFFIX",
+          "status": "CONSUMES_SLOT",
+          "verification_status": "VERIFIED",
+          "notes": "Desecrated suffix modifiers take suffix slots according to community source.",
+          "provenance": [
+            {
+              "source_id": "poe2wiki-desecrated-modifier",
+              "source_type": "COMMUNITY",
+              "source_uri": "https://www.poe2wiki.net/wiki/Desecrated_modifier",
+              "retrieved_at": "2026-08-12T00:00:00+02:00",
+              "verification_status": "PROVISIONAL",
+              "confidence_level": "MEDIUM"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "definition_id": "dc:poe2:affix-capacity:unique:any",
+      "item_class": null,
+      "rarity": "UNIQUE",
+      "prefix_capacity": null,
+      "suffix_capacity": null,
+      "exceptions": ["Unique item explicit modifier capacity is item-specific and remains unknown in Task 7B."],
+      "verification_status": "NEEDS_VERIFICATION",
+      "provenance": [],
+      "slot_consumption_rules": []
+    }
+  ]
+}

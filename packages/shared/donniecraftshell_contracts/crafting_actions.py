@@ -14,6 +14,7 @@ from enum import Enum
 from pathlib import Path
 from typing import Any
 
+from .affix_capacity import AffixStateResolution, SlotScope
 from .domain import (
     Confidence,
     ConfidenceLevel,
@@ -141,9 +142,10 @@ class CraftActionEngine:
         reasons: list[str] = []
         failed: list[str] = []
         unknown: list[str] = list(action.unknown_conditions)
+        affix_resolution = _affix_resolution_from(enrichment)
 
         for precondition in action.preconditions:
-            result, reason = _evaluate_precondition(precondition, item)
+            result, reason = _evaluate_precondition(precondition, item, affix_resolution)
             if result == CraftApplicabilityStatus.NOT_APPLICABLE:
                 failed.append(reason)
             elif result == CraftApplicabilityStatus.UNKNOWN:
@@ -218,7 +220,11 @@ def _precondition(data: dict[str, Any]) -> CraftActionPrecondition:
     )
 
 
-def _evaluate_precondition(precondition: CraftActionPrecondition, item: ParsedItem) -> tuple[CraftApplicabilityStatus, str]:
+def _evaluate_precondition(
+    precondition: CraftActionPrecondition,
+    item: ParsedItem,
+    affix_resolution: AffixStateResolution | None = None,
+) -> tuple[CraftApplicabilityStatus, str]:
     if precondition.verification_status != VerificationStatus.VERIFIED:
         return CraftApplicabilityStatus.UNKNOWN, precondition.description or precondition.kind.value
     if precondition.kind == PreconditionKind.RARITY_IN:
@@ -234,6 +240,14 @@ def _evaluate_precondition(precondition: CraftActionPrecondition, item: ParsedIt
             return CraftApplicabilityStatus.APPLICABLE, "item has explicit modifiers"
         return CraftApplicabilityStatus.UNKNOWN, "cannot verify removable modifier"
     if precondition.kind == PreconditionKind.HAS_OPEN_AFFIX_SLOT:
+        scope = _slot_scope(precondition.values)
+        if affix_resolution is not None:
+            has_open_slot = affix_resolution.has_open_slot(scope)
+            if has_open_slot is None:
+                return CraftApplicabilityStatus.UNKNOWN, f"{scope.value.lower()} open affix slots are unknown"
+            if has_open_slot:
+                return CraftApplicabilityStatus.APPLICABLE, f"{scope.value.lower()} open affix slot is known"
+            return CraftApplicabilityStatus.NOT_APPLICABLE, f"no {scope.value.lower()} open affix slots"
         if item.affix_state is None:
             return CraftApplicabilityStatus.UNKNOWN, "affix state is unavailable"
         open_prefixes = item.affix_state.open_prefix_count
@@ -248,6 +262,22 @@ def _evaluate_precondition(precondition: CraftActionPrecondition, item: ParsedIt
             return CraftApplicabilityStatus.APPLICABLE, f"item class {item.item_class} matched"
         return CraftApplicabilityStatus.NOT_APPLICABLE, f"item class {item.item_class} not in {precondition.values}"
     return CraftApplicabilityStatus.UNKNOWN, f"unsupported precondition {precondition.kind.value}"
+
+
+def _affix_resolution_from(enrichment: Any | None) -> AffixStateResolution | None:
+    if enrichment is None:
+        return None
+    if isinstance(enrichment, AffixStateResolution):
+        return enrichment
+    candidate = getattr(enrichment, "affix_state_resolution", None)
+    return candidate if isinstance(candidate, AffixStateResolution) else None
+
+
+def _slot_scope(values: tuple[str, ...]) -> SlotScope:
+    if not values:
+        return SlotScope.ANY
+    first = values[0].upper()
+    return SlotScope.__members__.get(first, SlotScope.ANY)
 
 
 def _provenance(data: dict[str, Any]) -> DataProvenance:

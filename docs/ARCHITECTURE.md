@@ -36,6 +36,7 @@ apps/web
 - **Modifier Intelligence**: separates verified game data, derived statistical data, and curated relevance.
 - **Game Data Enrichment**: maps parsed clipboard observations to canonical source-backed records without mutating parser output.
 - **Craft Action Engine**: evaluates source-backed crafting action applicability and required materials without simulating outcomes or calculating costs.
+- **Affix Capacity Resolver**: derives open explicit prefix/suffix slots from parsed modifiers and source-backed capacity definitions.
 - **Craft Simulator**: models legal actions and outcomes only when mechanics are verified.
 
 See [DECISION_ENGINE.md](DECISION_ENGINE.md) for economic behavior.
@@ -68,6 +69,8 @@ Crafting action definitions follow the same offline snapshot pattern:
 - framework-independent applicability checks in `CraftActionEngine`
 
 See [CRAFTING_ACTIONS.md](CRAFTING_ACTIONS.md) and [CRAFTING_SOURCES.md](CRAFTING_SOURCES.md). The Craft Action Engine returns `APPLICABLE`, `NOT_APPLICABLE`, or `UNKNOWN`; it does not estimate outcomes, EV, or prices.
+
+Task 7B adds [AFFIX_CAPACITY.md](AFFIX_CAPACITY.md). Parser output remains immutable; open-slot state is supplied to action evaluation as derived enrichment.
 
 Community game-data sources such as PoE2DB must be imported through source adapters into raw snapshots and normalized records. Runtime analysis should use normalized data or database records, not live scraping.
 

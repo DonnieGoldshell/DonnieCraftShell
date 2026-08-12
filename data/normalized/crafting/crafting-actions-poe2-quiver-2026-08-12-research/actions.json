@@ -7,7 +7,7 @@
   "notes": [
     "Task 7A normalized crafting-action dataset.",
     "Applicability only; no outcome simulation or probability data.",
-    "Quiver affix capacity remains NEEDS VERIFICATION."
+    "Open-affix applicability may be derived with affix-capacity dataset affix-capacity-poe2-2026-08-12-research."
   ],
   "provenance": [
     {
@@ -105,9 +105,9 @@
       "preconditions": [
         {"kind": "RARITY_IN", "values": ["RARE"], "description": "Exalted Orb targets rare items.", "verification_status": "VERIFIED", "provenance": [{"source_id": "poe2db-currency", "source_type": "COMMUNITY", "source_uri": "https://poe2db.tw/us/Currency", "retrieved_at": "2026-08-12T00:00:00+02:00", "verification_status": "PROVISIONAL", "confidence_level": "MEDIUM"}]},
         {"kind": "NOT_CORRUPTED", "description": "Regular crafting methods cannot modify corrupted items.", "verification_status": "VERIFIED", "provenance": [{"source_id": "poe2wiki-corrupted", "source_type": "COMMUNITY", "source_uri": "https://www.poe2wiki.net/wiki/Corrupted", "retrieved_at": "2026-08-12T00:00:00+02:00", "verification_status": "PROVISIONAL", "confidence_level": "MEDIUM"}]},
-        {"kind": "HAS_OPEN_AFFIX_SLOT", "description": "Adding a new modifier requires verified available modifier capacity.", "verification_status": "NEEDS_VERIFICATION"}
+        {"kind": "HAS_OPEN_AFFIX_SLOT", "description": "Adding a new modifier requires verified available modifier capacity.", "verification_status": "VERIFIED", "provenance": [{"source_id": "poe2wiki-rarity", "source_type": "COMMUNITY", "source_uri": "https://www.poe2wiki.net/wiki/Rarity", "retrieved_at": "2026-08-12T00:00:00+02:00", "verification_status": "PROVISIONAL", "confidence_level": "MEDIUM"}]}
       ],
-      "unknown_conditions": ["Quiver prefix/suffix capacity and open-slot count are not source-verified in this dataset."],
+      "unknown_conditions": [],
       "provenance": [{"source_id": "poe2db-currency", "source_type": "COMMUNITY", "source_uri": "https://poe2db.tw/us/Currency", "retrieved_at": "2026-08-12T00:00:00+02:00", "verification_status": "PROVISIONAL", "confidence_level": "MEDIUM"}]
     },
     {
@@ -121,9 +121,9 @@
       "preconditions": [
         {"kind": "RARITY_IN", "values": ["RARE"], "description": "Greater Exalted Orb targets rare items.", "verification_status": "VERIFIED", "provenance": [{"source_id": "poe2db-currency", "source_type": "COMMUNITY", "source_uri": "https://poe2db.tw/us/Currency", "retrieved_at": "2026-08-12T00:00:00+02:00", "verification_status": "PROVISIONAL", "confidence_level": "MEDIUM"}]},
         {"kind": "NOT_CORRUPTED", "description": "Regular crafting methods cannot modify corrupted items.", "verification_status": "VERIFIED", "provenance": [{"source_id": "poe2wiki-corrupted", "source_type": "COMMUNITY", "source_uri": "https://www.poe2wiki.net/wiki/Corrupted", "retrieved_at": "2026-08-12T00:00:00+02:00", "verification_status": "PROVISIONAL", "confidence_level": "MEDIUM"}]},
-        {"kind": "HAS_OPEN_AFFIX_SLOT", "description": "Adding a new modifier requires verified available modifier capacity.", "verification_status": "NEEDS_VERIFICATION"}
+        {"kind": "HAS_OPEN_AFFIX_SLOT", "description": "Adding a new modifier requires verified available modifier capacity.", "verification_status": "VERIFIED", "provenance": [{"source_id": "poe2wiki-rarity", "source_type": "COMMUNITY", "source_uri": "https://www.poe2wiki.net/wiki/Rarity", "retrieved_at": "2026-08-12T00:00:00+02:00", "verification_status": "PROVISIONAL", "confidence_level": "MEDIUM"}]}
       ],
-      "unknown_conditions": ["Minimum Modifier Level semantics affect modifier selection and are not simulated in Task 7A.", "Quiver prefix/suffix capacity and open-slot count are not source-verified in this dataset."],
+      "unknown_conditions": ["Minimum Modifier Level semantics affect modifier selection and are not simulated in Task 7A."],
       "provenance": [{"source_id": "poe2db-currency", "source_type": "COMMUNITY", "source_uri": "https://poe2db.tw/us/Currency", "retrieved_at": "2026-08-12T00:00:00+02:00", "verification_status": "PROVISIONAL", "confidence_level": "MEDIUM"}]
     },
     {
@@ -137,9 +137,9 @@
       "preconditions": [
         {"kind": "RARITY_IN", "values": ["RARE"], "description": "Perfect Exalted Orb targets rare items.", "verification_status": "VERIFIED", "provenance": [{"source_id": "poe2db-currency", "source_type": "COMMUNITY", "source_uri": "https://poe2db.tw/us/Currency", "retrieved_at": "2026-08-12T00:00:00+02:00", "verification_status": "PROVISIONAL", "confidence_level": "MEDIUM"}]},
         {"kind": "NOT_CORRUPTED", "description": "Regular crafting methods cannot modify corrupted items.", "verification_status": "VERIFIED", "provenance": [{"source_id": "poe2wiki-corrupted", "source_type": "COMMUNITY", "source_uri": "https://www.poe2wiki.net/wiki/Corrupted", "retrieved_at": "2026-08-12T00:00:00+02:00", "verification_status": "PROVISIONAL", "confidence_level": "MEDIUM"}]},
-        {"kind": "HAS_OPEN_AFFIX_SLOT", "description": "Adding a new modifier requires verified available modifier capacity.", "verification_status": "NEEDS_VERIFICATION"}
+        {"kind": "HAS_OPEN_AFFIX_SLOT", "description": "Adding a new modifier requires verified available modifier capacity.", "verification_status": "VERIFIED", "provenance": [{"source_id": "poe2wiki-rarity", "source_type": "COMMUNITY", "source_uri": "https://www.poe2wiki.net/wiki/Rarity", "retrieved_at": "2026-08-12T00:00:00+02:00", "verification_status": "PROVISIONAL", "confidence_level": "MEDIUM"}]}
       ],
-      "unknown_conditions": ["Minimum Modifier Level semantics affect modifier selection and are not simulated in Task 7A.", "Quiver prefix/suffix capacity and open-slot count are not source-verified in this dataset."],
+      "unknown_conditions": ["Minimum Modifier Level semantics affect modifier selection and are not simulated in Task 7A."],
       "provenance": [{"source_id": "poe2db-currency", "source_type": "COMMUNITY", "source_uri": "https://poe2db.tw/us/Currency", "retrieved_at": "2026-08-12T00:00:00+02:00", "verification_status": "PROVISIONAL", "confidence_level": "MEDIUM"}]
     },
     {
@@ -156,7 +156,7 @@
       "preconditions": [
         {"kind": "RARITY_IN", "values": ["RARE"], "description": "Exalted Orb target must be rare.", "verification_status": "VERIFIED", "provenance": [{"source_id": "poe2db-currency", "source_type": "COMMUNITY", "source_uri": "https://poe2db.tw/us/Currency", "retrieved_at": "2026-08-12T00:00:00+02:00", "verification_status": "PROVISIONAL", "confidence_level": "MEDIUM"}]},
         {"kind": "NOT_CORRUPTED", "description": "Regular crafting methods cannot modify corrupted items.", "verification_status": "VERIFIED", "provenance": [{"source_id": "poe2wiki-corrupted", "source_type": "COMMUNITY", "source_uri": "https://www.poe2wiki.net/wiki/Corrupted", "retrieved_at": "2026-08-12T00:00:00+02:00", "verification_status": "PROVISIONAL", "confidence_level": "MEDIUM"}]},
-        {"kind": "HAS_OPEN_AFFIX_SLOT", "description": "Adding a new modifier requires verified available modifier capacity.", "verification_status": "NEEDS_VERIFICATION"}
+        {"kind": "HAS_OPEN_AFFIX_SLOT", "description": "Adding a new modifier requires verified available modifier capacity.", "verification_status": "VERIFIED", "provenance": [{"source_id": "poe2wiki-rarity", "source_type": "COMMUNITY", "source_uri": "https://www.poe2wiki.net/wiki/Rarity", "retrieved_at": "2026-08-12T00:00:00+02:00", "verification_status": "PROVISIONAL", "confidence_level": "MEDIUM"}]}
       ],
       "unknown_conditions": ["Whether Quivers can have Catalyst Quality relevant to this Omen is not verified."],
       "provenance": [{"source_id": "poe2db-omen", "source_type": "COMMUNITY", "source_uri": "https://poe2db.tw/us/Omen", "retrieved_at": "2026-08-12T00:00:00+02:00", "verification_status": "PROVISIONAL", "confidence_level": "MEDIUM"}]
@@ -175,9 +175,9 @@
       "preconditions": [
         {"kind": "RARITY_IN", "values": ["RARE"], "description": "Exalted Orb target must be rare.", "verification_status": "VERIFIED", "provenance": [{"source_id": "poe2db-currency", "source_type": "COMMUNITY", "source_uri": "https://poe2db.tw/us/Currency", "retrieved_at": "2026-08-12T00:00:00+02:00", "verification_status": "PROVISIONAL", "confidence_level": "MEDIUM"}]},
         {"kind": "NOT_CORRUPTED", "description": "Regular crafting methods cannot modify corrupted items.", "verification_status": "VERIFIED", "provenance": [{"source_id": "poe2wiki-corrupted", "source_type": "COMMUNITY", "source_uri": "https://www.poe2wiki.net/wiki/Corrupted", "retrieved_at": "2026-08-12T00:00:00+02:00", "verification_status": "PROVISIONAL", "confidence_level": "MEDIUM"}]},
-        {"kind": "HAS_OPEN_AFFIX_SLOT", "description": "Adding a prefix requires verified available prefix capacity.", "verification_status": "NEEDS_VERIFICATION"}
+        {"kind": "HAS_OPEN_AFFIX_SLOT", "values": ["PREFIX"], "description": "Adding a prefix requires verified available prefix capacity.", "verification_status": "VERIFIED", "provenance": [{"source_id": "poe2wiki-rarity", "source_type": "COMMUNITY", "source_uri": "https://www.poe2wiki.net/wiki/Rarity", "retrieved_at": "2026-08-12T00:00:00+02:00", "verification_status": "PROVISIONAL", "confidence_level": "MEDIUM"}]}
       ],
-      "unknown_conditions": ["Quiver prefix capacity and open-prefix count are not source-verified in this dataset."],
+      "unknown_conditions": [],
       "provenance": [{"source_id": "poe2db-omen", "source_type": "COMMUNITY", "source_uri": "https://poe2db.tw/us/Omen", "retrieved_at": "2026-08-12T00:00:00+02:00", "verification_status": "PROVISIONAL", "confidence_level": "MEDIUM"}]
     },
     {
@@ -194,9 +194,9 @@
       "preconditions": [
         {"kind": "RARITY_IN", "values": ["RARE"], "description": "Exalted Orb target must be rare.", "verification_status": "VERIFIED", "provenance": [{"source_id": "poe2db-currency", "source_type": "COMMUNITY", "source_uri": "https://poe2db.tw/us/Currency", "retrieved_at": "2026-08-12T00:00:00+02:00", "verification_status": "PROVISIONAL", "confidence_level": "MEDIUM"}]},
         {"kind": "NOT_CORRUPTED", "description": "Regular crafting methods cannot modify corrupted items.", "verification_status": "VERIFIED", "provenance": [{"source_id": "poe2wiki-corrupted", "source_type": "COMMUNITY", "source_uri": "https://www.poe2wiki.net/wiki/Corrupted", "retrieved_at": "2026-08-12T00:00:00+02:00", "verification_status": "PROVISIONAL", "confidence_level": "MEDIUM"}]},
-        {"kind": "HAS_OPEN_AFFIX_SLOT", "description": "Adding a suffix requires verified available suffix capacity.", "verification_status": "NEEDS_VERIFICATION"}
+        {"kind": "HAS_OPEN_AFFIX_SLOT", "values": ["SUFFIX"], "description": "Adding a suffix requires verified available suffix capacity.", "verification_status": "VERIFIED", "provenance": [{"source_id": "poe2wiki-rarity", "source_type": "COMMUNITY", "source_uri": "https://www.poe2wiki.net/wiki/Rarity", "retrieved_at": "2026-08-12T00:00:00+02:00", "verification_status": "PROVISIONAL", "confidence_level": "MEDIUM"}]}
       ],
-      "unknown_conditions": ["Quiver suffix capacity and open-suffix count are not source-verified in this dataset."],
+      "unknown_conditions": [],
       "provenance": [{"source_id": "poe2db-omen", "source_type": "COMMUNITY", "source_uri": "https://poe2db.tw/us/Omen", "retrieved_at": "2026-08-12T00:00:00+02:00", "verification_status": "PROVISIONAL", "confidence_level": "MEDIUM"}]
     },
     {

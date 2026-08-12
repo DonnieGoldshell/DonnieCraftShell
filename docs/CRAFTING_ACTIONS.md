@@ -51,7 +51,13 @@ These are `PROVISIONAL` because sources are community references, not official G
 
 Verified modeled preconditions include rarity restrictions, non-corrupted item state for regular crafting, explicit-modifier presence for removal actions, and Quiver item-class applicability for Essence of Hysteria.
 
-Quiver affix capacity is still `NEEDS_VERIFICATION`. Therefore Exalted-style actions that add a modifier return `UNKNOWN` unless a future verified item-class data layer supplies open affix slots.
+Task 7B adds the affix-capacity layer described in [AFFIX_CAPACITY.md](AFFIX_CAPACITY.md). Exalted-style actions that add a modifier still return `UNKNOWN` when evaluated with only parser output, but can become `APPLICABLE` or `NOT_APPLICABLE` when a source-backed `AffixStateResolution` is supplied.
+
+Open-slot scopes:
+
+- no precondition value: any explicit prefix or suffix slot
+- `PREFIX`: prefix-specific actions such as Sinistral Exaltation
+- `SUFFIX`: suffix-specific actions such as Dextral Exaltation
 
 ## Economy Boundary
 
@@ -59,4 +65,4 @@ Crafting actions expose required materials only. Future cost calculation should 
 
 ## Limitations
 
-No outcome behavior is implemented. Omen-modified actions are modeled as compositional action definitions for now, but targeting and probability effects remain outside Task 7A.
+No outcome behavior is implemented. Omen-modified actions are modeled as compositional action definitions for now, and open-side legality may be checked, but targeting outcomes and probabilities remain outside the current scope.
