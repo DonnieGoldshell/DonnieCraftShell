@@ -1,6 +1,6 @@
 # Valuation Model
 
-Task 10B implements framework-independent rare-item valuation evidence contracts. It does not estimate market value, scrape Trade, calculate EV, or recommend actions.
+Task 10B implements framework-independent rare-item valuation evidence contracts. Task 10C adds conservative manual listing aggregation. The valuation layer does not scrape Trade, calculate EV, or recommend actions.
 
 ## Boundary
 
@@ -10,7 +10,7 @@ ValuationSubject
 -> TradeProvider
 -> ComparableResult[]
 -> ComparableEvidenceSet
--> future ValuationAggregator
+-> ValuationAggregator
 ```
 
 Current parsed items and hypothetical outcome states both become `ValuationSubject`. This keeps future current-value and outcome-value workflows on the same interface.
@@ -28,7 +28,9 @@ Executable contracts live in `packages/shared/donniecraftshell_contracts/valuati
 - `ManualListingObservation`: user-entered listing observation.
 - `ComparableResult`: normalized listing evidence when currency conversion is available.
 - `ComparableEvidenceSet`: query plus comparable results and readiness.
-- `ValuationResult`: future aggregation output shape.
+- `ValuationAggregationPolicy`: configurable readiness, quantile, duplicate, stale, and outlier policy.
+- `ValuationAggregator`: manual comparable aggregation using robust Decimal statistics.
+- `ValuationResult`: listing-derived estimate or explicit no-estimate result.
 
 ## Readiness
 
@@ -52,6 +54,10 @@ If conversion is missing, normalized value remains unavailable. Missing conversi
 
 Duplicate listing IDs are detected in `ComparableEvidenceSet` when supplied. Manual observations without listing IDs can remain separate but should be treated as lower-confidence evidence by future aggregation.
 
-## Aggregation Boundary
+## Aggregation
 
-`ValuationAggregator` is a stub boundary in Task 10B. It returns readiness and evidence IDs but no market estimate. Future Task 10C may implement robust aggregation from `ComparableEvidenceSet`.
+`ValuationAggregator` consumes one or more `ComparableEvidenceSet` objects. It can produce a `LISTING_DERIVED` estimate when policy thresholds are met, or `NONE` when evidence is insufficient.
+
+The central estimate is the Decimal median. Plausible low/high values use deterministic nearest-lower-index quantiles. Duplicate listing IDs and outlier exclusions are retained in the result with explicit reasons. Arithmetic mean is not the primary estimator.
+
+`ValuationResult` preserves used comparable IDs, excluded comparables, strategy composition, economy snapshot IDs, policy ID, methodology, league, warnings, confidence, and listing-evidence liquidity.

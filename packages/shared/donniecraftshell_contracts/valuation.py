@@ -1,14 +1,15 @@
 """Framework-independent rare-item valuation evidence contracts.
 
-Task 10B structures comparable evidence and manual trade observations. It does
-not scrape trade sites, aggregate market value, calculate EV, or recommend.
+Task 10B structures comparable evidence and manual trade observations. Task
+10C adds conservative listing-derived aggregation. This module does not scrape
+trade sites, calculate EV, or recommend.
 """
 
 from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime, timezone
-from decimal import Decimal
+from decimal import ROUND_FLOOR, Decimal
 from enum import Enum
 
 from .craft_outcomes import HypotheticalItemState
@@ -16,6 +17,7 @@ from .domain import (
     AffixType,
     ComparableStrategy,
     Confidence,
+    ConfidenceLevel,
     DataProvenance,
     EconomicValue,
     ItemModifier,
@@ -28,7 +30,7 @@ from .economy import DIVINE_ASSET_ID, EXALTED_ASSET_ID, FreshnessState, normaliz
 from .economy_repository import EconomyRepository
 
 
-VALUATION_CONTRACT_VERSION = "valuation-contract-task10b"
+VALUATION_CONTRACT_VERSION = "valuation-contract-task10c"
 
 
 class ModifierComparableRole(str, Enum):
@@ -62,6 +64,18 @@ class LiquidityStatus(str, Enum):
     LOW = "LOW"
     MEDIUM = "MEDIUM"
     HIGH = "HIGH"
+
+
+class ValuationEstimateType(str, Enum):
+    LISTING_DERIVED = "LISTING_DERIVED"
+    NONE = "NONE"
+
+
+class ComparableExclusionReason(str, Enum):
+    DUPLICATE_LISTING = "DUPLICATE_LISTING"
+    UNNORMALIZED_PRICE = "UNNORMALIZED_PRICE"
+    OUTLIER_POLICY = "OUTLIER_POLICY"
+    STALE_POLICY = "STALE_POLICY"
 
 
 @dataclass(frozen=True)
@@ -185,6 +199,7 @@ class ComparableResult:
     league: str
     listing_status: ListingStatus = ListingStatus.OBSERVED
     economy_snapshot_id: str | None = None
+    economy_freshness: FreshnessState = FreshnessState.UNAVAILABLE
     provenance: tuple[DataProvenance, ...] = ()
     warnings: tuple[str, ...] = ()
 
@@ -201,6 +216,68 @@ class ValuationEvidencePolicy:
     def __post_init__(self) -> None:
         if self.minimum_usable_comparables < 1:
             raise ValueError("minimum_usable_comparables must be positive")
+
+
+@dataclass(frozen=True)
+class ValuationAggregationPolicy:
+    policy_id: str = "valuation-aggregation-policy-task10c-default"
+    minimum_ready_comparables: int = 3
+    minimum_partial_comparables: int = 2
+    lower_quantile: Decimal = Decimal("0.25")
+    upper_quantile: Decimal = Decimal("0.75")
+    trim_fraction: Decimal = Decimal("0")
+    exclude_duplicate_listing_ids: bool = True
+    exclude_outliers: bool = True
+    outlier_median_multiplier: Decimal = Decimal("3")
+    stale_evidence_is_allowed: bool = True
+    stale_evidence_reduces_confidence: bool = True
+    strict_preferred: bool = True
+    price_spread_warning_threshold: Decimal = Decimal("1.00")
+
+    def __post_init__(self) -> None:
+        if self.minimum_ready_comparables < 1:
+            raise ValueError("minimum_ready_comparables must be positive")
+        if self.minimum_partial_comparables < 1:
+            raise ValueError("minimum_partial_comparables must be positive")
+        for name in ("lower_quantile", "upper_quantile", "trim_fraction", "outlier_median_multiplier", "price_spread_warning_threshold"):
+            value = _decimal(getattr(self, name), name)
+            if value < Decimal("0"):
+                raise ValueError(f"{name} cannot be negative")
+            object.__setattr__(self, name, value)
+        if self.lower_quantile > self.upper_quantile:
+            raise ValueError("lower_quantile must be <= upper_quantile")
+        if self.upper_quantile > Decimal("1"):
+            raise ValueError("upper_quantile must be <= 1")
+        if self.trim_fraction >= Decimal("0.5"):
+            raise ValueError("trim_fraction must be < 0.5")
+
+
+@dataclass(frozen=True)
+class ExcludedComparable:
+    comparable_id: str
+    reason: ComparableExclusionReason
+    policy_id: str
+    original_result: ComparableResult
+    notes: str | None = None
+
+
+@dataclass(frozen=True)
+class StrategyComposition:
+    strategy: ComparableStrategy
+    total_results: int
+    usable_results: int
+    used_results: int
+    excluded_results: int
+
+
+@dataclass(frozen=True)
+class PriceSpread:
+    minimum: EconomicValue | None
+    maximum: EconomicValue | None
+    median: EconomicValue | None
+    lower_quantile: EconomicValue | None
+    upper_quantile: EconomicValue | None
+    relative_spread: Decimal | None = None
 
 
 @dataclass(frozen=True)
@@ -247,6 +324,7 @@ class ComparableEvidenceSet:
 @dataclass(frozen=True)
 class ValuationResult:
     readiness: ValuationReadiness
+    estimate_type: ValuationEstimateType = ValuationEstimateType.NONE
     estimated_value: EconomicValue | None = None
     plausible_low: EconomicValue | None = None
     plausible_high: EconomicValue | None = None
@@ -254,6 +332,14 @@ class ValuationResult:
     strategy: ComparableStrategy | None = None
     comparable_count: int = 0
     source_evidence_ids: tuple[str, ...] = ()
+    used_comparable_ids: tuple[str, ...] = ()
+    excluded_comparables: tuple[ExcludedComparable, ...] = ()
+    strategy_composition: tuple[StrategyComposition, ...] = ()
+    price_spread: PriceSpread | None = None
+    aggregation_policy_id: str | None = None
+    methodology: str | None = None
+    economy_snapshot_ids: tuple[str, ...] = ()
+    league: str | None = None
     liquidity: LiquidityStatus = LiquidityStatus.UNKNOWN
     observed_at: datetime | None = None
     provenance: tuple[DataProvenance, ...] = ()
@@ -273,14 +359,248 @@ class ValuationResult:
 
 
 class ValuationAggregator:
+    def __init__(self, policy: ValuationAggregationPolicy | None = None):
+        self.policy = policy or ValuationAggregationPolicy()
+
     def aggregate(self, evidence_set: ComparableEvidenceSet) -> ValuationResult:
+        return self.aggregate_evidence_sets((evidence_set,))
+
+    def aggregate_evidence_sets(self, evidence_sets: tuple[ComparableEvidenceSet, ...]) -> ValuationResult:
+        selected_sets, strategy_warning = _select_evidence_sets(evidence_sets, self.policy)
+        if not selected_sets:
+            return ValuationResult(
+                readiness=ValuationReadiness.INSUFFICIENT_DATA,
+                aggregation_policy_id=self.policy.policy_id,
+                methodology=_methodology_summary(self.policy),
+                warnings=("No comparable evidence sets supplied.",),
+            )
+        used, excluded = _select_usable_results(selected_sets, self.policy)
+        warnings = [warning for evidence_set in selected_sets for warning in evidence_set.warnings]
+        if strategy_warning:
+            warnings.append(strategy_warning)
+        if any(result.economy_freshness == FreshnessState.STALE for result in used):
+            warnings.append("One or more used comparable observations rely on stale economy conversion evidence.")
+        values = tuple(result.normalized_value.amount for result in used if result.normalized_value is not None)
+        readiness = _aggregation_readiness(len(values), self.policy)
+        composition = tuple(_composition(evidence_set, used, excluded) for evidence_set in selected_sets)
+        result_strategy = selected_sets[0].query.strategy
+        if any(evidence_set.query.strategy != result_strategy for evidence_set in selected_sets):
+            result_strategy = ComparableStrategy.OTHER
+        common = {
+            "readiness": readiness,
+            "strategy": result_strategy,
+            "comparable_count": len(values),
+            "source_evidence_ids": tuple(evidence_set.evidence_set_id for evidence_set in selected_sets),
+            "used_comparable_ids": tuple(result.comparable_id for result in used),
+            "excluded_comparables": tuple(excluded),
+            "strategy_composition": composition,
+            "aggregation_policy_id": self.policy.policy_id,
+            "methodology": _methodology_summary(self.policy),
+            "economy_snapshot_ids": tuple(sorted({snapshot for evidence_set in selected_sets for snapshot in evidence_set.economy_snapshot_ids})),
+            "league": selected_sets[0].query.league,
+            "observed_at": max((result.observed_at for result in used), default=None),
+            "warnings": tuple(warnings),
+        }
+        if readiness == ValuationReadiness.INSUFFICIENT_DATA:
+            return ValuationResult(
+                **common,
+                estimate_type=ValuationEstimateType.NONE,
+                confidence=Confidence(level=ConfidenceLevel.LOW, reasons=("No defensible listing-derived estimate; insufficient usable evidence.",)),
+                liquidity=LiquidityStatus.UNKNOWN,
+            )
+
+        sorted_values = tuple(sorted(values))
+        trimmed_values = _trim_values(sorted_values, self.policy.trim_fraction)
+        median = decimal_median(trimmed_values)
+        low = decimal_quantile(trimmed_values, self.policy.lower_quantile)
+        high = decimal_quantile(trimmed_values, self.policy.upper_quantile)
+        spread = _price_spread(trimmed_values, self.policy)
+        if spread.relative_spread is not None and spread.relative_spread > self.policy.price_spread_warning_threshold:
+            warnings.append("Comparable listing spread exceeds configured warning threshold.")
+        if excluded:
+            warnings.append("One or more comparable observations were excluded by deterministic policy.")
         return ValuationResult(
-            readiness=evidence_set.readiness,
-            strategy=evidence_set.query.strategy,
-            comparable_count=len(evidence_set.usable_results),
-            source_evidence_ids=(evidence_set.evidence_set_id,),
-            warnings=("Task 10B does not implement market-value aggregation.",),
+            **{**common, "warnings": tuple(warnings)},
+            estimate_type=ValuationEstimateType.LISTING_DERIVED,
+            estimated_value=normalized_exalted_value(median),
+            plausible_low=normalized_exalted_value(low),
+            plausible_high=normalized_exalted_value(high),
+            confidence=_confidence(readiness, len(values), spread, used, excluded),
+            liquidity=_liquidity(len(values), spread),
+            price_spread=spread,
         )
+
+
+def decimal_median(values: tuple[Decimal, ...]) -> Decimal:
+    if not values:
+        raise ValueError("median requires at least one value")
+    ordered = tuple(sorted(values))
+    middle = len(ordered) // 2
+    if len(ordered) % 2:
+        return ordered[middle]
+    return (ordered[middle - 1] + ordered[middle]) / Decimal("2")
+
+
+def decimal_quantile(values: tuple[Decimal, ...], quantile: Decimal) -> Decimal:
+    if not values:
+        raise ValueError("quantile requires at least one value")
+    q = _decimal(quantile, "quantile")
+    if q < Decimal("0") or q > Decimal("1"):
+        raise ValueError("quantile must be between 0 and 1")
+    ordered = tuple(sorted(values))
+    if len(ordered) == 1:
+        return ordered[0]
+    index = int((Decimal(len(ordered) - 1) * q).to_integral_value(rounding=ROUND_FLOOR))
+    return ordered[index]
+
+
+def _select_evidence_sets(
+    evidence_sets: tuple[ComparableEvidenceSet, ...],
+    policy: ValuationAggregationPolicy,
+) -> tuple[tuple[ComparableEvidenceSet, ...], str | None]:
+    if not policy.strict_preferred:
+        return evidence_sets, None
+    strict = tuple(evidence_set for evidence_set in evidence_sets if evidence_set.query.strategy == ComparableStrategy.STRICT)
+    moderate = tuple(evidence_set for evidence_set in evidence_sets if evidence_set.query.strategy == ComparableStrategy.MODERATE)
+    strict_usable = sum(len(evidence_set.usable_results) for evidence_set in strict)
+    if strict and strict_usable >= policy.minimum_ready_comparables:
+        return strict, None
+    if moderate:
+        warning = "STRICT evidence insufficient; MODERATE comparable evidence used as fallback."
+        return strict + moderate if strict else moderate, warning
+    return strict or evidence_sets, None
+
+
+def _select_usable_results(
+    evidence_sets: tuple[ComparableEvidenceSet, ...],
+    policy: ValuationAggregationPolicy,
+) -> tuple[tuple[ComparableResult, ...], tuple[ExcludedComparable, ...]]:
+    usable = [result for evidence_set in evidence_sets for result in evidence_set.usable_results]
+    selected: list[ComparableResult] = []
+    excluded: list[ExcludedComparable] = []
+    seen_listing_ids: set[str] = set()
+    for result in usable:
+        if policy.exclude_duplicate_listing_ids and result.external_listing_id:
+            if result.external_listing_id in seen_listing_ids:
+                excluded.append(ExcludedComparable(result.comparable_id, ComparableExclusionReason.DUPLICATE_LISTING, policy.policy_id, result))
+                continue
+            seen_listing_ids.add(result.external_listing_id)
+        if not policy.stale_evidence_is_allowed and result.economy_freshness == FreshnessState.STALE:
+            excluded.append(ExcludedComparable(result.comparable_id, ComparableExclusionReason.STALE_POLICY, policy.policy_id, result))
+            continue
+        selected.append(result)
+    if policy.exclude_outliers and len(selected) >= 3:
+        values = tuple(result.normalized_value.amount for result in selected if result.normalized_value is not None)
+        median = decimal_median(values)
+        threshold = median * policy.outlier_median_multiplier
+        kept = []
+        for result in selected:
+            assert result.normalized_value is not None
+            if median > Decimal("0") and result.normalized_value.amount > threshold:
+                excluded.append(ExcludedComparable(result.comparable_id, ComparableExclusionReason.OUTLIER_POLICY, policy.policy_id, result, notes=f"value exceeds {policy.outlier_median_multiplier}x median"))
+                continue
+            kept.append(result)
+        selected = kept
+    return tuple(selected), tuple(excluded)
+
+
+def _aggregation_readiness(count: int, policy: ValuationAggregationPolicy) -> ValuationReadiness:
+    if count < policy.minimum_partial_comparables:
+        return ValuationReadiness.INSUFFICIENT_DATA
+    if count < policy.minimum_ready_comparables:
+        return ValuationReadiness.PARTIAL
+    return ValuationReadiness.READY
+
+
+def _trim_values(values: tuple[Decimal, ...], trim_fraction: Decimal) -> tuple[Decimal, ...]:
+    if trim_fraction == Decimal("0") or len(values) < 3:
+        return values
+    count = int((Decimal(len(values)) * trim_fraction).to_integral_value(rounding=ROUND_FLOOR))
+    if count == 0:
+        return values
+    trimmed = values[count:-count]
+    return trimmed or values
+
+
+def _price_spread(values: tuple[Decimal, ...], policy: ValuationAggregationPolicy) -> PriceSpread:
+    minimum = values[0]
+    maximum = values[-1]
+    median = decimal_median(values)
+    low = decimal_quantile(values, policy.lower_quantile)
+    high = decimal_quantile(values, policy.upper_quantile)
+    relative = ((maximum - minimum) / median) if median > Decimal("0") else None
+    return PriceSpread(
+        minimum=normalized_exalted_value(minimum),
+        maximum=normalized_exalted_value(maximum),
+        median=normalized_exalted_value(median),
+        lower_quantile=normalized_exalted_value(low),
+        upper_quantile=normalized_exalted_value(high),
+        relative_spread=relative,
+    )
+
+
+def _confidence(
+    readiness: ValuationReadiness,
+    count: int,
+    spread: PriceSpread,
+    used: tuple[ComparableResult, ...],
+    excluded: list[ExcludedComparable],
+) -> Confidence:
+    reasons = [f"{count} usable normalized manual listing comparables."]
+    if readiness == ValuationReadiness.READY:
+        level = ConfidenceLevel.MEDIUM
+        reasons.append("Configured READY evidence threshold reached.")
+    elif readiness == ValuationReadiness.PARTIAL:
+        level = ConfidenceLevel.LOW
+        reasons.append("Only PARTIAL comparable evidence is available.")
+    else:
+        level = ConfidenceLevel.LOW
+    if spread.relative_spread is not None and spread.relative_spread > Decimal("1.00"):
+        level = ConfidenceLevel.LOW
+        reasons.append("Large listing-price spread reduces confidence.")
+    if excluded:
+        reasons.append("Some observations were excluded by aggregation policy.")
+    if any(result.economy_freshness == FreshnessState.STALE for result in used):
+        level = ConfidenceLevel.LOW
+        reasons.append("Stale economy conversion evidence reduces confidence.")
+    return Confidence(level=level, reasons=tuple(reasons), sample_size=count)
+
+
+def _liquidity(count: int, spread: PriceSpread) -> LiquidityStatus:
+    if count <= 0:
+        return LiquidityStatus.UNKNOWN
+    if count < 3:
+        return LiquidityStatus.LOW
+    if spread.relative_spread is not None and spread.relative_spread > Decimal("1.00"):
+        return LiquidityStatus.LOW
+    if count >= 8:
+        return LiquidityStatus.HIGH
+    return LiquidityStatus.MEDIUM
+
+
+def _composition(
+    evidence_set: ComparableEvidenceSet,
+    used: tuple[ComparableResult, ...],
+    excluded: list[ExcludedComparable],
+) -> StrategyComposition:
+    ids = {result.comparable_id for result in evidence_set.results}
+    used_count = sum(1 for result in used if result.comparable_id in ids)
+    excluded_count = sum(1 for item in excluded if item.comparable_id in ids)
+    return StrategyComposition(
+        strategy=evidence_set.query.strategy,
+        total_results=len(evidence_set.results),
+        usable_results=len(evidence_set.usable_results),
+        used_results=used_count,
+        excluded_results=excluded_count,
+    )
+
+
+def _methodology_summary(policy: ValuationAggregationPolicy) -> str:
+    return (
+        "Listing-derived manual comparable aggregation using Decimal median as estimate, "
+        f"{policy.lower_quantile}/{policy.upper_quantile} nearest-lower-index quantiles as plausible range, "
+        "deterministic duplicate handling, and configurable outlier exclusion."
+    )
 
 
 class ManualTradeProvider:
@@ -312,7 +632,7 @@ class ManualTradeProvider:
         economy_repository: EconomyRepository,
         as_of: datetime,
     ) -> ComparableResult:
-        normalized, snapshot_id, warnings = _normalize_listing(
+        normalized, snapshot_id, freshness, warnings = _normalize_listing(
             observation,
             economy_repository,
             as_of,
@@ -331,6 +651,7 @@ class ManualTradeProvider:
             retrieved_at=as_of,
             league=observation.league,
             economy_snapshot_id=snapshot_id,
+            economy_freshness=freshness,
             provenance=observation.provenance,
             warnings=observation.warnings + tuple(warnings),
         )
@@ -484,13 +805,13 @@ def _normalize_listing(
     observation: ManualListingObservation,
     repository: EconomyRepository,
     as_of: datetime,
-) -> tuple[EconomicValue | None, str | None, list[str]]:
+) -> tuple[EconomicValue | None, str | None, FreshnessState, list[str]]:
     if observation.currency_asset_id == EXALTED_ASSET_ID:
-        return normalized_exalted_value(observation.amount), None, []
+        return normalized_exalted_value(observation.amount), None, FreshnessState.FRESH, []
     quote = repository.get_current_quote(observation.league, observation.currency_asset_id, as_of)
     if quote is None or quote.normalized_value is None:
-        return None, None, [f"Missing economy conversion for {observation.currency_asset_id}"]
-    return normalized_exalted_value(observation.amount * quote.normalized_value.amount), quote.snapshot_id, []
+        return None, None, FreshnessState.UNAVAILABLE, [f"Missing economy conversion for {observation.currency_asset_id}"]
+    return normalized_exalted_value(observation.amount * quote.normalized_value.amount), quote.snapshot_id, quote.freshness, []
 
 
 def _query_summary(query: ComparableQuery) -> str:

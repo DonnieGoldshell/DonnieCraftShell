@@ -86,6 +86,8 @@ Task 9B adds [PROBABILITY_MODEL.md](PROBABILITY_MODEL.md). Outcome-space complet
 
 Task 10B adds [VALUATION_MODEL.md](VALUATION_MODEL.md) and [MANUAL_TRADE_WORKFLOW.md](MANUAL_TRADE_WORKFLOW.md). Current and hypothetical item states share `ValuationSubject`, and manual comparable evidence flows through `ManualTradeProvider` with no network calls or undocumented Trade access.
 
+Task 10C adds [VALUATION_AGGREGATION.md](VALUATION_AGGREGATION.md). `ValuationAggregator` turns manual normalized comparable evidence into listing-derived valuation results using Decimal median/quantile policy, strict/moderate precedence, explicit readiness, confidence, liquidity, and retained evidence provenance.
+
 Community game-data sources such as PoE2DB must be imported through source adapters into raw snapshots and normalized records. Runtime analysis should use normalized data or database records, not live scraping.
 
 Task 5B implements this boundary with local JSON fixtures:

@@ -1,6 +1,6 @@
 # Valuation Engine
 
-Task 10A designs the rare-item Valuation Engine. Task 10B implements the first framework-independent comparable-evidence contracts and manual workflow. It does not implement trade scraping, market-value aggregation, EV, recommendations, or automated decisions.
+Task 10A designs the rare-item Valuation Engine. Task 10B implements comparable-evidence contracts and the manual workflow. Task 10C implements conservative manual listing aggregation. It does not implement trade scraping, EV, recommendations, or automated decisions.
 
 ## Core Principle
 
@@ -33,13 +33,13 @@ CraftOutcomeSet
 
 The Valuation Engine must not depend on `ParsedItem` only.
 
-See [VALUATION_MODEL.md](VALUATION_MODEL.md) for the Task 10B executable contracts.
+See [VALUATION_MODEL.md](VALUATION_MODEL.md) for executable contracts and [VALUATION_AGGREGATION.md](VALUATION_AGGREGATION.md) for Task 10C aggregation policy.
 
 ## Readiness
 
 Use readiness states:
 
-- `READY`: enough comparable evidence exists for future aggregation to attempt an estimate.
+- `READY`: enough comparable evidence exists under the configured aggregation policy.
 - `PARTIAL`: some evidence exists, but confidence is low or conversion/query quality is incomplete.
 - `INSUFFICIENT_DATA`: no defensible estimate should be produced.
 
@@ -70,7 +70,7 @@ A valuation query must not blindly require every modifier. Modifier roles should
 - `IGNORE_FOR_COMPARABLE`
 - `UNKNOWN`
 
-For Task 10A these roles are architecture only. Future roles may come from manual selection, rule fixtures, or Meta/Modifier relevance. Curated roles must never be presented as objective game data.
+Roles may come from manual selection, rule fixtures, or future Meta/Modifier relevance. Curated roles must never be presented as objective game data.
 
 ## Comparable Query Contract
 
@@ -84,7 +84,7 @@ Future `ComparableQuery` fields:
 - generated_at
 - provenance and warnings
 
-Future `ComparableResult` fields:
+`ComparableResult` fields:
 
 - source/listing identity
 - listing price and currency
@@ -118,16 +118,16 @@ This is safer than unsupported scraping and still produces reproducible evidence
 
 Task 10B implements this as `ManualTradeProvider`; see [MANUAL_TRADE_WORKFLOW.md](MANUAL_TRADE_WORKFLOW.md).
 
-## Aggregation Recommendation
+## Aggregation
 
-Do not use arithmetic mean as the primary estimator. MVP aggregation should start with:
+Task 10C uses `ValuationAggregator` over manual normalized comparable listings only. Do not use arithmetic mean as the primary estimator. The MVP aggregator uses:
 
-- median or lower-middle cluster for central estimate,
-- plausible low/high from robust quantiles or selected cluster spread,
+- median for central estimate,
+- plausible low/high from deterministic Decimal quantiles,
 - explicit outlier warnings,
 - no estimate when sample size is too small or prices are unnormalized.
 
-Future weighting may consider recency, listing density, source freshness, and liquidity, but no formula is defined in Task 10A.
+Strict comparable evidence has precedence. Moderate evidence may supplement only when strict evidence is insufficient, and the result must warn that fallback evidence was used. See [VALUATION_AGGREGATION.md](VALUATION_AGGREGATION.md).
 
 ## Confidence And Liquidity
 

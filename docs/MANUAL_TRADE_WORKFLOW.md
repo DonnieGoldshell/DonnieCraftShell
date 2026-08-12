@@ -15,6 +15,8 @@ ComparableQuery
 -> user records listing observations
 -> EconomyRepository normalizes currencies where possible
 -> ComparableEvidenceSet readiness
+-> ValuationAggregator
+-> LISTING_DERIVED ValuationResult when evidence is sufficient
 ```
 
 ## Provider Capabilities
@@ -46,4 +48,6 @@ Examples such as `5 Divine` or `2400 Exalted` can be normalized only when Econom
 
 Comparable evidence is not valuation. Listing price is not realized sale price.
 
-Manual observations should include warnings when synthetic/test-only, stale, duplicated, unconvertible, or otherwise questionable. Future aggregation may use those warnings for confidence and liquidity, but Task 10B does not aggregate.
+Manual observations should include warnings when synthetic/test-only, stale, duplicated, unconvertible, or otherwise questionable. Task 10C aggregation may produce a listing-derived estimate from usable normalized manual observations, but it still does not infer completed-sale value or expected sale price.
+
+Unconvertible observations remain in the evidence set and reduce readiness; they are never treated as zero.

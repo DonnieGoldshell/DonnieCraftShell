@@ -1,5 +1,6 @@
 import copy
 import unittest
+from dataclasses import replace
 from datetime import datetime, timezone
 from decimal import Decimal
 from pathlib import Path
@@ -8,21 +9,28 @@ from packages.shared.donniecraftshell_contracts.affix_capacity import AffixState
 from packages.shared.donniecraftshell_contracts.craft_outcomes import CraftOutcomeEngine
 from packages.shared.donniecraftshell_contracts.crafting_actions import CraftActionEngine, load_crafting_dataset
 from packages.shared.donniecraftshell_contracts.domain import ComparableStrategy
-from packages.shared.donniecraftshell_contracts.economy import DIVINE_ASSET_ID, EXALTED_ASSET_ID
+from packages.shared.donniecraftshell_contracts.economy import DIVINE_ASSET_ID, EXALTED_ASSET_ID, FreshnessState
 from packages.shared.donniecraftshell_contracts.economy_repository import EconomyRepository
 from packages.shared.donniecraftshell_contracts.parser import parse_clipboard_item
 from packages.shared.donniecraftshell_contracts.poe_show_economy import load_normalized_economy_snapshot
 from packages.shared.donniecraftshell_contracts.valuation import (
+    ComparableExclusionReason,
+    ComparableResult,
     ListingStatus,
+    LiquidityStatus,
     ManualListingObservation,
     ManualTradeProvider,
     ModifierComparableRole,
     ModifierComparableRoleAssignment,
     ModifierMatchMode,
     ValuationAggregator,
+    ValuationAggregationPolicy,
     ValuationEvidencePolicy,
+    ValuationEstimateType,
     ValuationReadiness,
     build_comparable_query,
+    decimal_median,
+    decimal_quantile,
     evidence_set_from_results,
     subject_from_hypothetical_state,
     subject_from_parsed_item,
@@ -265,16 +273,138 @@ class ValuationContractTests(unittest.TestCase):
         self.assertIs(evidence.query, query)
         self.assertIn("economy-snapshot-019ff0f4-83a6-76a7-b304-8afe521778ff", evidence.economy_snapshot_ids)
 
-    def test_no_market_estimate_produced_from_evidence_alone(self):
+    def test_default_policy_does_not_estimate_from_one_listing(self):
         query = build_comparable_query(subject_from_parsed_item(self.item), quiver_6_roles(self.item), ComparableStrategy.STRICT, LEAGUE, AS_OF)
         result = self.provider.result_from_observation(self._observation(Decimal("5"), DIVINE_ASSET_ID), self.economy_repo, AS_OF)
         evidence = evidence_set_from_results(query, self.provider.provider_name, (result,), ValuationEvidencePolicy(minimum_usable_comparables=1))
 
         valuation = ValuationAggregator().aggregate(evidence)
 
-        self.assertEqual(valuation.readiness, ValuationReadiness.READY)
+        self.assertEqual(valuation.readiness, ValuationReadiness.INSUFFICIENT_DATA)
         self.assertIsNone(valuation.estimated_value)
-        self.assertIn("does not implement", valuation.warnings[0])
+        self.assertEqual(valuation.estimate_type, ValuationEstimateType.NONE)
+
+    def test_single_listing_can_estimate_only_when_policy_explicitly_allows(self):
+        query = build_comparable_query(subject_from_parsed_item(self.item), quiver_6_roles(self.item), ComparableStrategy.STRICT, LEAGUE, AS_OF)
+        result = self.provider.result_from_observation(self._observation(Decimal("5"), DIVINE_ASSET_ID), self.economy_repo, AS_OF)
+        evidence = evidence_set_from_results(query, self.provider.provider_name, (result,), ValuationEvidencePolicy(minimum_usable_comparables=1))
+
+        valuation = ValuationAggregator(ValuationAggregationPolicy(minimum_ready_comparables=1, minimum_partial_comparables=1)).aggregate(evidence)
+
+        self.assertEqual(valuation.readiness, ValuationReadiness.READY)
+        self.assertEqual(valuation.estimate_type, ValuationEstimateType.LISTING_DERIVED)
+        self.assertEqual(valuation.estimated_value.amount, Decimal("1691.0"))
+
+    def test_decimal_median_odd_and_even(self):
+        self.assertEqual(decimal_median((Decimal("1"), Decimal("9"), Decimal("5"))), Decimal("5"))
+        self.assertEqual(decimal_median((Decimal("1"), Decimal("9"), Decimal("5"), Decimal("7"))), Decimal("6"))
+
+    def test_decimal_quantile_uses_nearest_lower_index_rule(self):
+        values = (Decimal("10"), Decimal("20"), Decimal("30"), Decimal("40"), Decimal("50"))
+
+        self.assertEqual(decimal_quantile(values, Decimal("0.25")), Decimal("20"))
+        self.assertEqual(decimal_quantile(values, Decimal("0.75")), Decimal("40"))
+        self.assertEqual(decimal_quantile(values, Decimal("1")), Decimal("50"))
+
+    def test_synthetic_quiver_median_range_and_outlier_policy(self):
+        evidence = self._evidence(ComparableStrategy.STRICT, ("4.0", "4.5", "5.0", "5.0", "5.5", "20.0"))
+
+        valuation = ValuationAggregator().aggregate(evidence)
+
+        self.assertEqual(valuation.readiness, ValuationReadiness.READY)
+        self.assertEqual(valuation.estimate_type, ValuationEstimateType.LISTING_DERIVED)
+        self.assertEqual(valuation.estimated_value.amount, Decimal("1691.00"))
+        self.assertLessEqual(valuation.plausible_low.amount, valuation.estimated_value.amount)
+        self.assertLessEqual(valuation.estimated_value.amount, valuation.plausible_high.amount)
+        self.assertEqual(valuation.excluded_comparables[0].reason, ComparableExclusionReason.OUTLIER_POLICY)
+        self.assertTrue(any("excluded by deterministic policy" in warning for warning in valuation.warnings))
+
+    def test_arithmetic_mean_is_not_primary_estimator(self):
+        evidence = self._evidence(ComparableStrategy.STRICT, ("4.0", "4.5", "5.0", "5.0", "5.5", "20.0"))
+
+        valuation = ValuationAggregator().aggregate(evidence)
+
+        arithmetic_mean_with_outlier = Decimal("2479.466666666666666666666667")
+        self.assertNotEqual(valuation.estimated_value.amount, arithmetic_mean_with_outlier)
+        self.assertEqual(valuation.estimated_value.amount, Decimal("1691.00"))
+
+    def test_duplicate_listing_ids_are_not_counted_as_independent_evidence(self):
+        query = build_comparable_query(subject_from_parsed_item(self.item), quiver_6_roles(self.item), ComparableStrategy.STRICT, LEAGUE, AS_OF)
+        results = (
+            self.provider.result_from_observation(self._observation(Decimal("5"), DIVINE_ASSET_ID, listing_id="dup"), self.economy_repo, AS_OF),
+            self.provider.result_from_observation(self._observation(Decimal("5.5"), DIVINE_ASSET_ID, listing_id="dup"), self.economy_repo, AS_OF),
+            self.provider.result_from_observation(self._observation(Decimal("6"), DIVINE_ASSET_ID, listing_id="unique"), self.economy_repo, AS_OF),
+        )
+        evidence = evidence_set_from_results(query, self.provider.provider_name, results)
+
+        valuation = ValuationAggregator().aggregate(evidence)
+
+        self.assertEqual(valuation.comparable_count, 2)
+        self.assertEqual(valuation.excluded_comparables[0].reason, ComparableExclusionReason.DUPLICATE_LISTING)
+
+    def test_strict_precedence_uses_strict_when_sufficient(self):
+        strict = self._evidence(ComparableStrategy.STRICT, ("4", "5", "6"), listing_prefix="strict")
+        moderate = self._evidence(ComparableStrategy.MODERATE, ("3", "4", "5", "6", "7", "8", "9", "10"), listing_prefix="moderate")
+
+        valuation = ValuationAggregator().aggregate_evidence_sets((strict, moderate))
+
+        self.assertEqual(valuation.strategy, ComparableStrategy.STRICT)
+        self.assertEqual(valuation.source_evidence_ids, (strict.evidence_set_id,))
+        self.assertEqual(valuation.strategy_composition[0].strategy, ComparableStrategy.STRICT)
+
+    def test_moderate_fallback_is_explicit_when_strict_insufficient(self):
+        strict = self._evidence(ComparableStrategy.STRICT, ("5",), listing_prefix="strict")
+        moderate = self._evidence(ComparableStrategy.MODERATE, ("4", "5", "6"), listing_prefix="moderate")
+
+        valuation = ValuationAggregator().aggregate_evidence_sets((strict, moderate))
+
+        self.assertEqual(valuation.strategy, ComparableStrategy.OTHER)
+        self.assertEqual({entry.strategy for entry in valuation.strategy_composition}, {ComparableStrategy.STRICT, ComparableStrategy.MODERATE})
+        self.assertTrue(any("MODERATE comparable evidence used as fallback" in warning for warning in valuation.warnings))
+
+    def test_stale_evidence_warns_and_reduces_confidence(self):
+        evidence = self._evidence(ComparableStrategy.STRICT, ("4", "5", "6"))
+        stale_results = tuple(replace(result, economy_freshness=FreshnessState.STALE) for result in evidence.results)
+        stale_evidence = evidence_set_from_results(evidence.query, self.provider.provider_name, stale_results)
+
+        valuation = ValuationAggregator().aggregate(stale_evidence)
+
+        self.assertTrue(any("stale economy" in warning.lower() for warning in valuation.warnings))
+        self.assertTrue(any("Stale economy conversion" in reason for reason in valuation.confidence.reasons))
+
+    def test_liquidity_is_evidence_based_not_sale_velocity(self):
+        low = ValuationAggregator().aggregate(self._evidence(ComparableStrategy.STRICT, ("4", "5")))
+        high = ValuationAggregator().aggregate(self._evidence(ComparableStrategy.STRICT, ("4", "4.5", "5", "5.5", "6", "6.5", "7", "7.5"), listing_prefix="dense"))
+
+        self.assertEqual(low.liquidity, LiquidityStatus.LOW)
+        self.assertEqual(high.liquidity, LiquidityStatus.HIGH)
+        self.assertFalse(hasattr(high, "time_to_sale"))
+
+    def test_current_item_aggregation_retains_reproducible_evidence(self):
+        evidence = self._evidence(ComparableStrategy.STRICT, ("4", "5", "6"))
+
+        valuation = ValuationAggregator().aggregate(evidence)
+
+        self.assertEqual(valuation.source_evidence_ids, (evidence.evidence_set_id,))
+        self.assertEqual(valuation.economy_snapshot_ids, ("economy-snapshot-019ff0f4-83a6-76a7-b304-8afe521778ff",))
+        self.assertEqual(valuation.league, LEAGUE)
+        self.assertEqual(valuation.estimate_type, ValuationEstimateType.LISTING_DERIVED)
+        self.assertFalse(hasattr(valuation, "realized_sale_value"))
+
+    def test_hypothetical_item_aggregation_uses_same_flow(self):
+        subject = subject_from_hypothetical_state(self.item, self._first_annulment_state())
+        query = build_comparable_query(subject, quiver_6_roles(self.item), ComparableStrategy.STRICT, LEAGUE, AS_OF)
+        results = tuple(
+            self.provider.result_from_observation(self._observation(Decimal(amount), DIVINE_ASSET_ID, listing_id=f"hyp-{index}"), self.economy_repo, AS_OF)
+            for index, amount in enumerate(("4", "5", "6"), start=1)
+        )
+        evidence = evidence_set_from_results(query, self.provider.provider_name, results)
+
+        valuation = ValuationAggregator().aggregate(evidence)
+
+        self.assertEqual(valuation.readiness, ValuationReadiness.READY)
+        self.assertEqual(valuation.estimate_type, ValuationEstimateType.LISTING_DERIVED)
+        self.assertFalse(hasattr(valuation, "expected_value"))
 
     def test_original_item_and_outcome_state_remain_immutable(self):
         item_before = copy.deepcopy(self.item)
@@ -287,9 +417,21 @@ class ValuationContractTests(unittest.TestCase):
         self.assertEqual(self.item, item_before)
         self.assertEqual(outcome_state, outcome_before)
 
+    def _evidence(self, strategy: ComparableStrategy, amounts: tuple[str, ...], listing_prefix: str = "listing"):
+        query = build_comparable_query(subject_from_parsed_item(self.item), quiver_6_roles(self.item), strategy, LEAGUE, AS_OF)
+        results = tuple(
+            self.provider.result_from_observation(
+                self._observation(Decimal(amount), DIVINE_ASSET_ID, listing_id=f"{listing_prefix}-{index}"),
+                self.economy_repo,
+                AS_OF,
+            )
+            for index, amount in enumerate(amounts, start=1)
+        )
+        return evidence_set_from_results(query, self.provider.provider_name, results)
+
     def _observation(self, amount: Decimal, currency_asset_id: str, listing_id: str | None = "synthetic-listing"):
         return ManualListingObservation(
-            observation_id=f"synthetic-observation-{amount}-{currency_asset_id}",
+            observation_id=f"synthetic-observation-{amount}-{currency_asset_id}-{listing_id or 'manual'}",
             query_id="synthetic-query",
             amount=amount,
             currency_asset_id=currency_asset_id,
