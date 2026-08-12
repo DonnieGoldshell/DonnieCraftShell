@@ -35,6 +35,7 @@ apps/web
 - **Economy Engine**: provides league-specific normalized prices and historical snapshots.
 - **Modifier Intelligence**: separates verified game data, derived statistical data, and curated relevance.
 - **Game Data Enrichment**: maps parsed clipboard observations to canonical source-backed records without mutating parser output.
+- **Craft Action Engine**: evaluates source-backed crafting action applicability and required materials without simulating outcomes or calculating costs.
 - **Craft Simulator**: models legal actions and outcomes only when mechanics are verified.
 
 See [DECISION_ENGINE.md](DECISION_ENGINE.md) for economic behavior.
@@ -59,6 +60,14 @@ Economy providers must ingest in the backend through replaceable adapters. Runti
 Task 6B proves this boundary with an offline poe.show Currency fixture and local normalized JSON. No runtime network polling or background scheduling is implemented.
 
 Task 6C adds offline Ritual and Essences fixtures using the same provider boundary, and introduces craft-material cost calculation as a pure economy service, not Craft Advisor logic.
+
+Crafting action definitions follow the same offline snapshot pattern:
+
+- raw research in `data/raw/crafting/`
+- normalized versioned action datasets in `data/normalized/crafting/`
+- framework-independent applicability checks in `CraftActionEngine`
+
+See [CRAFTING_ACTIONS.md](CRAFTING_ACTIONS.md) and [CRAFTING_SOURCES.md](CRAFTING_SOURCES.md). The Craft Action Engine returns `APPLICABLE`, `NOT_APPLICABLE`, or `UNKNOWN`; it does not estimate outcomes, EV, or prices.
 
 Community game-data sources such as PoE2DB must be imported through source adapters into raw snapshots and normalized records. Runtime analysis should use normalized data or database records, not live scraping.
 

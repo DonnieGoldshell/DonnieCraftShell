@@ -1,0 +1,258 @@
+{
+  "dataset_id": "crafting-actions-poe2-quiver-2026-08-12-research",
+  "source": "manual-research",
+  "retrieved_at": "2026-08-12T00:00:00+02:00",
+  "game": "Path of Exile 2",
+  "game_version": null,
+  "notes": [
+    "Task 7A normalized crafting-action dataset.",
+    "Applicability only; no outcome simulation or probability data.",
+    "Quiver affix capacity remains NEEDS VERIFICATION."
+  ],
+  "provenance": [
+    {
+      "source_id": "poe2db-currency",
+      "source_type": "COMMUNITY",
+      "source_uri": "https://poe2db.tw/us/Currency",
+      "retrieved_at": "2026-08-12T00:00:00+02:00",
+      "verification_status": "PROVISIONAL",
+      "confidence_level": "MEDIUM",
+      "notes": "Structured currency item text."
+    }
+  ],
+  "actions": [
+    {
+      "action_id": "dc:poe2:craft-action:orb-of-annulment",
+      "display_name": "Orb of Annulment",
+      "kind": "CURRENCY",
+      "mechanic_summary": "Removes a random modifier from a magic or rare item.",
+      "verification_status": "PROVISIONAL",
+      "simulation_supported": false,
+      "required_materials": [
+        {"asset_id": "dc:poe2:economy-asset:currency:orb-of-annulment", "quantity": "1"}
+      ],
+      "preconditions": [
+        {
+          "kind": "RARITY_IN",
+          "values": ["MAGIC", "RARE"],
+          "description": "Orb of Annulment targets magic or rare items.",
+          "verification_status": "VERIFIED",
+          "provenance": [
+            {
+              "source_id": "poe2wiki-orb-of-annulment",
+              "source_type": "COMMUNITY",
+              "source_uri": "https://www.poe2wiki.net/wiki/Orb_of_Annulment",
+              "retrieved_at": "2026-08-12T00:00:00+02:00",
+              "verification_status": "PROVISIONAL",
+              "confidence_level": "MEDIUM",
+              "notes": "Community wiki records tooltip/application text."
+            }
+          ]
+        },
+        {
+          "kind": "NOT_CORRUPTED",
+          "description": "Regular crafting methods cannot modify corrupted items.",
+          "verification_status": "VERIFIED",
+          "provenance": [
+            {
+              "source_id": "poe2wiki-corrupted",
+              "source_type": "COMMUNITY",
+              "source_uri": "https://www.poe2wiki.net/wiki/Corrupted",
+              "retrieved_at": "2026-08-12T00:00:00+02:00",
+              "verification_status": "PROVISIONAL",
+              "confidence_level": "MEDIUM"
+            }
+          ]
+        },
+        {
+          "kind": "HAS_EXPLICIT_MODIFIER",
+          "description": "A modifier must exist for removal.",
+          "verification_status": "VERIFIED",
+          "provenance": [
+            {
+              "source_id": "poe2db-currency",
+              "source_type": "COMMUNITY",
+              "source_uri": "https://poe2db.tw/us/Currency",
+              "retrieved_at": "2026-08-12T00:00:00+02:00",
+              "verification_status": "PROVISIONAL",
+              "confidence_level": "MEDIUM"
+            }
+          ]
+        }
+      ],
+      "unknown_conditions": [],
+      "provenance": [
+        {
+          "source_id": "poe2db-currency",
+          "source_type": "COMMUNITY",
+          "source_uri": "https://poe2db.tw/us/Currency",
+          "retrieved_at": "2026-08-12T00:00:00+02:00",
+          "verification_status": "PROVISIONAL",
+          "confidence_level": "MEDIUM"
+        }
+      ]
+    },
+    {
+      "action_id": "dc:poe2:craft-action:exalted-orb",
+      "display_name": "Exalted Orb",
+      "kind": "CURRENCY",
+      "mechanic_summary": "Augments a rare item with a new random modifier.",
+      "verification_status": "PROVISIONAL",
+      "simulation_supported": false,
+      "required_materials": [
+        {"asset_id": "dc:poe2:economy-asset:currency:exalted-orb", "quantity": "1"}
+      ],
+      "preconditions": [
+        {"kind": "RARITY_IN", "values": ["RARE"], "description": "Exalted Orb targets rare items.", "verification_status": "VERIFIED", "provenance": [{"source_id": "poe2db-currency", "source_type": "COMMUNITY", "source_uri": "https://poe2db.tw/us/Currency", "retrieved_at": "2026-08-12T00:00:00+02:00", "verification_status": "PROVISIONAL", "confidence_level": "MEDIUM"}]},
+        {"kind": "NOT_CORRUPTED", "description": "Regular crafting methods cannot modify corrupted items.", "verification_status": "VERIFIED", "provenance": [{"source_id": "poe2wiki-corrupted", "source_type": "COMMUNITY", "source_uri": "https://www.poe2wiki.net/wiki/Corrupted", "retrieved_at": "2026-08-12T00:00:00+02:00", "verification_status": "PROVISIONAL", "confidence_level": "MEDIUM"}]},
+        {"kind": "HAS_OPEN_AFFIX_SLOT", "description": "Adding a new modifier requires verified available modifier capacity.", "verification_status": "NEEDS_VERIFICATION"}
+      ],
+      "unknown_conditions": ["Quiver prefix/suffix capacity and open-slot count are not source-verified in this dataset."],
+      "provenance": [{"source_id": "poe2db-currency", "source_type": "COMMUNITY", "source_uri": "https://poe2db.tw/us/Currency", "retrieved_at": "2026-08-12T00:00:00+02:00", "verification_status": "PROVISIONAL", "confidence_level": "MEDIUM"}]
+    },
+    {
+      "action_id": "dc:poe2:craft-action:greater-exalted-orb",
+      "display_name": "Greater Exalted Orb",
+      "kind": "CURRENCY",
+      "mechanic_summary": "Minimum Modifier Level: 35. Augments a rare item with a new random modifier.",
+      "verification_status": "PROVISIONAL",
+      "simulation_supported": false,
+      "required_materials": [{"asset_id": "dc:poe2:economy-asset:currency:greater-exalted-orb", "quantity": "1"}],
+      "preconditions": [
+        {"kind": "RARITY_IN", "values": ["RARE"], "description": "Greater Exalted Orb targets rare items.", "verification_status": "VERIFIED", "provenance": [{"source_id": "poe2db-currency", "source_type": "COMMUNITY", "source_uri": "https://poe2db.tw/us/Currency", "retrieved_at": "2026-08-12T00:00:00+02:00", "verification_status": "PROVISIONAL", "confidence_level": "MEDIUM"}]},
+        {"kind": "NOT_CORRUPTED", "description": "Regular crafting methods cannot modify corrupted items.", "verification_status": "VERIFIED", "provenance": [{"source_id": "poe2wiki-corrupted", "source_type": "COMMUNITY", "source_uri": "https://www.poe2wiki.net/wiki/Corrupted", "retrieved_at": "2026-08-12T00:00:00+02:00", "verification_status": "PROVISIONAL", "confidence_level": "MEDIUM"}]},
+        {"kind": "HAS_OPEN_AFFIX_SLOT", "description": "Adding a new modifier requires verified available modifier capacity.", "verification_status": "NEEDS_VERIFICATION"}
+      ],
+      "unknown_conditions": ["Minimum Modifier Level semantics affect modifier selection and are not simulated in Task 7A.", "Quiver prefix/suffix capacity and open-slot count are not source-verified in this dataset."],
+      "provenance": [{"source_id": "poe2db-currency", "source_type": "COMMUNITY", "source_uri": "https://poe2db.tw/us/Currency", "retrieved_at": "2026-08-12T00:00:00+02:00", "verification_status": "PROVISIONAL", "confidence_level": "MEDIUM"}]
+    },
+    {
+      "action_id": "dc:poe2:craft-action:perfect-exalted-orb",
+      "display_name": "Perfect Exalted Orb",
+      "kind": "CURRENCY",
+      "mechanic_summary": "Minimum Modifier Level: 50. Augments a rare item with a new random modifier.",
+      "verification_status": "PROVISIONAL",
+      "simulation_supported": false,
+      "required_materials": [{"asset_id": "dc:poe2:economy-asset:currency:perfect-exalted-orb", "quantity": "1"}],
+      "preconditions": [
+        {"kind": "RARITY_IN", "values": ["RARE"], "description": "Perfect Exalted Orb targets rare items.", "verification_status": "VERIFIED", "provenance": [{"source_id": "poe2db-currency", "source_type": "COMMUNITY", "source_uri": "https://poe2db.tw/us/Currency", "retrieved_at": "2026-08-12T00:00:00+02:00", "verification_status": "PROVISIONAL", "confidence_level": "MEDIUM"}]},
+        {"kind": "NOT_CORRUPTED", "description": "Regular crafting methods cannot modify corrupted items.", "verification_status": "VERIFIED", "provenance": [{"source_id": "poe2wiki-corrupted", "source_type": "COMMUNITY", "source_uri": "https://www.poe2wiki.net/wiki/Corrupted", "retrieved_at": "2026-08-12T00:00:00+02:00", "verification_status": "PROVISIONAL", "confidence_level": "MEDIUM"}]},
+        {"kind": "HAS_OPEN_AFFIX_SLOT", "description": "Adding a new modifier requires verified available modifier capacity.", "verification_status": "NEEDS_VERIFICATION"}
+      ],
+      "unknown_conditions": ["Minimum Modifier Level semantics affect modifier selection and are not simulated in Task 7A.", "Quiver prefix/suffix capacity and open-slot count are not source-verified in this dataset."],
+      "provenance": [{"source_id": "poe2db-currency", "source_type": "COMMUNITY", "source_uri": "https://poe2db.tw/us/Currency", "retrieved_at": "2026-08-12T00:00:00+02:00", "verification_status": "PROVISIONAL", "confidence_level": "MEDIUM"}]
+    },
+    {
+      "action_id": "dc:poe2:craft-action:exalted-orb-with-omen-of-catalysing-exaltation",
+      "display_name": "Exalted Orb + Omen of Catalysing Exaltation",
+      "kind": "OMEN_MODIFIED_CURRENCY",
+      "mechanic_summary": "The Omen makes the next Exalted Orb consume all Catalyst Quality to increase the chance of the corresponding modifier type.",
+      "verification_status": "PROVISIONAL",
+      "simulation_supported": false,
+      "required_materials": [
+        {"asset_id": "dc:poe2:economy-asset:currency:exalted-orb", "quantity": "1"},
+        {"asset_id": "dc:poe2:economy-asset:ritual:omen-of-catalysing-exaltation", "quantity": "1"}
+      ],
+      "preconditions": [
+        {"kind": "RARITY_IN", "values": ["RARE"], "description": "Exalted Orb target must be rare.", "verification_status": "VERIFIED", "provenance": [{"source_id": "poe2db-currency", "source_type": "COMMUNITY", "source_uri": "https://poe2db.tw/us/Currency", "retrieved_at": "2026-08-12T00:00:00+02:00", "verification_status": "PROVISIONAL", "confidence_level": "MEDIUM"}]},
+        {"kind": "NOT_CORRUPTED", "description": "Regular crafting methods cannot modify corrupted items.", "verification_status": "VERIFIED", "provenance": [{"source_id": "poe2wiki-corrupted", "source_type": "COMMUNITY", "source_uri": "https://www.poe2wiki.net/wiki/Corrupted", "retrieved_at": "2026-08-12T00:00:00+02:00", "verification_status": "PROVISIONAL", "confidence_level": "MEDIUM"}]},
+        {"kind": "HAS_OPEN_AFFIX_SLOT", "description": "Adding a new modifier requires verified available modifier capacity.", "verification_status": "NEEDS_VERIFICATION"}
+      ],
+      "unknown_conditions": ["Whether Quivers can have Catalyst Quality relevant to this Omen is not verified."],
+      "provenance": [{"source_id": "poe2db-omen", "source_type": "COMMUNITY", "source_uri": "https://poe2db.tw/us/Omen", "retrieved_at": "2026-08-12T00:00:00+02:00", "verification_status": "PROVISIONAL", "confidence_level": "MEDIUM"}]
+    },
+    {
+      "action_id": "dc:poe2:craft-action:exalted-orb-with-omen-of-sinistral-exaltation",
+      "display_name": "Exalted Orb + Omen of Sinistral Exaltation",
+      "kind": "OMEN_MODIFIED_CURRENCY",
+      "mechanic_summary": "The Omen makes the next Exalted Orb add only prefix modifiers.",
+      "verification_status": "PROVISIONAL",
+      "simulation_supported": false,
+      "required_materials": [
+        {"asset_id": "dc:poe2:economy-asset:currency:exalted-orb", "quantity": "1"},
+        {"asset_id": "dc:poe2:economy-asset:ritual:omen-of-sinistral-exaltation", "quantity": "1"}
+      ],
+      "preconditions": [
+        {"kind": "RARITY_IN", "values": ["RARE"], "description": "Exalted Orb target must be rare.", "verification_status": "VERIFIED", "provenance": [{"source_id": "poe2db-currency", "source_type": "COMMUNITY", "source_uri": "https://poe2db.tw/us/Currency", "retrieved_at": "2026-08-12T00:00:00+02:00", "verification_status": "PROVISIONAL", "confidence_level": "MEDIUM"}]},
+        {"kind": "NOT_CORRUPTED", "description": "Regular crafting methods cannot modify corrupted items.", "verification_status": "VERIFIED", "provenance": [{"source_id": "poe2wiki-corrupted", "source_type": "COMMUNITY", "source_uri": "https://www.poe2wiki.net/wiki/Corrupted", "retrieved_at": "2026-08-12T00:00:00+02:00", "verification_status": "PROVISIONAL", "confidence_level": "MEDIUM"}]},
+        {"kind": "HAS_OPEN_AFFIX_SLOT", "description": "Adding a prefix requires verified available prefix capacity.", "verification_status": "NEEDS_VERIFICATION"}
+      ],
+      "unknown_conditions": ["Quiver prefix capacity and open-prefix count are not source-verified in this dataset."],
+      "provenance": [{"source_id": "poe2db-omen", "source_type": "COMMUNITY", "source_uri": "https://poe2db.tw/us/Omen", "retrieved_at": "2026-08-12T00:00:00+02:00", "verification_status": "PROVISIONAL", "confidence_level": "MEDIUM"}]
+    },
+    {
+      "action_id": "dc:poe2:craft-action:exalted-orb-with-omen-of-dextral-exaltation",
+      "display_name": "Exalted Orb + Omen of Dextral Exaltation",
+      "kind": "OMEN_MODIFIED_CURRENCY",
+      "mechanic_summary": "The Omen makes the next Exalted Orb add only suffix modifiers.",
+      "verification_status": "PROVISIONAL",
+      "simulation_supported": false,
+      "required_materials": [
+        {"asset_id": "dc:poe2:economy-asset:currency:exalted-orb", "quantity": "1"},
+        {"asset_id": "dc:poe2:economy-asset:ritual:omen-of-dextral-exaltation", "quantity": "1"}
+      ],
+      "preconditions": [
+        {"kind": "RARITY_IN", "values": ["RARE"], "description": "Exalted Orb target must be rare.", "verification_status": "VERIFIED", "provenance": [{"source_id": "poe2db-currency", "source_type": "COMMUNITY", "source_uri": "https://poe2db.tw/us/Currency", "retrieved_at": "2026-08-12T00:00:00+02:00", "verification_status": "PROVISIONAL", "confidence_level": "MEDIUM"}]},
+        {"kind": "NOT_CORRUPTED", "description": "Regular crafting methods cannot modify corrupted items.", "verification_status": "VERIFIED", "provenance": [{"source_id": "poe2wiki-corrupted", "source_type": "COMMUNITY", "source_uri": "https://www.poe2wiki.net/wiki/Corrupted", "retrieved_at": "2026-08-12T00:00:00+02:00", "verification_status": "PROVISIONAL", "confidence_level": "MEDIUM"}]},
+        {"kind": "HAS_OPEN_AFFIX_SLOT", "description": "Adding a suffix requires verified available suffix capacity.", "verification_status": "NEEDS_VERIFICATION"}
+      ],
+      "unknown_conditions": ["Quiver suffix capacity and open-suffix count are not source-verified in this dataset."],
+      "provenance": [{"source_id": "poe2db-omen", "source_type": "COMMUNITY", "source_uri": "https://poe2db.tw/us/Omen", "retrieved_at": "2026-08-12T00:00:00+02:00", "verification_status": "PROVISIONAL", "confidence_level": "MEDIUM"}]
+    },
+    {
+      "action_id": "dc:poe2:craft-action:orb-of-annulment-with-omen-of-sinistral-annulment",
+      "display_name": "Orb of Annulment + Omen of Sinistral Annulment",
+      "kind": "OMEN_MODIFIED_CURRENCY",
+      "mechanic_summary": "The Omen makes the next Orb of Annulment remove only prefix modifiers.",
+      "verification_status": "PROVISIONAL",
+      "simulation_supported": false,
+      "required_materials": [
+        {"asset_id": "dc:poe2:economy-asset:currency:orb-of-annulment", "quantity": "1"},
+        {"asset_id": "dc:poe2:economy-asset:ritual:omen-of-sinistral-annulment", "quantity": "1"}
+      ],
+      "preconditions": [
+        {"kind": "RARITY_IN", "values": ["MAGIC", "RARE"], "description": "Orb of Annulment targets magic or rare items.", "verification_status": "VERIFIED", "provenance": [{"source_id": "poe2wiki-orb-of-annulment", "source_type": "COMMUNITY", "source_uri": "https://www.poe2wiki.net/wiki/Orb_of_Annulment", "retrieved_at": "2026-08-12T00:00:00+02:00", "verification_status": "PROVISIONAL", "confidence_level": "MEDIUM"}]},
+        {"kind": "NOT_CORRUPTED", "description": "Regular crafting methods cannot modify corrupted items.", "verification_status": "VERIFIED", "provenance": [{"source_id": "poe2wiki-corrupted", "source_type": "COMMUNITY", "source_uri": "https://www.poe2wiki.net/wiki/Corrupted", "retrieved_at": "2026-08-12T00:00:00+02:00", "verification_status": "PROVISIONAL", "confidence_level": "MEDIUM"}]},
+        {"kind": "HAS_EXPLICIT_MODIFIER", "description": "A modifier must exist for removal.", "verification_status": "VERIFIED", "provenance": [{"source_id": "poe2db-currency", "source_type": "COMMUNITY", "source_uri": "https://poe2db.tw/us/Currency", "retrieved_at": "2026-08-12T00:00:00+02:00", "verification_status": "PROVISIONAL", "confidence_level": "MEDIUM"}]}
+      ],
+      "unknown_conditions": ["Requires at least one prefix modifier for the Omen target to have an effect; prefix targeting is not simulated in Task 7A."],
+      "provenance": [{"source_id": "poe2db-omen", "source_type": "COMMUNITY", "source_uri": "https://poe2db.tw/us/Omen_of_Sinistral_Annulment", "retrieved_at": "2026-08-12T00:00:00+02:00", "verification_status": "PROVISIONAL", "confidence_level": "MEDIUM"}]
+    },
+    {
+      "action_id": "dc:poe2:craft-action:orb-of-annulment-with-omen-of-dextral-annulment",
+      "display_name": "Orb of Annulment + Omen of Dextral Annulment",
+      "kind": "OMEN_MODIFIED_CURRENCY",
+      "mechanic_summary": "The Omen makes the next Orb of Annulment remove only suffix modifiers.",
+      "verification_status": "PROVISIONAL",
+      "simulation_supported": false,
+      "required_materials": [
+        {"asset_id": "dc:poe2:economy-asset:currency:orb-of-annulment", "quantity": "1"},
+        {"asset_id": "dc:poe2:economy-asset:ritual:omen-of-dextral-annulment", "quantity": "1"}
+      ],
+      "preconditions": [
+        {"kind": "RARITY_IN", "values": ["MAGIC", "RARE"], "description": "Orb of Annulment targets magic or rare items.", "verification_status": "VERIFIED", "provenance": [{"source_id": "poe2wiki-orb-of-annulment", "source_type": "COMMUNITY", "source_uri": "https://www.poe2wiki.net/wiki/Orb_of_Annulment", "retrieved_at": "2026-08-12T00:00:00+02:00", "verification_status": "PROVISIONAL", "confidence_level": "MEDIUM"}]},
+        {"kind": "NOT_CORRUPTED", "description": "Regular crafting methods cannot modify corrupted items.", "verification_status": "VERIFIED", "provenance": [{"source_id": "poe2wiki-corrupted", "source_type": "COMMUNITY", "source_uri": "https://www.poe2wiki.net/wiki/Corrupted", "retrieved_at": "2026-08-12T00:00:00+02:00", "verification_status": "PROVISIONAL", "confidence_level": "MEDIUM"}]},
+        {"kind": "HAS_EXPLICIT_MODIFIER", "description": "A modifier must exist for removal.", "verification_status": "VERIFIED", "provenance": [{"source_id": "poe2db-currency", "source_type": "COMMUNITY", "source_uri": "https://poe2db.tw/us/Currency", "retrieved_at": "2026-08-12T00:00:00+02:00", "verification_status": "PROVISIONAL", "confidence_level": "MEDIUM"}]}
+      ],
+      "unknown_conditions": ["Requires at least one suffix modifier for the Omen target to have an effect; suffix targeting is not simulated in Task 7A."],
+      "provenance": [{"source_id": "poe2db-omen", "source_type": "COMMUNITY", "source_uri": "https://poe2db.tw/us/Omen_of_Dextral_Annulment", "retrieved_at": "2026-08-12T00:00:00+02:00", "verification_status": "PROVISIONAL", "confidence_level": "MEDIUM"}]
+    },
+    {
+      "action_id": "dc:poe2:craft-action:essence-of-hysteria",
+      "display_name": "Essence of Hysteria",
+      "kind": "ESSENCE",
+      "mechanic_summary": "Removes a random modifier and augments a rare item with a new guaranteed modifier. For Quivers, the listed guaranteed modifier is increased Damage with Bow Skills.",
+      "verification_status": "PROVISIONAL",
+      "simulation_supported": false,
+      "required_materials": [{"asset_id": "dc:poe2:economy-asset:essence:essence-of-hysteria", "quantity": "1"}],
+      "preconditions": [
+        {"kind": "RARITY_IN", "values": ["RARE"], "description": "Essence of Hysteria targets rare items.", "verification_status": "VERIFIED", "provenance": [{"source_id": "poe2db-essence-hysteria", "source_type": "COMMUNITY", "source_uri": "https://poe2db.tw/us/Essence_of_Hysteria", "retrieved_at": "2026-08-12T00:00:00+02:00", "verification_status": "PROVISIONAL", "confidence_level": "MEDIUM"}]},
+        {"kind": "ITEM_CLASS_IN", "values": ["Quivers"], "description": "Essence page lists a Quiver-specific guaranteed modifier.", "verification_status": "VERIFIED", "provenance": [{"source_id": "poe2db-essence-hysteria", "source_type": "COMMUNITY", "source_uri": "https://poe2db.tw/us/Essence_of_Hysteria", "retrieved_at": "2026-08-12T00:00:00+02:00", "verification_status": "PROVISIONAL", "confidence_level": "MEDIUM"}]},
+        {"kind": "NOT_CORRUPTED", "description": "Regular crafting methods cannot modify corrupted items.", "verification_status": "VERIFIED", "provenance": [{"source_id": "poe2wiki-corrupted", "source_type": "COMMUNITY", "source_uri": "https://www.poe2wiki.net/wiki/Corrupted", "retrieved_at": "2026-08-12T00:00:00+02:00", "verification_status": "PROVISIONAL", "confidence_level": "MEDIUM"}]},
+        {"kind": "HAS_EXPLICIT_MODIFIER", "description": "Essence removes a random modifier before augmenting.", "verification_status": "VERIFIED", "provenance": [{"source_id": "poe2db-essence-hysteria", "source_type": "COMMUNITY", "source_uri": "https://poe2db.tw/us/Essence_of_Hysteria", "retrieved_at": "2026-08-12T00:00:00+02:00", "verification_status": "PROVISIONAL", "confidence_level": "MEDIUM"}]}
+      ],
+      "unknown_conditions": [],
+      "provenance": [{"source_id": "poe2db-essence-hysteria", "source_type": "COMMUNITY", "source_uri": "https://poe2db.tw/us/Essence_of_Hysteria", "retrieved_at": "2026-08-12T00:00:00+02:00", "verification_status": "PROVISIONAL", "confidence_level": "MEDIUM"}]
+    }
+  ]
+}

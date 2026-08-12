@@ -87,6 +87,16 @@ Task 6C adds bounded offline Ritual and Essences responses for the same league c
 
 Task 5C uses manually captured PoE2DB hover/cache records for 17 Quiver-applicable modifier tiers as an offline research fixture. It validates import and resolver coverage improvements, but it is not a complete Quiver catalogue and must not be treated as production coverage.
 
+Task 7A uses community source-backed crafting-action research for a small Quiver MVP action dataset. The normalized action dataset is provisional and covers applicability/materials only. It must not be used as outcome, probability, or EV evidence.
+
+### PoE2 Wiki
+
+- Source type: community wiki.
+- Authority level: non-official; useful for cross-checking in-game text and high-level mechanics.
+- Intended use: provisional crafting-mechanic references where official documentation is unavailable.
+- Provenance requirements: source URI, retrieved_at, page name, short factual summary, and verification status.
+- Known limitations: wiki content may lag game patches, wording may be editorial, and copied prose should not be stored in DonnieCraftShell datasets.
+
 ## Open Questions
 
 - Which PoE2 APIs are available, stable, and permitted for this use case?
@@ -95,3 +105,4 @@ Task 5C uses manually captured PoE2DB hover/cache records for 17 Quiver-applicab
 - What rate limits, terms, or attribution requirements apply?
 - How should confidence be calculated for sparse comparable data?
 - What stable source-backed identifiers should be used for PoE2DB records when no explicit game-data ID is exposed?
+- Which official or in-game sources can verify Quiver affix capacity and regular crafting restrictions for corrupted/twice-corrupted states?

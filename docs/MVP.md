@@ -34,6 +34,7 @@ PASTE QUIVER
 - Recommendations must include the economic reason, uncertainty, and comparison against selling.
 - Any unverified PoE2 rule or data point must be marked `NEEDS VERIFICATION`.
 - The MVP parser should prefer PoE2 Advanced Copy because it exposes modifier metadata. Normal Copy may parse with lower confidence and incomplete modifier metadata.
+- Craft action generation must distinguish legal, illegal, and unknown applicability before any simulation or EV work. See [CRAFTING_ACTIONS.md](CRAFTING_ACTIONS.md).
 
 ## MVP Boundaries
 
@@ -47,6 +48,7 @@ PASTE QUIVER
 ## Acceptance Criteria
 
 - Parsed item state, modifier intelligence, economy data, action generation, valuation, and recommendation logic are separable.
+- MVP action candidates can be generated from a versioned crafting-action dataset, but actions requiring unknown open affix capacity must remain `UNKNOWN`.
 - Current value and outcome values include estimated value, plausible range, confidence, comparable count or quality where available, and timestamp.
 - Expected value, ROI, probability of profit, downside risk, and required capital are represented in the recommendation model, even if early implementations mark inputs as `NEEDS VERIFICATION`.
 - Craft session data can track item states, actions, costs, total invested, current estimated value, and unrealized profit/loss.

@@ -24,6 +24,7 @@ The initial executable contracts live in `packages/shared/donniecraftshell_contr
 - Economy architecture now includes explicit `EconomyAsset`, `EconomySnapshot`, `ExchangeRate`, freshness, and normalized `EconomyQuote` concepts. Task 6C adds `CraftMaterialRequirement`, `CraftMaterialCostLine`, and `CraftMaterialCost` for pricing known ingredient lists without crafting mechanics. See [ECONOMY.md](ECONOMY.md) and [ECONOMY_IMPORT.md](ECONOMY_IMPORT.md).
 - `Valuation`: estimate, plausible low/high range, confidence, comparable count, comparable strategy, timestamp, and provenance.
 - `CraftAction`: generic action candidate. `SELL_NOW` is represented by the same type as all other actions.
+- Task 7A adds framework-independent crafting-action legality contracts in `crafting_actions.py`: `CraftingDatasetSnapshot`, `CraftActionDefinition`, `CraftActionPrecondition`, `RequiredMaterial`, `CraftActionApplicability`, and `CraftActionEngine`. These models cover applicability and required materials only.
 - `CraftOutcome`: resulting item or state delta, optional probability, probability confidence, valuation, profit/loss, and provenance.
 - `SimulationResult`: action cost, outcomes, probability coverage, EV/ROI/risk fields, confidence, assumptions, warnings, and completeness.
 - `AdvisorRecommendation`: current valuation, candidates, selected action when available, comparisons, risk, bankroll exposure, confidence, reasons, warnings, and timestamp. It supports `NO_RECOMMENDATION`.
@@ -38,6 +39,8 @@ Unknown values must be represented as `None` or explicit `NEEDS_VERIFICATION` st
 Clipboard parsing may extract displayed values and displayed ranges, but it must not enrich with external game data or infer missing metadata. See [ITEM_PARSER.md](ITEM_PARSER.md).
 
 Modifier enrichment must preserve the original parsed observation and attach resolution records beside it. See [GAME_DATA.md](GAME_DATA.md) and [MODIFIER_RESOLUTION.md](MODIFIER_RESOLUTION.md).
+
+Craft action applicability must preserve unknowns. If a precondition such as open affix capacity is not verified, the result is `UNKNOWN`, not a guessed legal or illegal state. Required materials reference EconomyAsset IDs while action IDs remain separate mechanic identities.
 
 ## Boundaries
 

@@ -1,0 +1,46 @@
+{
+  "dataset_id": "crafting-actions-poe2-quiver-2026-08-12-research",
+  "source": "manual-research",
+  "retrieved_at": "2026-08-12T00:00:00+02:00",
+  "game": "Path of Exile 2",
+  "game_version": null,
+  "notes": [
+    "Manual source-backed research capture for Task 7A.",
+    "PoE2DB and poe2wiki are community sources; mechanics remain PROVISIONAL unless confirmed by official GGG text.",
+    "Outcome probabilities and valuation are intentionally not captured."
+  ],
+  "sources": [
+    {
+      "source_id": "poe2db-currency",
+      "source_type": "COMMUNITY",
+      "source_uri": "https://poe2db.tw/us/Currency",
+      "retrieved_at": "2026-08-12T00:00:00+02:00",
+      "verification_status": "PROVISIONAL",
+      "notes": "Structured currency item text for Exalted Orb tiers and Orb of Annulment."
+    },
+    {
+      "source_id": "poe2db-omen",
+      "source_type": "COMMUNITY",
+      "source_uri": "https://poe2db.tw/us/Omen",
+      "retrieved_at": "2026-08-12T00:00:00+02:00",
+      "verification_status": "PROVISIONAL",
+      "notes": "Structured Omen item text for Exalted, Annulment and Essence modifiers."
+    },
+    {
+      "source_id": "poe2db-essence-hysteria",
+      "source_type": "COMMUNITY",
+      "source_uri": "https://poe2db.tw/us/Essence_of_Hysteria",
+      "retrieved_at": "2026-08-12T00:00:00+02:00",
+      "verification_status": "PROVISIONAL",
+      "notes": "Structured Essence of Hysteria item text including Quiver guaranteed modifier."
+    },
+    {
+      "source_id": "poe2wiki-corrupted",
+      "source_type": "COMMUNITY",
+      "source_uri": "https://www.poe2wiki.net/wiki/Corrupted",
+      "retrieved_at": "2026-08-12T00:00:00+02:00",
+      "verification_status": "PROVISIONAL",
+      "notes": "Corrupted items cannot be altered by most regular crafting methods."
+    }
+  ]
+}

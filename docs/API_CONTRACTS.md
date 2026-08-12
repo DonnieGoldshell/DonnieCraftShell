@@ -25,6 +25,8 @@ POST /api/v1/items/analyze
 GET  /api/v1/economy/current
 GET  /api/v1/economy/assets
 GET  /api/v1/economy/history/{asset_id}
+GET  /api/v1/crafting/actions
+POST /api/v1/crafting/actions/evaluate
 POST /api/v1/valuation
 POST /api/v1/crafts/simulate
 POST /api/v1/advisor
@@ -46,6 +48,8 @@ Task 6B implements the framework-independent economy domain, adapter, normalizer
 
 When exposed later, economy DTOs should include category filters for materials and a separate cost-preview contract for known ingredient lists. That cost contract must report incomplete results when any ingredient price is missing.
 
+Crafting-action endpoints should expose versioned action definitions and applicability results from a selected crafting dataset. Responses must distinguish `APPLICABLE`, `NOT_APPLICABLE`, and `UNKNOWN`, include required material EconomyAsset IDs, and avoid outcome simulation fields. See [CRAFTING_ACTIONS.md](CRAFTING_ACTIONS.md).
+
 ## Error Model
 
 Common API errors use:
@@ -57,6 +61,8 @@ Common API errors use:
 - optional `details`
 
 Required error codes include validation error, unsupported item, parse failure, insufficient verified data, external data unavailable, simulation unavailable, valuation unavailable, and not implemented.
+
+Crafting-action evaluation should use `insufficient verified data` when applicability is intentionally `UNKNOWN` because a required rule, such as open affix capacity, is not verified.
 
 `reliable_no_result=true` means the system correctly cannot produce a trustworthy result. This is distinct from a system failure.
 
