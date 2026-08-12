@@ -11,6 +11,8 @@ Task 11A introduces strict readiness gates for future EV and Advisor work.
 
 `EV_READY` does not calculate EV in Task 11A.
 
+Task 11B allows `ExpectedValueEngine` to calculate EV only when this status and all underlying invariants still hold. `EV_READY` remains a gate, not a recommendation.
+
 ## EV Readiness Requirements
 
 All of these must be true:

@@ -21,6 +21,8 @@ The product must prioritize economic decision support over generic crafting advi
 
 Scenario analysis may be shown before Expected Value is available, but descriptive scenario statistics must never be presented as EV, probability-weighted expectation, or a recommendation.
 
+Expected Gain vs Sell Now must be presented as a calculation from listing-derived estimates, not guaranteed realized profit.
+
 ## Major Modules
 
 ### Craft Advisor

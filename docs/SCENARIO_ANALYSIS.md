@@ -2,6 +2,8 @@
 
 Task 11A adds framework-independent scenario analysis. It composes current valuation, craft action candidates, outcome sets, probability models, and hypothetical outcome valuations without calculating EV or ranking actions.
 
+Task 11B consumes only `EV_READY` scenario analyses for strict EV calculation. See [EXPECTED_VALUE.md](EXPECTED_VALUE.md).
+
 ## Boundary
 
 ```text
