@@ -39,8 +39,10 @@ Source-backed action definitions currently include:
 - Greater Exalted Orb
 - Perfect Exalted Orb
 - Exalted Orb + Omen of Catalysing Exaltation
+- Exalted Orb + Omen of Greater Exaltation
 - Exalted Orb + Omen of Sinistral Exaltation
 - Exalted Orb + Omen of Dextral Exaltation
+- Orb of Annulment + Omen of Greater Annulment
 - Orb of Annulment + Omen of Sinistral Annulment
 - Orb of Annulment + Omen of Dextral Annulment
 - Essence of Hysteria
@@ -61,7 +63,9 @@ Open-slot scopes:
 
 ## Economy Boundary
 
-Crafting actions expose required materials only. Future cost calculation should pass `RequiredMaterial` entries to the Economy cost service from [ECONOMY.md](ECONOMY.md). The Craft Action Engine must not fetch prices or calculate market cost.
+Crafting actions expose required materials only. Cost calculation passes `RequiredMaterial` entries to the Economy cost service from [ECONOMY.md](ECONOMY.md). The Craft Action Engine must not fetch prices or calculate market cost.
+
+Task 7C adds `CraftActionCandidate` and `CraftActionCostService`. Candidate enumeration composes `CraftActionApplicability` with `CraftMaterialCost`, but does not rank actions or recommend a winner. See [CRAFT_ACTION_COSTS.md](CRAFT_ACTION_COSTS.md).
 
 ## Limitations
 

@@ -162,6 +162,25 @@
       "provenance": [{"source_id": "poe2db-omen", "source_type": "COMMUNITY", "source_uri": "https://poe2db.tw/us/Omen", "retrieved_at": "2026-08-12T00:00:00+02:00", "verification_status": "PROVISIONAL", "confidence_level": "MEDIUM"}]
     },
     {
+      "action_id": "dc:poe2:craft-action:exalted-orb-with-omen-of-greater-exaltation",
+      "display_name": "Exalted Orb + Omen of Greater Exaltation",
+      "kind": "OMEN_MODIFIED_CURRENCY",
+      "mechanic_summary": "The Omen makes the next Exalted Orb add two random modifiers.",
+      "verification_status": "PROVISIONAL",
+      "simulation_supported": false,
+      "required_materials": [
+        {"asset_id": "dc:poe2:economy-asset:currency:exalted-orb", "quantity": "1"},
+        {"asset_id": "dc:poe2:economy-asset:ritual:omen-of-greater-exaltation", "quantity": "1"}
+      ],
+      "preconditions": [
+        {"kind": "RARITY_IN", "values": ["RARE"], "description": "Exalted Orb target must be rare.", "verification_status": "VERIFIED", "provenance": [{"source_id": "poe2db-currency", "source_type": "COMMUNITY", "source_uri": "https://poe2db.tw/us/Currency", "retrieved_at": "2026-08-12T00:00:00+02:00", "verification_status": "PROVISIONAL", "confidence_level": "MEDIUM"}]},
+        {"kind": "NOT_CORRUPTED", "description": "Regular crafting methods cannot modify corrupted items.", "verification_status": "VERIFIED", "provenance": [{"source_id": "poe2wiki-corrupted", "source_type": "COMMUNITY", "source_uri": "https://www.poe2wiki.net/wiki/Corrupted", "retrieved_at": "2026-08-12T00:00:00+02:00", "verification_status": "PROVISIONAL", "confidence_level": "MEDIUM"}]},
+        {"kind": "MIN_OPEN_AFFIX_SLOTS", "values": ["ANY", "2"], "description": "Adding two modifiers requires verified available modifier capacity.", "verification_status": "VERIFIED", "provenance": [{"source_id": "poe2wiki-omen-greater-exaltation", "source_type": "COMMUNITY", "source_uri": "https://www.poe2wiki.net/wiki/Omen_of_Greater_Exaltation", "retrieved_at": "2026-08-12T00:00:00+02:00", "verification_status": "PROVISIONAL", "confidence_level": "MEDIUM"}]}
+      ],
+      "unknown_conditions": [],
+      "provenance": [{"source_id": "poe2wiki-omen-greater-exaltation", "source_type": "COMMUNITY", "source_uri": "https://www.poe2wiki.net/wiki/Omen_of_Greater_Exaltation", "retrieved_at": "2026-08-12T00:00:00+02:00", "verification_status": "PROVISIONAL", "confidence_level": "MEDIUM"}]
+    },
+    {
       "action_id": "dc:poe2:craft-action:exalted-orb-with-omen-of-sinistral-exaltation",
       "display_name": "Exalted Orb + Omen of Sinistral Exaltation",
       "kind": "OMEN_MODIFIED_CURRENCY",
@@ -213,9 +232,9 @@
       "preconditions": [
         {"kind": "RARITY_IN", "values": ["MAGIC", "RARE"], "description": "Orb of Annulment targets magic or rare items.", "verification_status": "VERIFIED", "provenance": [{"source_id": "poe2wiki-orb-of-annulment", "source_type": "COMMUNITY", "source_uri": "https://www.poe2wiki.net/wiki/Orb_of_Annulment", "retrieved_at": "2026-08-12T00:00:00+02:00", "verification_status": "PROVISIONAL", "confidence_level": "MEDIUM"}]},
         {"kind": "NOT_CORRUPTED", "description": "Regular crafting methods cannot modify corrupted items.", "verification_status": "VERIFIED", "provenance": [{"source_id": "poe2wiki-corrupted", "source_type": "COMMUNITY", "source_uri": "https://www.poe2wiki.net/wiki/Corrupted", "retrieved_at": "2026-08-12T00:00:00+02:00", "verification_status": "PROVISIONAL", "confidence_level": "MEDIUM"}]},
-        {"kind": "HAS_EXPLICIT_MODIFIER", "description": "A modifier must exist for removal.", "verification_status": "VERIFIED", "provenance": [{"source_id": "poe2db-currency", "source_type": "COMMUNITY", "source_uri": "https://poe2db.tw/us/Currency", "retrieved_at": "2026-08-12T00:00:00+02:00", "verification_status": "PROVISIONAL", "confidence_level": "MEDIUM"}]}
+        {"kind": "HAS_EXPLICIT_MODIFIER", "values": ["PREFIX"], "description": "A prefix modifier must exist for prefix-only removal.", "verification_status": "VERIFIED", "provenance": [{"source_id": "poe2db-currency", "source_type": "COMMUNITY", "source_uri": "https://poe2db.tw/us/Currency", "retrieved_at": "2026-08-12T00:00:00+02:00", "verification_status": "PROVISIONAL", "confidence_level": "MEDIUM"}]}
       ],
-      "unknown_conditions": ["Requires at least one prefix modifier for the Omen target to have an effect; prefix targeting is not simulated in Task 7A."],
+      "unknown_conditions": [],
       "provenance": [{"source_id": "poe2db-omen", "source_type": "COMMUNITY", "source_uri": "https://poe2db.tw/us/Omen_of_Sinistral_Annulment", "retrieved_at": "2026-08-12T00:00:00+02:00", "verification_status": "PROVISIONAL", "confidence_level": "MEDIUM"}]
     },
     {
@@ -232,10 +251,29 @@
       "preconditions": [
         {"kind": "RARITY_IN", "values": ["MAGIC", "RARE"], "description": "Orb of Annulment targets magic or rare items.", "verification_status": "VERIFIED", "provenance": [{"source_id": "poe2wiki-orb-of-annulment", "source_type": "COMMUNITY", "source_uri": "https://www.poe2wiki.net/wiki/Orb_of_Annulment", "retrieved_at": "2026-08-12T00:00:00+02:00", "verification_status": "PROVISIONAL", "confidence_level": "MEDIUM"}]},
         {"kind": "NOT_CORRUPTED", "description": "Regular crafting methods cannot modify corrupted items.", "verification_status": "VERIFIED", "provenance": [{"source_id": "poe2wiki-corrupted", "source_type": "COMMUNITY", "source_uri": "https://www.poe2wiki.net/wiki/Corrupted", "retrieved_at": "2026-08-12T00:00:00+02:00", "verification_status": "PROVISIONAL", "confidence_level": "MEDIUM"}]},
-        {"kind": "HAS_EXPLICIT_MODIFIER", "description": "A modifier must exist for removal.", "verification_status": "VERIFIED", "provenance": [{"source_id": "poe2db-currency", "source_type": "COMMUNITY", "source_uri": "https://poe2db.tw/us/Currency", "retrieved_at": "2026-08-12T00:00:00+02:00", "verification_status": "PROVISIONAL", "confidence_level": "MEDIUM"}]}
+        {"kind": "HAS_EXPLICIT_MODIFIER", "values": ["SUFFIX"], "description": "A suffix modifier must exist for suffix-only removal.", "verification_status": "VERIFIED", "provenance": [{"source_id": "poe2db-currency", "source_type": "COMMUNITY", "source_uri": "https://poe2db.tw/us/Currency", "retrieved_at": "2026-08-12T00:00:00+02:00", "verification_status": "PROVISIONAL", "confidence_level": "MEDIUM"}]}
       ],
-      "unknown_conditions": ["Requires at least one suffix modifier for the Omen target to have an effect; suffix targeting is not simulated in Task 7A."],
+      "unknown_conditions": [],
       "provenance": [{"source_id": "poe2db-omen", "source_type": "COMMUNITY", "source_uri": "https://poe2db.tw/us/Omen_of_Dextral_Annulment", "retrieved_at": "2026-08-12T00:00:00+02:00", "verification_status": "PROVISIONAL", "confidence_level": "MEDIUM"}]
+    },
+    {
+      "action_id": "dc:poe2:craft-action:orb-of-annulment-with-omen-of-greater-annulment",
+      "display_name": "Orb of Annulment + Omen of Greater Annulment",
+      "kind": "OMEN_MODIFIED_CURRENCY",
+      "mechanic_summary": "The Omen makes the next Orb of Annulment remove two modifiers.",
+      "verification_status": "PROVISIONAL",
+      "simulation_supported": false,
+      "required_materials": [
+        {"asset_id": "dc:poe2:economy-asset:currency:orb-of-annulment", "quantity": "1"},
+        {"asset_id": "dc:poe2:economy-asset:ritual:omen-of-greater-annulment", "quantity": "1"}
+      ],
+      "preconditions": [
+        {"kind": "RARITY_IN", "values": ["MAGIC", "RARE"], "description": "Orb of Annulment targets magic or rare items.", "verification_status": "VERIFIED", "provenance": [{"source_id": "poe2wiki-orb-of-annulment", "source_type": "COMMUNITY", "source_uri": "https://www.poe2wiki.net/wiki/Orb_of_Annulment", "retrieved_at": "2026-08-12T00:00:00+02:00", "verification_status": "PROVISIONAL", "confidence_level": "MEDIUM"}]},
+        {"kind": "NOT_CORRUPTED", "description": "Regular crafting methods cannot modify corrupted items.", "verification_status": "VERIFIED", "provenance": [{"source_id": "poe2wiki-corrupted", "source_type": "COMMUNITY", "source_uri": "https://www.poe2wiki.net/wiki/Corrupted", "retrieved_at": "2026-08-12T00:00:00+02:00", "verification_status": "PROVISIONAL", "confidence_level": "MEDIUM"}]},
+        {"kind": "MIN_EXPLICIT_MODIFIERS", "values": ["ANY", "2"], "description": "Removing two modifiers requires two eligible explicit modifiers.", "verification_status": "VERIFIED", "provenance": [{"source_id": "game8-omen-greater-annulment", "source_type": "COMMUNITY", "source_uri": "https://game8.co/games/Path-of-Exile-2/archives/491758", "retrieved_at": "2026-08-12T00:00:00+02:00", "verification_status": "PROVISIONAL", "confidence_level": "LOW"}]}
+      ],
+      "unknown_conditions": [],
+      "provenance": [{"source_id": "game8-omen-greater-annulment", "source_type": "COMMUNITY", "source_uri": "https://game8.co/games/Path-of-Exile-2/archives/491758", "retrieved_at": "2026-08-12T00:00:00+02:00", "verification_status": "PROVISIONAL", "confidence_level": "LOW"}]
     },
     {
       "action_id": "dc:poe2:craft-action:essence-of-hysteria",

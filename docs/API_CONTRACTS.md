@@ -50,6 +50,8 @@ When exposed later, economy DTOs should include category filters for materials a
 
 Crafting-action endpoints should expose versioned action definitions and applicability results from a selected crafting dataset. Responses must distinguish `APPLICABLE`, `NOT_APPLICABLE`, and `UNKNOWN`, include required material EconomyAsset IDs, and avoid outcome simulation fields. See [CRAFTING_ACTIONS.md](CRAFTING_ACTIONS.md).
 
+Future action-candidate DTOs may include material costs, but they must keep `applicability.status` separate from `material_cost.complete`. A candidate response must not include ranking, EV, valuation, or recommendation fields until Advisor contracts are implemented.
+
 ## Error Model
 
 Common API errors use:

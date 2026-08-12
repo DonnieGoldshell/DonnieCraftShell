@@ -72,6 +72,8 @@ See [CRAFTING_ACTIONS.md](CRAFTING_ACTIONS.md) and [CRAFTING_SOURCES.md](CRAFTIN
 
 Task 7B adds [AFFIX_CAPACITY.md](AFFIX_CAPACITY.md). Parser output remains immutable; open-slot state is supplied to action evaluation as derived enrichment.
 
+Task 7C adds [CRAFT_ACTION_COSTS.md](CRAFT_ACTION_COSTS.md). Candidate enumeration composes Craft Action Engine output with Economy cost output while keeping mechanics and market data separate.
+
 Community game-data sources such as PoE2DB must be imported through source adapters into raw snapshots and normalized records. Runtime analysis should use normalized data or database records, not live scraping.
 
 Task 5B implements this boundary with local JSON fixtures:

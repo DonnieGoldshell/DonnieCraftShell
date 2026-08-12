@@ -73,6 +73,17 @@ Task 6B implements a framework-independent in-memory `EconomyRepository` and an 
 
 Task 6C extends the same path to Ritual/Omens and Essences, plus a small craft-material cost abstraction. See [ECONOMY_DATASET_STATUS.md](ECONOMY_DATASET_STATUS.md).
 
+Task 7C connects crafting actions to economy costs through `CraftActionCostService`. Crafting mechanics provide required material IDs and quantities; the Economy Engine prices those materials using `CraftMaterialCost`.
+
+Applicability and price completeness are independent:
+
+- `APPLICABLE` action + complete cost: action can be performed and all required material quotes are available.
+- `APPLICABLE` action + incomplete cost: action may be legal, but at least one material quote is missing.
+- `NOT_APPLICABLE` action + complete cost: price exists, but mechanics block the action.
+- `UNKNOWN` action + complete cost: materials are priced, but legality is unresolved.
+
+Missing quote remains unavailable and must never be treated as zero.
+
 ## Source Selection
 
 Do not blindly average sources. Keep observations separate, then choose according to policy:

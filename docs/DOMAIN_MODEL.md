@@ -26,6 +26,7 @@ The initial executable contracts live in `packages/shared/donniecraftshell_contr
 - `CraftAction`: generic action candidate. `SELL_NOW` is represented by the same type as all other actions.
 - Task 7A adds framework-independent crafting-action legality contracts in `crafting_actions.py`: `CraftingDatasetSnapshot`, `CraftActionDefinition`, `CraftActionPrecondition`, `RequiredMaterial`, `CraftActionApplicability`, and `CraftActionEngine`. These models cover applicability and required materials only.
 - Task 7B adds `affix_capacity.py`: `AffixCapacityDefinition`, `ModifierSlotConsumptionRule`, `AffixCapacityDatasetSnapshot`, `AffixStateResolution`, and `AffixStateResolver`. These derive open explicit affix slots from parser observations plus a versioned capacity dataset.
+- Task 7C adds `craft_action_candidates.py`: `CraftActionCandidate`, `CraftActionCostService`, and candidate enumeration that combines applicability with `CraftMaterialCost`.
 - `CraftOutcome`: resulting item or state delta, optional probability, probability confidence, valuation, profit/loss, and provenance.
 - `SimulationResult`: action cost, outcomes, probability coverage, EV/ROI/risk fields, confidence, assumptions, warnings, and completeness.
 - `AdvisorRecommendation`: current valuation, candidates, selected action when available, comparisons, risk, bankroll exposure, confidence, reasons, warnings, and timestamp. It supports `NO_RECOMMENDATION`.
@@ -44,6 +45,8 @@ Modifier enrichment must preserve the original parsed observation and attach res
 Craft action applicability must preserve unknowns. If a precondition such as open affix capacity is not verified, the result is `UNKNOWN`, not a guessed legal or illegal state. Required materials reference EconomyAsset IDs while action IDs remain separate mechanic identities.
 
 Affix capacity is not stored directly in parser logic. `ParsedItem.affix_state` remains clipboard observation; `AffixStateResolution` is derived data with provenance and warnings. Observed counts that exceed capacity are reported as conflicts and are not clamped.
+
+Craft action candidates are not recommendations. They expose mechanics status and cost status side by side, with no ranking, EV, valuation, or selected action.
 
 ## Boundaries
 

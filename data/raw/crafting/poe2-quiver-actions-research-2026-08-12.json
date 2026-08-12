@@ -27,6 +27,22 @@
       "notes": "Structured Omen item text for Exalted, Annulment and Essence modifiers."
     },
     {
+      "source_id": "poe2wiki-omen-greater-exaltation",
+      "source_type": "COMMUNITY",
+      "source_uri": "https://www.poe2wiki.net/wiki/Omen_of_Greater_Exaltation",
+      "retrieved_at": "2026-08-12T00:00:00+02:00",
+      "verification_status": "PROVISIONAL",
+      "notes": "Community item text for Omen of Greater Exaltation."
+    },
+    {
+      "source_id": "game8-omen-greater-annulment",
+      "source_type": "COMMUNITY",
+      "source_uri": "https://game8.co/games/Path-of-Exile-2/archives/491758",
+      "retrieved_at": "2026-08-12T00:00:00+02:00",
+      "verification_status": "PROVISIONAL",
+      "notes": "Community item text for Omen of Greater Annulment; lower confidence than wiki/PoE2DB sources."
+    },
+    {
       "source_id": "poe2db-essence-hysteria",
       "source_type": "COMMUNITY",
       "source_uri": "https://poe2db.tw/us/Essence_of_Hysteria",

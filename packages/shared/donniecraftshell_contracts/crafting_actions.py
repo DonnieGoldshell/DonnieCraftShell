@@ -43,7 +43,9 @@ class PreconditionKind(str, Enum):
     RARITY_IN = "RARITY_IN"
     NOT_CORRUPTED = "NOT_CORRUPTED"
     HAS_EXPLICIT_MODIFIER = "HAS_EXPLICIT_MODIFIER"
+    MIN_EXPLICIT_MODIFIERS = "MIN_EXPLICIT_MODIFIERS"
     HAS_OPEN_AFFIX_SLOT = "HAS_OPEN_AFFIX_SLOT"
+    MIN_OPEN_AFFIX_SLOTS = "MIN_OPEN_AFFIX_SLOTS"
     ITEM_CLASS_IN = "ITEM_CLASS_IN"
 
 
@@ -236,9 +238,20 @@ def _evaluate_precondition(
             return CraftApplicabilityStatus.NOT_APPLICABLE, "item is corrupted"
         return CraftApplicabilityStatus.APPLICABLE, "item is not corrupted"
     if precondition.kind == PreconditionKind.HAS_EXPLICIT_MODIFIER:
-        if item.explicit_modifiers:
-            return CraftApplicabilityStatus.APPLICABLE, "item has explicit modifiers"
-        return CraftApplicabilityStatus.UNKNOWN, "cannot verify removable modifier"
+        scope = _slot_scope(precondition.values)
+        count = _explicit_modifier_count(item, scope)
+        if count > 0:
+            return CraftApplicabilityStatus.APPLICABLE, f"item has {scope.value.lower()} explicit modifier"
+        return CraftApplicabilityStatus.NOT_APPLICABLE, f"item has no {scope.value.lower()} explicit modifiers"
+    if precondition.kind == PreconditionKind.MIN_EXPLICIT_MODIFIERS:
+        scope = _slot_scope(precondition.values)
+        required_count = _required_count(precondition.values, default=1)
+        count = _explicit_modifier_count(item, scope)
+        if count >= required_count:
+            return CraftApplicabilityStatus.APPLICABLE, f"item has at least {required_count} {scope.value.lower()} explicit modifiers"
+        if count == 0:
+            return CraftApplicabilityStatus.NOT_APPLICABLE, f"item has no {scope.value.lower()} explicit modifiers"
+        return CraftApplicabilityStatus.UNKNOWN, f"item has only {count} {scope.value.lower()} explicit modifier; two-modifier behavior is not verified"
     if precondition.kind == PreconditionKind.HAS_OPEN_AFFIX_SLOT:
         scope = _slot_scope(precondition.values)
         if affix_resolution is not None:
@@ -257,6 +270,19 @@ def _evaluate_precondition(
         if (open_prefixes or 0) + (open_suffixes or 0) > 0:
             return CraftApplicabilityStatus.APPLICABLE, "at least one open affix slot is known"
         return CraftApplicabilityStatus.NOT_APPLICABLE, "no open affix slots"
+    if precondition.kind == PreconditionKind.MIN_OPEN_AFFIX_SLOTS:
+        scope = _slot_scope(precondition.values)
+        required_count = _required_count(precondition.values, default=1)
+        if affix_resolution is None:
+            return CraftApplicabilityStatus.UNKNOWN, f"{scope.value.lower()} open affix slots are unknown"
+        open_count = _open_slot_count(affix_resolution, scope)
+        if open_count is None:
+            return CraftApplicabilityStatus.UNKNOWN, f"{scope.value.lower()} open affix slots are unknown"
+        if open_count >= required_count:
+            return CraftApplicabilityStatus.APPLICABLE, f"at least {required_count} {scope.value.lower()} open affix slots are known"
+        if open_count == 0:
+            return CraftApplicabilityStatus.NOT_APPLICABLE, f"no {scope.value.lower()} open affix slots"
+        return CraftApplicabilityStatus.UNKNOWN, f"only {open_count} {scope.value.lower()} open affix slot is known; two-modifier behavior is not verified"
     if precondition.kind == PreconditionKind.ITEM_CLASS_IN:
         if item.item_class in precondition.values:
             return CraftApplicabilityStatus.APPLICABLE, f"item class {item.item_class} matched"
@@ -278,6 +304,33 @@ def _slot_scope(values: tuple[str, ...]) -> SlotScope:
         return SlotScope.ANY
     first = values[0].upper()
     return SlotScope.__members__.get(first, SlotScope.ANY)
+
+
+def _required_count(values: tuple[str, ...], default: int) -> int:
+    for value in reversed(values):
+        try:
+            return int(value)
+        except ValueError:
+            continue
+    return default
+
+
+def _explicit_modifier_count(item: ParsedItem, scope: SlotScope) -> int:
+    if scope == SlotScope.PREFIX:
+        return sum(1 for modifier in item.explicit_modifiers if modifier.affix_type.value == "PREFIX")
+    if scope == SlotScope.SUFFIX:
+        return sum(1 for modifier in item.explicit_modifiers if modifier.affix_type.value == "SUFFIX")
+    return len(item.explicit_modifiers)
+
+
+def _open_slot_count(resolution: AffixStateResolution, scope: SlotScope) -> int | None:
+    if scope == SlotScope.PREFIX:
+        return resolution.open_prefix_count
+    if scope == SlotScope.SUFFIX:
+        return resolution.open_suffix_count
+    if resolution.open_prefix_count is None and resolution.open_suffix_count is None:
+        return None
+    return (resolution.open_prefix_count or 0) + (resolution.open_suffix_count or 0)
 
 
 def _provenance(data: dict[str, Any]) -> DataProvenance:
