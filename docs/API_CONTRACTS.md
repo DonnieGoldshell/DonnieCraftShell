@@ -28,6 +28,7 @@ GET  /api/v1/economy/history/{asset_id}
 GET  /api/v1/crafting/actions
 POST /api/v1/crafting/actions/evaluate
 POST /api/v1/valuation
+POST /api/v1/valuation/comparables
 POST /api/v1/crafts/simulate
 POST /api/v1/crafts/probabilities
 POST /api/v1/advisor
@@ -54,6 +55,8 @@ Crafting-action endpoints should expose versioned action definitions and applica
 Future action-candidate DTOs may include material costs, but they must keep `applicability.status` separate from `material_cost.complete`. A candidate response must not include ranking, EV, valuation, or recommendation fields until Advisor contracts are implemented.
 
 Future probability DTOs should expose `OutcomeProbabilityModel` from [PROBABILITY_MODEL.md](PROBABILITY_MODEL.md). Unknown probability must serialize as `null`, not `0`. Responses must preserve probability completeness, total known probability mass, evidence provenance, dataset versions, deterministic operation evidence, and warnings. The endpoint must not normalize partial/unknown probabilities or divide unknown mass equally.
+
+Future valuation DTOs should expose the contracts from [VALUATION.md](VALUATION.md). Requests should accept a current or hypothetical valuation subject plus comparable strategy and modifier-role inputs. Responses must distinguish listing-derived estimate, plausible range, confidence, liquidity, readiness, comparable evidence, economy conversion snapshots, provenance, and warnings. `INSUFFICIENT_DATA` must be valid and must not fabricate an estimate.
 
 ## Error Model
 

@@ -97,11 +97,21 @@ Task 7A uses community source-backed crafting-action research for a small Quiver
 - Provenance requirements: source URI, retrieved_at, page name, short factual summary, and verification status.
 - Known limitations: wiki content may lag game patches, wording may be editorial, and copied prose should not be stored in DonnieCraftShell datasets.
 
+### Rare-Item Trade / Comparable Listings
+
+- Source type: official user-facing Trade website or future permitted provider.
+- Authority level: listing evidence only unless actual sale data is available.
+- Intended use: rare-item valuation comparables for current and hypothetical item states.
+- Refresh expectation: snapshot query definitions and listing observations at valuation time; do not scrape per user request without supported provider terms.
+- Provenance requirements: query definition, source/listing identity, listed_at or observed_at, retrieved_at, league, item summary, listing price, currency, economy snapshot used for conversion, and warnings.
+- Known limitations: official developer docs do not currently document a PoE2 rare-item Trade search/listing API for third-party use. Listing price is not realized sale price, outliers are common, and sparse markets may require `INSUFFICIENT_DATA`.
+
 ## Open Questions
 
 - Which PoE2 APIs are available, stable, and permitted for this use case?
 - Which sources reliably provide Quiver modifier tiers and affix classification?
 - Which sources can support comparable item valuation?
+- Whether official Trade search URLs plus manual observations are sufficient for MVP valuation workflow.
 - What rate limits, terms, or attribution requirements apply?
 - How should confidence be calculated for sparse comparable data?
 - What stable source-backed identifiers should be used for PoE2DB records when no explicit game-data ID is exposed?

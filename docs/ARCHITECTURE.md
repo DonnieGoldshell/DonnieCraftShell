@@ -44,6 +44,7 @@ apps/web
 
 See [DECISION_ENGINE.md](DECISION_ENGINE.md) for economic behavior.
 See [ECONOMY.md](ECONOMY.md) and [ECONOMY_SOURCES.md](ECONOMY_SOURCES.md) for provider architecture, source precedence, freshness, and normalized pricing rules.
+See [VALUATION.md](VALUATION.md) and [VALUATION_SOURCES.md](VALUATION_SOURCES.md) for comparable rare-item valuation architecture and TradeProvider boundaries.
 
 ## Item-Class Modularity
 
@@ -82,6 +83,8 @@ Task 8A adds [CRAFT_OUTCOMES.md](CRAFT_OUTCOMES.md). Outcome possibility and out
 Task 8C updates [QUIVER_MODIFIER_POOL_STATUS.md](QUIVER_MODIFIER_POOL_STATUS.md). Legal modifier-pool filtering now uses the expanded natural Quiver Base Prefix/Suffix dataset, but completeness remains scoped and probability remains separate.
 
 Task 9B adds [PROBABILITY_MODEL.md](PROBABILITY_MODEL.md). Outcome-space completeness must not be converted into equal probability; `ProbabilityProvider` attaches probability evidence beside `CraftOutcomeSet` so later EV logic can require complete probability mass.
+
+Task 10A adds the Valuation Engine design. Current and hypothetical item states must share one valuation interface, and trade evidence must flow through replaceable providers rather than undocumented scraping.
 
 Community game-data sources such as PoE2DB must be imported through source adapters into raw snapshots and normalized records. Runtime analysis should use normalized data or database records, not live scraping.
 

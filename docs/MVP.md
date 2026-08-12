@@ -54,6 +54,7 @@ PASTE QUIVER
 - Complete outcome enumeration is not enough for EV. Probability evidence must be explicit; no MVP recommendation may use equal-probability fallback for random crafting outcomes.
 - Probability readiness for EV requires `OutcomeProbabilityModel` completeness, numeric final-outcome probabilities, and total probability mass of `1`. Deterministic operation evidence alone is insufficient.
 - Current value and outcome values include estimated value, plausible range, confidence, comparable count or quality where available, and timestamp.
+- Rare-item valuation should be listing-derived unless actual sale evidence exists. A generated comparable search plus manual listing observations is acceptable for MVP when automatic Trade integration is not defensibly supported.
 - Expected value, ROI, probability of profit, downside risk, and required capital are represented in the recommendation model, even if early implementations mark inputs as `NEEDS VERIFICATION`.
 - Craft session data can track item states, actions, costs, total invested, current estimated value, and unrealized profit/loss.
 

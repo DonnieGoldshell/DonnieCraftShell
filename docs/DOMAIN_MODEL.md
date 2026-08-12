@@ -23,6 +23,7 @@ The initial executable contracts live in `packages/shared/donniecraftshell_contr
 - `EconomyQuote`: league-specific normalized price, native pair/rate, timestamp, volume, confidence, and provenance.
 - Economy architecture now includes explicit `EconomyAsset`, `EconomySnapshot`, `ExchangeRate`, freshness, and normalized `EconomyQuote` concepts. Task 6C adds `CraftMaterialRequirement`, `CraftMaterialCostLine`, and `CraftMaterialCost` for pricing known ingredient lists without crafting mechanics. See [ECONOMY.md](ECONOMY.md) and [ECONOMY_IMPORT.md](ECONOMY_IMPORT.md).
 - `Valuation`: estimate, plausible low/high range, confidence, comparable count, comparable strategy, timestamp, and provenance.
+- Task 10A extends the valuation design in documentation: future valuation contracts should include `ValuationSubject`, `ComparableQuery`, `ComparableResult`, `TradeProvider`, readiness status, methodology, listing spread, liquidity, economy snapshot references, and warnings. See [VALUATION.md](VALUATION.md).
 - `CraftAction`: generic action candidate. `SELL_NOW` is represented by the same type as all other actions.
 - Task 7A adds framework-independent crafting-action legality contracts in `crafting_actions.py`: `CraftingDatasetSnapshot`, `CraftActionDefinition`, `CraftActionPrecondition`, `RequiredMaterial`, `CraftActionApplicability`, and `CraftActionEngine`. These models cover applicability and required materials only.
 - Task 7B adds `affix_capacity.py`: `AffixCapacityDefinition`, `ModifierSlotConsumptionRule`, `AffixCapacityDatasetSnapshot`, `AffixStateResolution`, and `AffixStateResolver`. These derive open explicit affix slots from parser observations plus a versioned capacity dataset.
@@ -42,6 +43,8 @@ Unknown values must be represented as `None` or explicit `NEEDS_VERIFICATION` st
 Clipboard parsing may extract displayed values and displayed ranges, but it must not enrich with external game data or infer missing metadata. See [ITEM_PARSER.md](ITEM_PARSER.md).
 
 Modifier enrichment must preserve the original parsed observation and attach resolution records beside it. See [GAME_DATA.md](GAME_DATA.md) and [MODIFIER_RESOLUTION.md](MODIFIER_RESOLUTION.md).
+
+Valuation evidence must preserve listing/source identity and keep listing-derived estimates separate from realized sale prices. Current parsed items and hypothetical outcome states should map into the same valuation subject abstraction.
 
 Craft action applicability must preserve unknowns. If a precondition such as open affix capacity is not verified, the result is `UNKNOWN`, not a guessed legal or illegal state. Required materials reference EconomyAsset IDs while action IDs remain separate mechanic identities.
 
