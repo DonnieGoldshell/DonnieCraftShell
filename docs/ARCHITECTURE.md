@@ -43,6 +43,7 @@ apps/web
 - **Expected Value Engine**: calculates EV only from `EV_READY` scenarios with complete probability and valuation inputs; it does not rank or recommend.
 - **Advisor Decision Engine**: compares SELL NOW with EV-ready craft candidates and may return `NO_RECOMMENDATION`; scenario-only actions remain non-rankable.
 - **Risk And Bankroll Policy**: filters raw Advisor decisions by transparent bankroll/exposure gates without modifying EV.
+- **Advisor Orchestration**: composes parser, enrichment, affix state, action candidates, costs, outcomes, probabilities, valuations, scenarios, EV, raw Advisor decision, and optional risk adjustment into one partial-result-aware analysis.
 - **Modifier Pool Resolver**: filters natural explicit modifier candidates by item class, side, item level, capacity, and source-backed modifier-group conflicts.
 - **Craft Simulator**: models legal actions and outcomes only when mechanics are verified.
 
@@ -99,6 +100,8 @@ Task 11B adds [EXPECTED_VALUE.md](EXPECTED_VALUE.md). EV results retain contribu
 Task 12A adds [ADVISOR_DECISION_ENGINE.md](ADVISOR_DECISION_ENGINE.md). The Advisor candidate layer keeps SELL NOW first-class, reuses `ExpectedValueResult` without recalculating EV, and excludes scenario-only actions from economic ranking.
 
 Task 12B adds [RISK_AND_BANKROLL.md](RISK_AND_BANKROLL.md). Raw economic decisions remain visible; risk-adjusted decisions can veto high-exposure crafts or select the next surviving EV-ready craft.
+
+Task 13A adds [ADVISOR_ORCHESTRATION.md](ADVISOR_ORCHESTRATION.md). `CraftAdvisorOrchestrator` is a coordination layer only: it invokes existing engines in order, preserves component evidence, surfaces missing requirements, isolates per-action failures, and produces a single framework-independent Advisor analysis result for future API/UI use.
 
 Community game-data sources such as PoE2DB must be imported through source adapters into raw snapshots and normalized records. Runtime analysis should use normalized data or database records, not live scraping.
 

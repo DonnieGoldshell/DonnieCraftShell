@@ -27,6 +27,8 @@ The Advisor may return `NO_RECOMMENDATION` when evidence is incomplete. It must 
 
 Risk policy must remain separate from raw economic ranking. It may veto or downgrade a craft for bankroll exposure, but must not alter Expected Value.
 
+The vertical Advisor orchestration layer may return partial analysis as a successful product result. Missing valuation, probability, economy, or verified-mechanic evidence should be shown as next requirements, not hidden behind a forced recommendation.
+
 ## Major Modules
 
 ### Craft Advisor

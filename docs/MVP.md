@@ -63,6 +63,7 @@ PASTE QUIVER
 - Task 11B calculates EV only for complete synthetic/verified-ready inputs and keeps real actions EV-unavailable when probabilities remain unknown.
 - Task 12A compares SELL NOW and craft candidates only through the Advisor candidate layer. Scenario-only actions remain visible but non-rankable, and `NO_RECOMMENDATION` is allowed.
 - Task 12B applies risk and bankroll policy after raw EV ranking. Risk-adjusted decisions preserve raw economic results and never promote scenario-only actions.
+- Task 13A composes the vertical Rare Quiver pipeline through `CraftAdvisorOrchestrator`. Partial analysis is a valid successful result: Quiver parsing, enrichment, action legality, costs, outcomes, probability status, valuation coverage, scenario readiness, EV availability, raw Advisor decision, and optional risk adjustment are returned together without inventing missing inputs.
 - Expected value, ROI, probability of profit, downside risk, and required capital are represented in the recommendation model, even if early implementations mark inputs as `NEEDS VERIFICATION`.
 - Craft session data can track item states, actions, costs, total invested, current estimated value, and unrealized profit/loss.
 

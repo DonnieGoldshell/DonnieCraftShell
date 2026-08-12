@@ -34,6 +34,7 @@ POST /api/v1/crafts/probabilities
 POST /api/v1/crafts/scenarios
 POST /api/v1/crafts/expected-value
 POST /api/v1/advisor
+POST /api/v1/advisor/analyze
 POST /api/v1/sessions
 POST /api/v1/sessions/{id}/steps
 ```
@@ -67,6 +68,8 @@ Future expected-value DTOs should expose [EXPECTED_VALUE.md](EXPECTED_VALUE.md) 
 Future Advisor DTOs should expose [ADVISOR_DECISION_ENGINE.md](ADVISOR_DECISION_ENGINE.md). Responses must include SELL NOW candidate, craft candidates, rankable/non-rankable status, selected decision type, selected candidate when any, policy/version, decision reasons, evidence references, and warnings. Scenario-only candidates must not serialize as ranked EV candidates.
 
 Advisor request DTOs may later include risk fields from [RISK_AND_BANKROLL.md](RISK_AND_BANKROLL.md): bankroll, risk profile, maximum bankroll exposure, maximum acceptable loss, and minimum reserve. Responses should expose raw Advisor decision and risk-adjusted decision separately, including risk policy version and triggered rules.
+
+Future `POST /api/v1/advisor/analyze` should expose the orchestration contract from [ADVISOR_ORCHESTRATION.md](ADVISOR_ORCHESTRATION.md). Requests should include clipboard text, explicit league, selected dataset versions, optional current valuation evidence, optional outcome valuation evidence keyed by deterministic outcome ID, and optional risk context. Responses should preserve partial results per action, missing requirements, raw Advisor decision, optional risk-adjusted decision, and all relevant evidence references. The endpoint must not fetch external data at request time or fabricate valuations/probabilities.
 
 ## Error Model
 

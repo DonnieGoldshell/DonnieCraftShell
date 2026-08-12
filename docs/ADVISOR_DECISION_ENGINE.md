@@ -62,3 +62,5 @@ The engine returns `NO_RECOMMENDATION` when current valuation is insufficient, a
 The engine does not automate gameplay, scrape Trade, estimate probabilities, rank Profit Finder strategies, or execute crafts.
 
 Risk and bankroll policy is separate. See [RISK_AND_BANKROLL.md](RISK_AND_BANKROLL.md). Risk may veto or annotate an EV-positive craft, but it must preserve the raw Advisor decision and raw EV values.
+
+Task 13A orchestration is also separate. See [ADVISOR_ORCHESTRATION.md](ADVISOR_ORCHESTRATION.md). The orchestrator feeds `AdvisorDecisionEngine` with existing `AdvisorCraftInput` objects and preserves the resulting raw decision; it does not rank actions itself or recalculate EV.
