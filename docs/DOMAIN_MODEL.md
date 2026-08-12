@@ -27,6 +27,7 @@ The initial executable contracts live in `packages/shared/donniecraftshell_contr
 - Task 7A adds framework-independent crafting-action legality contracts in `crafting_actions.py`: `CraftingDatasetSnapshot`, `CraftActionDefinition`, `CraftActionPrecondition`, `RequiredMaterial`, `CraftActionApplicability`, and `CraftActionEngine`. These models cover applicability and required materials only.
 - Task 7B adds `affix_capacity.py`: `AffixCapacityDefinition`, `ModifierSlotConsumptionRule`, `AffixCapacityDatasetSnapshot`, `AffixStateResolution`, and `AffixStateResolver`. These derive open explicit affix slots from parser observations plus a versioned capacity dataset.
 - Task 7C adds `craft_action_candidates.py`: `CraftActionCandidate`, `CraftActionCostService`, and candidate enumeration that combines applicability with `CraftMaterialCost`.
+- Task 8A adds `craft_outcomes.py`: `CraftOutcomeDefinition`, `ItemStateDelta`, `HypotheticalItemState`, `CraftOutcomeSet`, and `CraftOutcomeEngine`. These model hypothetical outcome states without probabilities, valuation, EV, or recommendations.
 - `CraftOutcome`: resulting item or state delta, optional probability, probability confidence, valuation, profit/loss, and provenance.
 - `SimulationResult`: action cost, outcomes, probability coverage, EV/ROI/risk fields, confidence, assumptions, warnings, and completeness.
 - `AdvisorRecommendation`: current valuation, candidates, selected action when available, comparisons, risk, bankroll exposure, confidence, reasons, warnings, and timestamp. It supports `NO_RECOMMENDATION`.
@@ -47,6 +48,8 @@ Craft action applicability must preserve unknowns. If a precondition such as ope
 Affix capacity is not stored directly in parser logic. `ParsedItem.affix_state` remains clipboard observation; `AffixStateResolution` is derived data with provenance and warnings. Observed counts that exceed capacity are reported as conflicts and are not clamped.
 
 Craft action candidates are not recommendations. They expose mechanics status and cost status side by side, with no ranking, EV, valuation, or selected action.
+
+Craft outcome sets are hypothetical derived data. They must retain source item identity, action identity, dataset versions, provenance, outcome-space completeness, and probability completeness. Missing weights mean probability remains `UNKNOWN`.
 
 ## Boundaries
 

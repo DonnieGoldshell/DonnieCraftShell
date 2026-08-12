@@ -60,3 +60,5 @@ PoE2DB pages state that wiki content is available under CC BY-NC-SA 3.0 unless o
 Official Path of Exile developer docs state that current APIs expose limited PoE2 game information. They document item fields such as rarity, item level, implicit mods, explicit mods, crafted mods, fractured mods, desecrated mods, granted skills, corrupted, double-corrupted, and sanctified flags, but this is not a complete canonical modifier catalogue.
 
 See [DATA_SOURCES.md](DATA_SOURCES.md) for source authority and provenance rules.
+
+Task 8A uses the current fixture-backed Quiver modifier dataset to enumerate partial Exalted-style candidate modifier pools. Because the dataset is incomplete and modifier weights are unavailable, outcome-space completeness for addition actions is `PARTIAL` and probability completeness is `UNKNOWN`.

@@ -69,4 +69,4 @@ Task 7C adds `CraftActionCandidate` and `CraftActionCostService`. Candidate enum
 
 ## Limitations
 
-No outcome behavior is implemented. Omen-modified actions are modeled as compositional action definitions for now, and open-side legality may be checked, but targeting outcomes and probabilities remain outside the current scope.
+Outcome-space behavior is modeled separately in [CRAFT_OUTCOMES.md](CRAFT_OUTCOMES.md). Crafting actions still do not contain prices, probabilities, valuation, EV, or recommendations.
