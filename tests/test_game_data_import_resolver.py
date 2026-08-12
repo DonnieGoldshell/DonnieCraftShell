@@ -43,6 +43,8 @@ ROOT = Path(__file__).resolve().parents[1]
 RAW_PATH = ROOT / "data" / "raw" / "poe2db" / "quiver-modifiers-research-2026-08-11" / "raw_modifiers.json"
 DATASET_VERSION = "poe2db-unknown-version-2026-08-11-task5c-quiver"
 NORMALIZED_PATH = ROOT / "data" / "normalized" / DATASET_VERSION / "game_data.json"
+TASK8C_DATASET_VERSION = "poe2db-unknown-version-2026-08-12-task8c-fullx1"
+TASK8C_NORMALIZED_PATH = ROOT / "data" / "normalized" / TASK8C_DATASET_VERSION / "game_data.json"
 FIXTURE_DIR = ROOT / "tests" / "fixtures" / "poe2" / "quivers"
 SOURCE_KEY = "3ac5789a09e2d27363a60b889aa4dedc668f8e920fb1109617905b626ad921db"
 PRIORITY_NAMES = {
@@ -361,6 +363,55 @@ class ModifierResolverTests(unittest.TestCase):
         self.assertEqual(by_fixture["quiver_5_rare_corrupted_advanced.txt"].explicit_resolved, 1)
         self.assertEqual(by_fixture["quiver_6_crafted_desecrated_advanced.txt"].explicit_resolved, 6)
         self.assertIn("Consistent", by_fixture["quiver_5_rare_corrupted_advanced.txt"].unresolved_modifiers)
+
+
+class Task8CModifierResolverTests(unittest.TestCase):
+    def setUp(self):
+        self.dataset = load_normalized_dataset(TASK8C_NORMALIZED_PATH)
+        self.repo = GameDataRepository.from_json_files((TASK8C_NORMALIZED_PATH,))
+        self.resolver = CanonicalModifierResolver(self.repo, self.dataset.dataset_version)
+
+    def test_task8c_dataset_counts(self):
+        families = {family.canonical_id: family for family in self.dataset.modifier_families}
+
+        self.assertEqual(self.dataset.dataset_version, TASK8C_DATASET_VERSION)
+        self.assertEqual(len(self.dataset.modifier_families), 16)
+        self.assertEqual(len(self.dataset.modifier_tiers), 100)
+        self.assertEqual(sum(1 for family in self.dataset.modifier_families if family.affix_type == AffixType.PREFIX), 7)
+        self.assertEqual(sum(1 for family in self.dataset.modifier_families if family.affix_type == AffixType.SUFFIX), 9)
+        self.assertEqual(sum(1 for tier in self.dataset.modifier_tiers if families[tier.modifier_family_id].affix_type == AffixType.PREFIX), 56)
+        self.assertEqual(sum(1 for tier in self.dataset.modifier_tiers if families[tier.modifier_family_id].affix_type == AffixType.SUFFIX), 44)
+
+    def test_fixed_value_display_can_match_fixed_canonical_range(self):
+        parsed = parse_clipboard_item(fixture("quiver_5_rare_corrupted_advanced.txt")).item
+        assert parsed is not None
+        humming = next(modifier for modifier in parsed.explicit_modifiers if modifier.display_name == "Humming")
+
+        resolution = self.resolver.resolve_modifier(parsed, humming)
+
+        self.assertEqual(resolution.status, ResolutionStatus.RESOLVED)
+        self.assertTrue(any("fixed-value canonical ranges" in reason for reason in resolution.match_reasons))
+
+    def test_task8c_rare_explicit_fixture_coverage_is_complete_for_natural_pool(self):
+        rows = collect_coverage(FIXTURE_DIR, TASK8C_NORMALIZED_PATH, TASK8C_DATASET_VERSION)
+        by_fixture = {row.fixture: row for row in rows}
+
+        for fixture_name in (
+            "quiver_1_rare_standard_advanced.txt",
+            "quiver_2_rare_trade_note_advanced.txt",
+            "quiver_5_rare_corrupted_advanced.txt",
+            "quiver_6_crafted_desecrated_advanced.txt",
+            "quiver_7_twice_corrupted_advanced.txt",
+        ):
+            with self.subTest(fixture=fixture_name):
+                self.assertEqual(by_fixture[fixture_name].explicit_coverage_percent, 100.0)
+
+    def test_task8c_keeps_special_modifiers_outside_natural_pool(self):
+        rows = collect_coverage(FIXTURE_DIR, TASK8C_NORMALIZED_PATH, TASK8C_DATASET_VERSION)
+        by_fixture = {row.fixture: row for row in rows}
+
+        self.assertIn("25(20-30)% increased Critical Hit Chance for Attacks", by_fixture["quiver_7_twice_corrupted_advanced.txt"].unresolved_modifiers)
+        self.assertIn("+23(20-25) to maximum Mana", by_fixture["quiver_7_twice_corrupted_advanced.txt"].unresolved_modifiers)
 
 
 def synthetic_ambiguous_dataset() -> NormalizedGameDataSet:

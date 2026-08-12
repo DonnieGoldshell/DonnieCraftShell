@@ -23,6 +23,7 @@ from packages.shared.donniecraftshell_contracts.domain import (
     AffixState,
     AffixType,
     ItemModifier,
+    ModifierOrigin,
 )
 from packages.shared.donniecraftshell_contracts.game_data_repository import GameDataRepository
 from packages.shared.donniecraftshell_contracts.parser import parse_clipboard_item
@@ -32,8 +33,8 @@ ROOT = Path(__file__).resolve().parents[1]
 FIXTURE_DIR = ROOT / "tests" / "fixtures" / "poe2" / "quivers"
 CRAFTING_DATASET = ROOT / "data" / "normalized" / "crafting" / "crafting-actions-poe2-quiver-2026-08-12-research" / "actions.json"
 AFFIX_CAPACITY_DATASET = ROOT / "data" / "normalized" / "crafting" / "affix-capacity-poe2-2026-08-12-research" / "capacity.json"
-GAME_DATASET = ROOT / "data" / "normalized" / "poe2db-unknown-version-2026-08-11-task5c-quiver" / "game_data.json"
-GAME_DATASET_VERSION = "poe2db-unknown-version-2026-08-11-task5c-quiver"
+GAME_DATASET = ROOT / "data" / "normalized" / "poe2db-unknown-version-2026-08-12-task8c-fullx1" / "game_data.json"
+GAME_DATASET_VERSION = "poe2db-unknown-version-2026-08-12-task8c-fullx1"
 
 
 def parsed_fixture(name: str):
@@ -59,6 +60,29 @@ def with_prefix_suffix_counts(item, prefix_count: int, suffix_count: int):
             known_suffixes=tuple(suffixes[:suffix_count]),
             observed_prefix_count=prefix_count,
             observed_suffix_count=suffix_count,
+        ),
+    )
+
+
+def grouped_modifier(raw_text: str, affix_type: AffixType, family: str) -> ItemModifier:
+    return ItemModifier(raw_text=raw_text, affix_type=affix_type, origin=ModifierOrigin.NATURAL, family=family)
+
+
+def grouped_quiver(item_level: int, prefixes: tuple[str, ...], suffixes: tuple[str, ...]):
+    item = parsed_fixture("quiver_6_crafted_desecrated_advanced.txt")
+    prefix_mods = tuple(grouped_modifier(f"existing {family}", AffixType.PREFIX, family) for family in prefixes)
+    suffix_mods = tuple(grouped_modifier(f"existing {family}", AffixType.SUFFIX, family) for family in suffixes)
+    explicit = prefix_mods + suffix_mods
+    return replace(
+        item,
+        item_level=item_level,
+        explicit_modifiers=explicit,
+        modifiers=item.implicit_modifiers + explicit + item.special_modifiers,
+        affix_state=AffixState(
+            known_prefixes=prefix_mods,
+            known_suffixes=suffix_mods,
+            observed_prefix_count=len(prefix_mods),
+            observed_suffix_count=len(suffix_mods),
         ),
     )
 
@@ -148,7 +172,7 @@ class CraftOutcomeEngineTests(unittest.TestCase):
         self.assertEqual(sinistral.applicability_status, CraftApplicabilityStatus.NOT_APPLICABLE)
         self.assertEqual(sinistral.hypothetical_states, ())
 
-    def test_prefix_open_synthetic_quiver_produces_partial_prefix_pool(self):
+    def test_prefix_open_synthetic_quiver_produces_partial_prefix_pool_when_existing_groups_unresolved(self):
         item = with_prefix_suffix_counts(parsed_fixture("quiver_1_rare_standard_advanced.txt"), 2, 3)
 
         outcome_set = self._outcomes(item, "dc:poe2:craft-action:exalted-orb-with-omen-of-sinistral-exaltation")
@@ -156,6 +180,33 @@ class CraftOutcomeEngineTests(unittest.TestCase):
         self.assertEqual(outcome_set.applicability_status, CraftApplicabilityStatus.APPLICABLE)
         self.assertEqual(outcome_set.outcome_space_completeness, OutcomeSpaceCompleteness.PARTIAL)
         self.assertGreater(len(outcome_set.hypothetical_states), 0)
+        self.assertEqual(outcome_set.probability_completeness, OutcomeProbabilityStatus.UNKNOWN)
+
+    def test_resolved_open_suffix_quiver_can_produce_complete_suffix_outcome_space(self):
+        item = grouped_quiver(
+            82,
+            prefixes=("ColdDamage", "ProjectileSpeed", "DamageWithWeaponTypeSkill"),
+            suffixes=("CriticalStrikeChanceIncrease", "CriticalStrikeMultiplier"),
+        )
+
+        outcome_set = self._outcomes(item, "dc:poe2:craft-action:exalted-orb-with-omen-of-dextral-exaltation")
+
+        self.assertEqual(outcome_set.applicability_status, CraftApplicabilityStatus.APPLICABLE)
+        self.assertEqual(outcome_set.outcome_space_completeness, OutcomeSpaceCompleteness.COMPLETE)
+        self.assertEqual(outcome_set.probability_completeness, OutcomeProbabilityStatus.UNKNOWN)
+        self.assertGreater(len(outcome_set.hypothetical_states), 0)
+
+    def test_resolved_open_prefix_quiver_can_produce_complete_prefix_outcome_space(self):
+        item = grouped_quiver(
+            82,
+            prefixes=("ColdDamage", "ProjectileSpeed"),
+            suffixes=("CriticalStrikeChanceIncrease", "CriticalStrikeMultiplier", "Dexterity"),
+        )
+
+        outcome_set = self._outcomes(item, "dc:poe2:craft-action:exalted-orb-with-omen-of-sinistral-exaltation")
+
+        self.assertEqual(outcome_set.applicability_status, CraftApplicabilityStatus.APPLICABLE)
+        self.assertEqual(outcome_set.outcome_space_completeness, OutcomeSpaceCompleteness.COMPLETE)
         self.assertEqual(outcome_set.probability_completeness, OutcomeProbabilityStatus.UNKNOWN)
 
     def test_item_level_requirements_filter_impossible_candidates(self):
@@ -180,6 +231,17 @@ class CraftOutcomeEngineTests(unittest.TestCase):
         with_conflict_outcomes = self._outcomes(with_conflict, "dc:poe2:craft-action:exalted-orb-with-omen-of-dextral-exaltation")
 
         self.assertGreater(len(without_conflict.hypothetical_states), len(with_conflict_outcomes.hypothetical_states))
+
+    def test_perfect_exalted_uses_minimum_modifier_level_filter(self):
+        item = grouped_quiver(82, prefixes=("ColdDamage", "ProjectileSpeed"), suffixes=("Dexterity", "IncreasedAttackSpeed", "CriticalStrikeChanceIncrease"))
+
+        ordinary = self._outcomes(item, "dc:poe2:craft-action:exalted-orb-with-omen-of-sinistral-exaltation")
+        perfect = self._outcomes(item, "dc:poe2:craft-action:perfect-exalted-orb")
+
+        self.assertEqual(ordinary.outcome_space_completeness, OutcomeSpaceCompleteness.COMPLETE)
+        self.assertEqual(perfect.outcome_space_completeness, OutcomeSpaceCompleteness.COMPLETE)
+        self.assertGreater(len(ordinary.hypothetical_states), len(perfect.hypothetical_states))
+        self.assertTrue(any("Minimum Modifier Level" in warning for warning in perfect.warnings))
 
     def test_unknown_probability_does_not_become_equal_distribution(self):
         item = parsed_fixture("quiver_6_crafted_desecrated_advanced.txt")

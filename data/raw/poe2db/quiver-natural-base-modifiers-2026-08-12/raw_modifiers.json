@@ -1,0 +1,3341 @@
+{
+  "snapshot": {
+    "snapshot_id": "poe2db-quiver-natural-base-modifiers-2026-08-12",
+    "source": "poe2db",
+    "source_uri": "https://poe2db.tw/us/Quivers",
+    "retrieved_at": "2026-08-12T00:00:00+02:00",
+    "game": "Path of Exile 2",
+    "game_version": "unknown-version",
+    "locale": "us",
+    "checksum": "task8c-fullx1",
+    "verification_status": "NEEDS_VERIFICATION",
+    "notes": "Task 8C offline manual capture of natural explicit Base Prefix/Base Suffix Quiver modifiers from PoE2DB structured rows. PoE2DB is a community source, not official GGG data. Modifier weights/probabilities are deliberately excluded."
+  },
+  "records": [
+    {
+      "source_record_key": null,
+      "source_uri": "https://poe2db.tw/us/Quivers",
+      "retrieved_at": "2026-08-12T00:00:00+02:00",
+      "display_name": "Glinting",
+      "family": "PhysicalDamage",
+      "domain": "Item",
+      "generation_type": "Prefix",
+      "required_level": 1,
+      "tier": "9",
+      "stats": [
+        {
+          "text": "attack minimum added physical damage",
+          "min": "1",
+          "max": "2",
+          "scope": "Global"
+        },
+        {
+          "text": "attack maximum added physical damage",
+          "min": "3",
+          "max": "3",
+          "scope": "Global"
+        }
+      ],
+      "spawn_tags": {
+        "quiver": 1,
+        "default": 0
+      },
+      "craft_tags": [
+        "Damage",
+        "Physical",
+        "Attack"
+      ],
+      "notes": [
+        "Task 8C manually captured structured natural Base Quiver modifier row.",
+        "Weights/probabilities are intentionally excluded."
+      ]
+    },
+    {
+      "source_record_key": null,
+      "source_uri": "https://poe2db.tw/us/Quivers",
+      "retrieved_at": "2026-08-12T00:00:00+02:00",
+      "display_name": "Burnished",
+      "family": "PhysicalDamage",
+      "domain": "Item",
+      "generation_type": "Prefix",
+      "required_level": 8,
+      "tier": "8",
+      "stats": [
+        {
+          "text": "attack minimum added physical damage",
+          "min": "2",
+          "max": "3",
+          "scope": "Global"
+        },
+        {
+          "text": "attack maximum added physical damage",
+          "min": "4",
+          "max": "6",
+          "scope": "Global"
+        }
+      ],
+      "spawn_tags": {
+        "quiver": 1,
+        "default": 0
+      },
+      "craft_tags": [
+        "Damage",
+        "Physical",
+        "Attack"
+      ],
+      "notes": [
+        "Task 8C manually captured structured natural Base Quiver modifier row.",
+        "Weights/probabilities are intentionally excluded."
+      ]
+    },
+    {
+      "source_record_key": null,
+      "source_uri": "https://poe2db.tw/us/Quivers",
+      "retrieved_at": "2026-08-12T00:00:00+02:00",
+      "display_name": "Polished",
+      "family": "PhysicalDamage",
+      "domain": "Item",
+      "generation_type": "Prefix",
+      "required_level": 16,
+      "tier": "7",
+      "stats": [
+        {
+          "text": "attack minimum added physical damage",
+          "min": "2",
+          "max": "4",
+          "scope": "Global"
+        },
+        {
+          "text": "attack maximum added physical damage",
+          "min": "5",
+          "max": "8",
+          "scope": "Global"
+        }
+      ],
+      "spawn_tags": {
+        "quiver": 1,
+        "default": 0
+      },
+      "craft_tags": [
+        "Damage",
+        "Physical",
+        "Attack"
+      ],
+      "notes": [
+        "Task 8C manually captured structured natural Base Quiver modifier row.",
+        "Weights/probabilities are intentionally excluded."
+      ]
+    },
+    {
+      "source_record_key": null,
+      "source_uri": "https://poe2db.tw/us/Quivers",
+      "retrieved_at": "2026-08-12T00:00:00+02:00",
+      "display_name": "Honed",
+      "family": "PhysicalDamage",
+      "domain": "Item",
+      "generation_type": "Prefix",
+      "required_level": 33,
+      "tier": "6",
+      "stats": [
+        {
+          "text": "attack minimum added physical damage",
+          "min": "4",
+          "max": "6",
+          "scope": "Global"
+        },
+        {
+          "text": "attack maximum added physical damage",
+          "min": "8",
+          "max": "11",
+          "scope": "Global"
+        }
+      ],
+      "spawn_tags": {
+        "quiver": 1,
+        "default": 0
+      },
+      "craft_tags": [
+        "Damage",
+        "Physical",
+        "Attack"
+      ],
+      "notes": [
+        "Task 8C manually captured structured natural Base Quiver modifier row.",
+        "Weights/probabilities are intentionally excluded."
+      ]
+    },
+    {
+      "source_record_key": null,
+      "source_uri": "https://poe2db.tw/us/Quivers",
+      "retrieved_at": "2026-08-12T00:00:00+02:00",
+      "display_name": "Gleaming",
+      "family": "PhysicalDamage",
+      "domain": "Item",
+      "generation_type": "Prefix",
+      "required_level": 46,
+      "tier": "5",
+      "stats": [
+        {
+          "text": "attack minimum added physical damage",
+          "min": "5",
+          "max": "7",
+          "scope": "Global"
+        },
+        {
+          "text": "attack maximum added physical damage",
+          "min": "9",
+          "max": "13",
+          "scope": "Global"
+        }
+      ],
+      "spawn_tags": {
+        "quiver": 1,
+        "default": 0
+      },
+      "craft_tags": [
+        "Damage",
+        "Physical",
+        "Attack"
+      ],
+      "notes": [
+        "Task 8C manually captured structured natural Base Quiver modifier row.",
+        "Weights/probabilities are intentionally excluded."
+      ]
+    },
+    {
+      "source_record_key": null,
+      "source_uri": "https://poe2db.tw/us/Quivers",
+      "retrieved_at": "2026-08-12T00:00:00+02:00",
+      "display_name": "Annealed",
+      "family": "PhysicalDamage",
+      "domain": "Item",
+      "generation_type": "Prefix",
+      "required_level": 54,
+      "tier": "4",
+      "stats": [
+        {
+          "text": "attack minimum added physical damage",
+          "min": "6",
+          "max": "10",
+          "scope": "Global"
+        },
+        {
+          "text": "attack maximum added physical damage",
+          "min": "12",
+          "max": "17",
+          "scope": "Global"
+        }
+      ],
+      "spawn_tags": {
+        "quiver": 1,
+        "default": 0
+      },
+      "craft_tags": [
+        "Damage",
+        "Physical",
+        "Attack"
+      ],
+      "notes": [
+        "Task 8C manually captured structured natural Base Quiver modifier row.",
+        "Weights/probabilities are intentionally excluded."
+      ]
+    },
+    {
+      "source_record_key": null,
+      "source_uri": "https://poe2db.tw/us/Quivers",
+      "retrieved_at": "2026-08-12T00:00:00+02:00",
+      "display_name": "Razor-sharp",
+      "family": "PhysicalDamage",
+      "domain": "Item",
+      "generation_type": "Prefix",
+      "required_level": 60,
+      "tier": "3",
+      "stats": [
+        {
+          "text": "attack minimum added physical damage",
+          "min": "7",
+          "max": "11",
+          "scope": "Global"
+        },
+        {
+          "text": "attack maximum added physical damage",
+          "min": "14",
+          "max": "20",
+          "scope": "Global"
+        }
+      ],
+      "spawn_tags": {
+        "quiver": 1,
+        "default": 0
+      },
+      "craft_tags": [
+        "Damage",
+        "Physical",
+        "Attack"
+      ],
+      "notes": [
+        "Task 8C manually captured structured natural Base Quiver modifier row.",
+        "Weights/probabilities are intentionally excluded."
+      ]
+    },
+    {
+      "source_record_key": null,
+      "source_uri": "https://poe2db.tw/us/Quivers",
+      "retrieved_at": "2026-08-12T00:00:00+02:00",
+      "display_name": "Tempered",
+      "family": "PhysicalDamage",
+      "domain": "Item",
+      "generation_type": "Prefix",
+      "required_level": 65,
+      "tier": "2",
+      "stats": [
+        {
+          "text": "attack minimum added physical damage",
+          "min": "10",
+          "max": "15",
+          "scope": "Global"
+        },
+        {
+          "text": "attack maximum added physical damage",
+          "min": "18",
+          "max": "26",
+          "scope": "Global"
+        }
+      ],
+      "spawn_tags": {
+        "quiver": 1,
+        "default": 0
+      },
+      "craft_tags": [
+        "Damage",
+        "Physical",
+        "Attack"
+      ],
+      "notes": [
+        "Task 8C manually captured structured natural Base Quiver modifier row.",
+        "Weights/probabilities are intentionally excluded."
+      ]
+    },
+    {
+      "source_record_key": null,
+      "source_uri": "https://poe2db.tw/us/Quivers",
+      "retrieved_at": "2026-08-12T00:00:00+02:00",
+      "display_name": "Flaring",
+      "family": "PhysicalDamage",
+      "domain": "Item",
+      "generation_type": "Prefix",
+      "required_level": 75,
+      "tier": "1",
+      "stats": [
+        {
+          "text": "attack minimum added physical damage",
+          "min": "12",
+          "max": "19",
+          "scope": "Global"
+        },
+        {
+          "text": "attack maximum added physical damage",
+          "min": "22",
+          "max": "32",
+          "scope": "Global"
+        }
+      ],
+      "spawn_tags": {
+        "quiver": 1,
+        "default": 0
+      },
+      "craft_tags": [
+        "Damage",
+        "Physical",
+        "Attack"
+      ],
+      "notes": [
+        "Task 8C manually captured structured natural Base Quiver modifier row.",
+        "Weights/probabilities are intentionally excluded."
+      ]
+    },
+    {
+      "source_record_key": null,
+      "source_uri": "https://poe2db.tw/us/Quivers",
+      "retrieved_at": "2026-08-12T00:00:00+02:00",
+      "display_name": "Heated",
+      "family": "FireDamage",
+      "domain": "Item",
+      "generation_type": "Prefix",
+      "required_level": 1,
+      "tier": "9",
+      "stats": [
+        {
+          "text": "attack minimum added fire damage",
+          "min": "1",
+          "max": "2",
+          "scope": "Global"
+        },
+        {
+          "text": "attack maximum added fire damage",
+          "min": "3",
+          "max": "3",
+          "scope": "Global"
+        }
+      ],
+      "spawn_tags": {
+        "quiver": 1,
+        "default": 0
+      },
+      "craft_tags": [
+        "Damage",
+        "Elemental",
+        "Fire",
+        "Attack"
+      ],
+      "notes": [
+        "Task 8C manually captured structured natural Base Quiver modifier row.",
+        "Weights/probabilities are intentionally excluded."
+      ]
+    },
+    {
+      "source_record_key": null,
+      "source_uri": "https://poe2db.tw/us/Quivers",
+      "retrieved_at": "2026-08-12T00:00:00+02:00",
+      "display_name": "Smouldering",
+      "family": "FireDamage",
+      "domain": "Item",
+      "generation_type": "Prefix",
+      "required_level": 8,
+      "tier": "8",
+      "stats": [
+        {
+          "text": "attack minimum added fire damage",
+          "min": "3",
+          "max": "5",
+          "scope": "Global"
+        },
+        {
+          "text": "attack maximum added fire damage",
+          "min": "6",
+          "max": "9",
+          "scope": "Global"
+        }
+      ],
+      "spawn_tags": {
+        "quiver": 1,
+        "default": 0
+      },
+      "craft_tags": [
+        "Damage",
+        "Elemental",
+        "Fire",
+        "Attack"
+      ],
+      "notes": [
+        "Task 8C manually captured structured natural Base Quiver modifier row.",
+        "Weights/probabilities are intentionally excluded."
+      ]
+    },
+    {
+      "source_record_key": null,
+      "source_uri": "https://poe2db.tw/us/Quivers",
+      "retrieved_at": "2026-08-12T00:00:00+02:00",
+      "display_name": "Smoking",
+      "family": "FireDamage",
+      "domain": "Item",
+      "generation_type": "Prefix",
+      "required_level": 16,
+      "tier": "7",
+      "stats": [
+        {
+          "text": "attack minimum added fire damage",
+          "min": "6",
+          "max": "8",
+          "scope": "Global"
+        },
+        {
+          "text": "attack maximum added fire damage",
+          "min": "10",
+          "max": "13",
+          "scope": "Global"
+        }
+      ],
+      "spawn_tags": {
+        "quiver": 1,
+        "default": 0
+      },
+      "craft_tags": [
+        "Damage",
+        "Elemental",
+        "Fire",
+        "Attack"
+      ],
+      "notes": [
+        "Task 8C manually captured structured natural Base Quiver modifier row.",
+        "Weights/probabilities are intentionally excluded."
+      ]
+    },
+    {
+      "source_record_key": null,
+      "source_uri": "https://poe2db.tw/us/Quivers",
+      "retrieved_at": "2026-08-12T00:00:00+02:00",
+      "display_name": "Burning",
+      "family": "FireDamage",
+      "domain": "Item",
+      "generation_type": "Prefix",
+      "required_level": 33,
+      "tier": "6",
+      "stats": [
+        {
+          "text": "attack minimum added fire damage",
+          "min": "9",
+          "max": "11",
+          "scope": "Global"
+        },
+        {
+          "text": "attack maximum added fire damage",
+          "min": "14",
+          "max": "17",
+          "scope": "Global"
+        }
+      ],
+      "spawn_tags": {
+        "quiver": 1,
+        "default": 0
+      },
+      "craft_tags": [
+        "Damage",
+        "Elemental",
+        "Fire",
+        "Attack"
+      ],
+      "notes": [
+        "Task 8C manually captured structured natural Base Quiver modifier row.",
+        "Weights/probabilities are intentionally excluded."
+      ]
+    },
+    {
+      "source_record_key": null,
+      "source_uri": "https://poe2db.tw/us/Quivers",
+      "retrieved_at": "2026-08-12T00:00:00+02:00",
+      "display_name": "Flaming",
+      "family": "FireDamage",
+      "domain": "Item",
+      "generation_type": "Prefix",
+      "required_level": 46,
+      "tier": "5",
+      "stats": [
+        {
+          "text": "attack minimum added fire damage",
+          "min": "12",
+          "max": "13",
+          "scope": "Global"
+        },
+        {
+          "text": "attack maximum added fire damage",
+          "min": "18",
+          "max": "20",
+          "scope": "Global"
+        }
+      ],
+      "spawn_tags": {
+        "quiver": 1,
+        "default": 0
+      },
+      "craft_tags": [
+        "Damage",
+        "Elemental",
+        "Fire",
+        "Attack"
+      ],
+      "notes": [
+        "Task 8C manually captured structured natural Base Quiver modifier row.",
+        "Weights/probabilities are intentionally excluded."
+      ]
+    },
+    {
+      "source_record_key": null,
+      "source_uri": "https://poe2db.tw/us/Quivers",
+      "retrieved_at": "2026-08-12T00:00:00+02:00",
+      "display_name": "Scorching",
+      "family": "FireDamage",
+      "domain": "Item",
+      "generation_type": "Prefix",
+      "required_level": 54,
+      "tier": "4",
+      "stats": [
+        {
+          "text": "attack minimum added fire damage",
+          "min": "11",
+          "max": "16",
+          "scope": "Global"
+        },
+        {
+          "text": "attack maximum added fire damage",
+          "min": "21",
+          "max": "26",
+          "scope": "Global"
+        }
+      ],
+      "spawn_tags": {
+        "quiver": 1,
+        "default": 0
+      },
+      "craft_tags": [
+        "Damage",
+        "Elemental",
+        "Fire",
+        "Attack"
+      ],
+      "notes": [
+        "Task 8C manually captured structured natural Base Quiver modifier row.",
+        "Weights/probabilities are intentionally excluded."
+      ]
+    },
+    {
+      "source_record_key": null,
+      "source_uri": "https://poe2db.tw/us/Quivers",
+      "retrieved_at": "2026-08-12T00:00:00+02:00",
+      "display_name": "Incinerating",
+      "family": "FireDamage",
+      "domain": "Item",
+      "generation_type": "Prefix",
+      "required_level": 60,
+      "tier": "3",
+      "stats": [
+        {
+          "text": "attack minimum added fire damage",
+          "min": "13",
+          "max": "19",
+          "scope": "Global"
+        },
+        {
+          "text": "attack maximum added fire damage",
+          "min": "27",
+          "max": "32",
+          "scope": "Global"
+        }
+      ],
+      "spawn_tags": {
+        "quiver": 1,
+        "default": 0
+      },
+      "craft_tags": [
+        "Damage",
+        "Elemental",
+        "Fire",
+        "Attack"
+      ],
+      "notes": [
+        "Task 8C manually captured structured natural Base Quiver modifier row.",
+        "Weights/probabilities are intentionally excluded."
+      ]
+    },
+    {
+      "source_record_key": null,
+      "source_uri": "https://poe2db.tw/us/Quivers",
+      "retrieved_at": "2026-08-12T00:00:00+02:00",
+      "display_name": "Blasting",
+      "family": "FireDamage",
+      "domain": "Item",
+      "generation_type": "Prefix",
+      "required_level": 65,
+      "tier": "2",
+      "stats": [
+        {
+          "text": "attack minimum added fire damage",
+          "min": "20",
+          "max": "24",
+          "scope": "Global"
+        },
+        {
+          "text": "attack maximum added fire damage",
+          "min": "33",
+          "max": "36",
+          "scope": "Global"
+        }
+      ],
+      "spawn_tags": {
+        "quiver": 1,
+        "default": 0
+      },
+      "craft_tags": [
+        "Damage",
+        "Elemental",
+        "Fire",
+        "Attack"
+      ],
+      "notes": [
+        "Task 8C manually captured structured natural Base Quiver modifier row.",
+        "Weights/probabilities are intentionally excluded."
+      ]
+    },
+    {
+      "source_record_key": null,
+      "source_uri": "https://poe2db.tw/us/Quivers",
+      "retrieved_at": "2026-08-12T00:00:00+02:00",
+      "display_name": "Cremating",
+      "family": "FireDamage",
+      "domain": "Item",
+      "generation_type": "Prefix",
+      "required_level": 75,
+      "tier": "1",
+      "stats": [
+        {
+          "text": "attack minimum added fire damage",
+          "min": "25",
+          "max": "29",
+          "scope": "Global"
+        },
+        {
+          "text": "attack maximum added fire damage",
+          "min": "37",
+          "max": "45",
+          "scope": "Global"
+        }
+      ],
+      "spawn_tags": {
+        "quiver": 1,
+        "default": 0
+      },
+      "craft_tags": [
+        "Damage",
+        "Elemental",
+        "Fire",
+        "Attack"
+      ],
+      "notes": [
+        "Task 8C manually captured structured natural Base Quiver modifier row.",
+        "Weights/probabilities are intentionally excluded."
+      ]
+    },
+    {
+      "source_record_key": null,
+      "source_uri": "https://poe2db.tw/us/Quivers",
+      "retrieved_at": "2026-08-12T00:00:00+02:00",
+      "display_name": "Frosted",
+      "family": "ColdDamage",
+      "domain": "Item",
+      "generation_type": "Prefix",
+      "required_level": 1,
+      "tier": "9",
+      "stats": [
+        {
+          "text": "attack minimum added cold damage",
+          "min": "1",
+          "max": "1",
+          "scope": "Global"
+        },
+        {
+          "text": "attack maximum added cold damage",
+          "min": "2",
+          "max": "3",
+          "scope": "Global"
+        }
+      ],
+      "spawn_tags": {
+        "quiver": 1,
+        "default": 0
+      },
+      "craft_tags": [
+        "Damage",
+        "Elemental",
+        "Cold",
+        "Attack"
+      ],
+      "notes": [
+        "Task 8C manually captured structured natural Base Quiver modifier row.",
+        "Weights/probabilities are intentionally excluded."
+      ]
+    },
+    {
+      "source_record_key": null,
+      "source_uri": "https://poe2db.tw/us/Quivers",
+      "retrieved_at": "2026-08-12T00:00:00+02:00",
+      "display_name": "Chilled",
+      "family": "ColdDamage",
+      "domain": "Item",
+      "generation_type": "Prefix",
+      "required_level": 8,
+      "tier": "8",
+      "stats": [
+        {
+          "text": "attack minimum added cold damage",
+          "min": "3",
+          "max": "4",
+          "scope": "Global"
+        },
+        {
+          "text": "attack maximum added cold damage",
+          "min": "5",
+          "max": "8",
+          "scope": "Global"
+        }
+      ],
+      "spawn_tags": {
+        "quiver": 1,
+        "default": 0
+      },
+      "craft_tags": [
+        "Damage",
+        "Elemental",
+        "Cold",
+        "Attack"
+      ],
+      "notes": [
+        "Task 8C manually captured structured natural Base Quiver modifier row.",
+        "Weights/probabilities are intentionally excluded."
+      ]
+    },
+    {
+      "source_record_key": null,
+      "source_uri": "https://poe2db.tw/us/Quivers",
+      "retrieved_at": "2026-08-12T00:00:00+02:00",
+      "display_name": "Icy",
+      "family": "ColdDamage",
+      "domain": "Item",
+      "generation_type": "Prefix",
+      "required_level": 16,
+      "tier": "7",
+      "stats": [
+        {
+          "text": "attack minimum added cold damage",
+          "min": "5",
+          "max": "6",
+          "scope": "Global"
+        },
+        {
+          "text": "attack maximum added cold damage",
+          "min": "9",
+          "max": "11",
+          "scope": "Global"
+        }
+      ],
+      "spawn_tags": {
+        "quiver": 1,
+        "default": 0
+      },
+      "craft_tags": [
+        "Damage",
+        "Elemental",
+        "Cold",
+        "Attack"
+      ],
+      "notes": [
+        "Task 8C manually captured structured natural Base Quiver modifier row.",
+        "Weights/probabilities are intentionally excluded."
+      ]
+    },
+    {
+      "source_record_key": null,
+      "source_uri": "https://poe2db.tw/us/Quivers",
+      "retrieved_at": "2026-08-12T00:00:00+02:00",
+      "display_name": "Frigid",
+      "family": "ColdDamage",
+      "domain": "Item",
+      "generation_type": "Prefix",
+      "required_level": 33,
+      "tier": "6",
+      "stats": [
+        {
+          "text": "attack minimum added cold damage",
+          "min": "7",
+          "max": "8",
+          "scope": "Global"
+        },
+        {
+          "text": "attack maximum added cold damage",
+          "min": "12",
+          "max": "14",
+          "scope": "Global"
+        }
+      ],
+      "spawn_tags": {
+        "quiver": 1,
+        "default": 0
+      },
+      "craft_tags": [
+        "Damage",
+        "Elemental",
+        "Cold",
+        "Attack"
+      ],
+      "notes": [
+        "Task 8C manually captured structured natural Base Quiver modifier row.",
+        "Weights/probabilities are intentionally excluded."
+      ]
+    },
+    {
+      "source_record_key": null,
+      "source_uri": "https://poe2db.tw/us/Quivers",
+      "retrieved_at": "2026-08-12T00:00:00+02:00",
+      "display_name": "Freezing",
+      "family": "ColdDamage",
+      "domain": "Item",
+      "generation_type": "Prefix",
+      "required_level": 46,
+      "tier": "5",
+      "stats": [
+        {
+          "text": "attack minimum added cold damage",
+          "min": "9",
+          "max": "10",
+          "scope": "Global"
+        },
+        {
+          "text": "attack maximum added cold damage",
+          "min": "15",
+          "max": "17",
+          "scope": "Global"
+        }
+      ],
+      "spawn_tags": {
+        "quiver": 1,
+        "default": 0
+      },
+      "craft_tags": [
+        "Damage",
+        "Elemental",
+        "Cold",
+        "Attack"
+      ],
+      "notes": [
+        "Task 8C manually captured structured natural Base Quiver modifier row.",
+        "Weights/probabilities are intentionally excluded."
+      ]
+    },
+    {
+      "source_record_key": null,
+      "source_uri": "https://poe2db.tw/us/Quivers",
+      "retrieved_at": "2026-08-12T00:00:00+02:00",
+      "display_name": "Frozen",
+      "family": "ColdDamage",
+      "domain": "Item",
+      "generation_type": "Prefix",
+      "required_level": 54,
+      "tier": "4",
+      "stats": [
+        {
+          "text": "attack minimum added cold damage",
+          "min": "11",
+          "max": "13",
+          "scope": "Global"
+        },
+        {
+          "text": "attack maximum added cold damage",
+          "min": "18",
+          "max": "21",
+          "scope": "Global"
+        }
+      ],
+      "spawn_tags": {
+        "quiver": 1,
+        "default": 0
+      },
+      "craft_tags": [
+        "Damage",
+        "Elemental",
+        "Cold",
+        "Attack"
+      ],
+      "notes": [
+        "Task 8C manually captured structured natural Base Quiver modifier row.",
+        "Weights/probabilities are intentionally excluded."
+      ]
+    },
+    {
+      "source_record_key": null,
+      "source_uri": "https://poe2db.tw/us/Quivers",
+      "retrieved_at": "2026-08-12T00:00:00+02:00",
+      "display_name": "Glaciated",
+      "family": "ColdDamage",
+      "domain": "Item",
+      "generation_type": "Prefix",
+      "required_level": 60,
+      "tier": "3",
+      "stats": [
+        {
+          "text": "attack minimum added cold damage",
+          "min": "14",
+          "max": "15",
+          "scope": "Global"
+        },
+        {
+          "text": "attack maximum added cold damage",
+          "min": "22",
+          "max": "24",
+          "scope": "Global"
+        }
+      ],
+      "spawn_tags": {
+        "quiver": 1,
+        "default": 0
+      },
+      "craft_tags": [
+        "Damage",
+        "Elemental",
+        "Cold",
+        "Attack"
+      ],
+      "notes": [
+        "Task 8C manually captured structured natural Base Quiver modifier row.",
+        "Weights/probabilities are intentionally excluded."
+      ]
+    },
+    {
+      "source_record_key": null,
+      "source_uri": "https://poe2db.tw/us/Quivers",
+      "retrieved_at": "2026-08-12T00:00:00+02:00",
+      "display_name": "Polar",
+      "family": "ColdDamage",
+      "domain": "Item",
+      "generation_type": "Prefix",
+      "required_level": 65,
+      "tier": "2",
+      "stats": [
+        {
+          "text": "attack minimum added cold damage",
+          "min": "16",
+          "max": "20",
+          "scope": "Global"
+        },
+        {
+          "text": "attack maximum added cold damage",
+          "min": "25",
+          "max": "31",
+          "scope": "Global"
+        }
+      ],
+      "spawn_tags": {
+        "quiver": 1,
+        "default": 0
+      },
+      "craft_tags": [
+        "Damage",
+        "Elemental",
+        "Cold",
+        "Attack"
+      ],
+      "notes": [
+        "Task 8C manually captured structured natural Base Quiver modifier row.",
+        "Weights/probabilities are intentionally excluded."
+      ]
+    },
+    {
+      "source_record_key": null,
+      "source_uri": "https://poe2db.tw/us/Quivers",
+      "retrieved_at": "2026-08-12T00:00:00+02:00",
+      "display_name": "Entombing",
+      "family": "ColdDamage",
+      "domain": "Item",
+      "generation_type": "Prefix",
+      "required_level": 75,
+      "tier": "1",
+      "stats": [
+        {
+          "text": "attack minimum added cold damage",
+          "min": "21",
+          "max": "24",
+          "scope": "Global"
+        },
+        {
+          "text": "attack maximum added cold damage",
+          "min": "32",
+          "max": "37",
+          "scope": "Global"
+        }
+      ],
+      "spawn_tags": {
+        "quiver": 1,
+        "default": 0
+      },
+      "craft_tags": [
+        "Damage",
+        "Elemental",
+        "Cold",
+        "Attack"
+      ],
+      "notes": [
+        "Task 8C manually captured structured natural Base Quiver modifier row.",
+        "Weights/probabilities are intentionally excluded."
+      ]
+    },
+    {
+      "source_record_key": null,
+      "source_uri": "https://poe2db.tw/us/Quivers",
+      "retrieved_at": "2026-08-12T00:00:00+02:00",
+      "display_name": "Humming",
+      "family": "LightningDamage",
+      "domain": "Item",
+      "generation_type": "Prefix",
+      "required_level": 1,
+      "tier": "9",
+      "stats": [
+        {
+          "text": "attack minimum added lightning damage",
+          "min": "1",
+          "max": "1",
+          "scope": "Global"
+        },
+        {
+          "text": "attack maximum added lightning damage",
+          "min": "4",
+          "max": "6",
+          "scope": "Global"
+        }
+      ],
+      "spawn_tags": {
+        "quiver": 1,
+        "default": 0
+      },
+      "craft_tags": [
+        "Damage",
+        "Elemental",
+        "Lightning",
+        "Attack"
+      ],
+      "notes": [
+        "Task 8C manually captured structured natural Base Quiver modifier row.",
+        "Weights/probabilities are intentionally excluded."
+      ]
+    },
+    {
+      "source_record_key": null,
+      "source_uri": "https://poe2db.tw/us/Quivers",
+      "retrieved_at": "2026-08-12T00:00:00+02:00",
+      "display_name": "Buzzing",
+      "family": "LightningDamage",
+      "domain": "Item",
+      "generation_type": "Prefix",
+      "required_level": 8,
+      "tier": "8",
+      "stats": [
+        {
+          "text": "attack minimum added lightning damage",
+          "min": "1",
+          "max": "1",
+          "scope": "Global"
+        },
+        {
+          "text": "attack maximum added lightning damage",
+          "min": "10",
+          "max": "15",
+          "scope": "Global"
+        }
+      ],
+      "spawn_tags": {
+        "quiver": 1,
+        "default": 0
+      },
+      "craft_tags": [
+        "Damage",
+        "Elemental",
+        "Lightning",
+        "Attack"
+      ],
+      "notes": [
+        "Task 8C manually captured structured natural Base Quiver modifier row.",
+        "Weights/probabilities are intentionally excluded."
+      ]
+    },
+    {
+      "source_record_key": null,
+      "source_uri": "https://poe2db.tw/us/Quivers",
+      "retrieved_at": "2026-08-12T00:00:00+02:00",
+      "display_name": "Snapping",
+      "family": "LightningDamage",
+      "domain": "Item",
+      "generation_type": "Prefix",
+      "required_level": 16,
+      "tier": "7",
+      "stats": [
+        {
+          "text": "attack minimum added lightning damage",
+          "min": "1",
+          "max": "1",
+          "scope": "Global"
+        },
+        {
+          "text": "attack maximum added lightning damage",
+          "min": "16",
+          "max": "22",
+          "scope": "Global"
+        }
+      ],
+      "spawn_tags": {
+        "quiver": 1,
+        "default": 0
+      },
+      "craft_tags": [
+        "Damage",
+        "Elemental",
+        "Lightning",
+        "Attack"
+      ],
+      "notes": [
+        "Task 8C manually captured structured natural Base Quiver modifier row.",
+        "Weights/probabilities are intentionally excluded."
+      ]
+    },
+    {
+      "source_record_key": null,
+      "source_uri": "https://poe2db.tw/us/Quivers",
+      "retrieved_at": "2026-08-12T00:00:00+02:00",
+      "display_name": "Crackling",
+      "family": "LightningDamage",
+      "domain": "Item",
+      "generation_type": "Prefix",
+      "required_level": 33,
+      "tier": "6",
+      "stats": [
+        {
+          "text": "attack minimum added lightning damage",
+          "min": "1",
+          "max": "1",
+          "scope": "Global"
+        },
+        {
+          "text": "attack maximum added lightning damage",
+          "min": "23",
+          "max": "27",
+          "scope": "Global"
+        }
+      ],
+      "spawn_tags": {
+        "quiver": 1,
+        "default": 0
+      },
+      "craft_tags": [
+        "Damage",
+        "Elemental",
+        "Lightning",
+        "Attack"
+      ],
+      "notes": [
+        "Task 8C manually captured structured natural Base Quiver modifier row.",
+        "Weights/probabilities are intentionally excluded."
+      ]
+    },
+    {
+      "source_record_key": null,
+      "source_uri": "https://poe2db.tw/us/Quivers",
+      "retrieved_at": "2026-08-12T00:00:00+02:00",
+      "display_name": "Sparking",
+      "family": "LightningDamage",
+      "domain": "Item",
+      "generation_type": "Prefix",
+      "required_level": 46,
+      "tier": "5",
+      "stats": [
+        {
+          "text": "attack minimum added lightning damage",
+          "min": "1",
+          "max": "1",
+          "scope": "Global"
+        },
+        {
+          "text": "attack maximum added lightning damage",
+          "min": "28",
+          "max": "32",
+          "scope": "Global"
+        }
+      ],
+      "spawn_tags": {
+        "quiver": 1,
+        "default": 0
+      },
+      "craft_tags": [
+        "Damage",
+        "Elemental",
+        "Lightning",
+        "Attack"
+      ],
+      "notes": [
+        "Task 8C manually captured structured natural Base Quiver modifier row.",
+        "Weights/probabilities are intentionally excluded."
+      ]
+    },
+    {
+      "source_record_key": null,
+      "source_uri": "https://poe2db.tw/us/Quivers",
+      "retrieved_at": "2026-08-12T00:00:00+02:00",
+      "display_name": "Arcing",
+      "family": "LightningDamage",
+      "domain": "Item",
+      "generation_type": "Prefix",
+      "required_level": 54,
+      "tier": "4",
+      "stats": [
+        {
+          "text": "attack minimum added lightning damage",
+          "min": "1",
+          "max": "2",
+          "scope": "Global"
+        },
+        {
+          "text": "attack maximum added lightning damage",
+          "min": "33",
+          "max": "40",
+          "scope": "Global"
+        }
+      ],
+      "spawn_tags": {
+        "quiver": 1,
+        "default": 0
+      },
+      "craft_tags": [
+        "Damage",
+        "Elemental",
+        "Lightning",
+        "Attack"
+      ],
+      "notes": [
+        "Task 8C manually captured structured natural Base Quiver modifier row.",
+        "Weights/probabilities are intentionally excluded."
+      ]
+    },
+    {
+      "source_record_key": null,
+      "source_uri": "https://poe2db.tw/us/Quivers",
+      "retrieved_at": "2026-08-12T00:00:00+02:00",
+      "display_name": "Shocking",
+      "family": "LightningDamage",
+      "domain": "Item",
+      "generation_type": "Prefix",
+      "required_level": 60,
+      "tier": "3",
+      "stats": [
+        {
+          "text": "attack minimum added lightning damage",
+          "min": "1",
+          "max": "2",
+          "scope": "Global"
+        },
+        {
+          "text": "attack maximum added lightning damage",
+          "min": "41",
+          "max": "47",
+          "scope": "Global"
+        }
+      ],
+      "spawn_tags": {
+        "quiver": 1,
+        "default": 0
+      },
+      "craft_tags": [
+        "Damage",
+        "Elemental",
+        "Lightning",
+        "Attack"
+      ],
+      "notes": [
+        "Task 8C manually captured structured natural Base Quiver modifier row.",
+        "Weights/probabilities are intentionally excluded."
+      ]
+    },
+    {
+      "source_record_key": null,
+      "source_uri": "https://poe2db.tw/us/Quivers",
+      "retrieved_at": "2026-08-12T00:00:00+02:00",
+      "display_name": "Discharging",
+      "family": "LightningDamage",
+      "domain": "Item",
+      "generation_type": "Prefix",
+      "required_level": 65,
+      "tier": "2",
+      "stats": [
+        {
+          "text": "attack minimum added lightning damage",
+          "min": "1",
+          "max": "3",
+          "scope": "Global"
+        },
+        {
+          "text": "attack maximum added lightning damage",
+          "min": "48",
+          "max": "59",
+          "scope": "Global"
+        }
+      ],
+      "spawn_tags": {
+        "quiver": 1,
+        "default": 0
+      },
+      "craft_tags": [
+        "Damage",
+        "Elemental",
+        "Lightning",
+        "Attack"
+      ],
+      "notes": [
+        "Task 8C manually captured structured natural Base Quiver modifier row.",
+        "Weights/probabilities are intentionally excluded."
+      ]
+    },
+    {
+      "source_record_key": null,
+      "source_uri": "https://poe2db.tw/us/Quivers",
+      "retrieved_at": "2026-08-12T00:00:00+02:00",
+      "display_name": "Electrocuting",
+      "family": "LightningDamage",
+      "domain": "Item",
+      "generation_type": "Prefix",
+      "required_level": 75,
+      "tier": "1",
+      "stats": [
+        {
+          "text": "attack minimum added lightning damage",
+          "min": "1",
+          "max": "4",
+          "scope": "Global"
+        },
+        {
+          "text": "attack maximum added lightning damage",
+          "min": "60",
+          "max": "71",
+          "scope": "Global"
+        }
+      ],
+      "spawn_tags": {
+        "quiver": 1,
+        "default": 0
+      },
+      "craft_tags": [
+        "Damage",
+        "Elemental",
+        "Lightning",
+        "Attack"
+      ],
+      "notes": [
+        "Task 8C manually captured structured natural Base Quiver modifier row.",
+        "Weights/probabilities are intentionally excluded."
+      ]
+    },
+    {
+      "source_record_key": null,
+      "source_uri": "https://poe2db.tw/us/Quivers",
+      "retrieved_at": "2026-08-12T00:00:00+02:00",
+      "display_name": "Precise",
+      "family": "IncreasedAccuracy",
+      "domain": "Item",
+      "generation_type": "Prefix",
+      "required_level": 1,
+      "tier": "9",
+      "stats": [
+        {
+          "text": "accuracy rating",
+          "min": "11",
+          "max": "32",
+          "scope": "Global"
+        }
+      ],
+      "spawn_tags": {
+        "quiver": 1,
+        "default": 0
+      },
+      "craft_tags": [
+        "Attack"
+      ],
+      "notes": [
+        "Task 8C manually captured structured natural Base Quiver modifier row.",
+        "Weights/probabilities are intentionally excluded."
+      ]
+    },
+    {
+      "source_record_key": null,
+      "source_uri": "https://poe2db.tw/us/Quivers",
+      "retrieved_at": "2026-08-12T00:00:00+02:00",
+      "display_name": "Reliable",
+      "family": "IncreasedAccuracy",
+      "domain": "Item",
+      "generation_type": "Prefix",
+      "required_level": 11,
+      "tier": "8",
+      "stats": [
+        {
+          "text": "accuracy rating",
+          "min": "33",
+          "max": "60",
+          "scope": "Global"
+        }
+      ],
+      "spawn_tags": {
+        "quiver": 1,
+        "default": 0
+      },
+      "craft_tags": [
+        "Attack"
+      ],
+      "notes": [
+        "Task 8C manually captured structured natural Base Quiver modifier row.",
+        "Weights/probabilities are intentionally excluded."
+      ]
+    },
+    {
+      "source_record_key": null,
+      "source_uri": "https://poe2db.tw/us/Quivers",
+      "retrieved_at": "2026-08-12T00:00:00+02:00",
+      "display_name": "Focused",
+      "family": "IncreasedAccuracy",
+      "domain": "Item",
+      "generation_type": "Prefix",
+      "required_level": 18,
+      "tier": "7",
+      "stats": [
+        {
+          "text": "accuracy rating",
+          "min": "61",
+          "max": "84",
+          "scope": "Global"
+        }
+      ],
+      "spawn_tags": {
+        "quiver": 1,
+        "default": 0
+      },
+      "craft_tags": [
+        "Attack"
+      ],
+      "notes": [
+        "Task 8C manually captured structured natural Base Quiver modifier row.",
+        "Weights/probabilities are intentionally excluded."
+      ]
+    },
+    {
+      "source_record_key": null,
+      "source_uri": "https://poe2db.tw/us/Quivers",
+      "retrieved_at": "2026-08-12T00:00:00+02:00",
+      "display_name": "Deliberate",
+      "family": "IncreasedAccuracy",
+      "domain": "Item",
+      "generation_type": "Prefix",
+      "required_level": 26,
+      "tier": "6",
+      "stats": [
+        {
+          "text": "accuracy rating",
+          "min": "85",
+          "max": "123",
+          "scope": "Global"
+        }
+      ],
+      "spawn_tags": {
+        "quiver": 1,
+        "default": 0
+      },
+      "craft_tags": [
+        "Attack"
+      ],
+      "notes": [
+        "Task 8C manually captured structured natural Base Quiver modifier row.",
+        "Weights/probabilities are intentionally excluded."
+      ]
+    },
+    {
+      "source_record_key": null,
+      "source_uri": "https://poe2db.tw/us/Quivers",
+      "retrieved_at": "2026-08-12T00:00:00+02:00",
+      "display_name": "Consistent",
+      "family": "IncreasedAccuracy",
+      "domain": "Item",
+      "generation_type": "Prefix",
+      "required_level": 36,
+      "tier": "5",
+      "stats": [
+        {
+          "text": "accuracy rating",
+          "min": "124",
+          "max": "167",
+          "scope": "Global"
+        }
+      ],
+      "spawn_tags": {
+        "quiver": 1,
+        "default": 0
+      },
+      "craft_tags": [
+        "Attack"
+      ],
+      "notes": [
+        "Task 8C manually captured structured natural Base Quiver modifier row.",
+        "Weights/probabilities are intentionally excluded."
+      ]
+    },
+    {
+      "source_record_key": null,
+      "source_uri": "https://poe2db.tw/us/Quivers",
+      "retrieved_at": "2026-08-12T00:00:00+02:00",
+      "display_name": "Steady",
+      "family": "IncreasedAccuracy",
+      "domain": "Item",
+      "generation_type": "Prefix",
+      "required_level": 48,
+      "tier": "4",
+      "stats": [
+        {
+          "text": "accuracy rating",
+          "min": "168",
+          "max": "236",
+          "scope": "Global"
+        }
+      ],
+      "spawn_tags": {
+        "quiver": 1,
+        "default": 0
+      },
+      "craft_tags": [
+        "Attack"
+      ],
+      "notes": [
+        "Task 8C manually captured structured natural Base Quiver modifier row.",
+        "Weights/probabilities are intentionally excluded."
+      ]
+    },
+    {
+      "source_record_key": null,
+      "source_uri": "https://poe2db.tw/us/Quivers",
+      "retrieved_at": "2026-08-12T00:00:00+02:00",
+      "display_name": "Hunter's",
+      "family": "IncreasedAccuracy",
+      "domain": "Item",
+      "generation_type": "Prefix",
+      "required_level": 58,
+      "tier": "3",
+      "stats": [
+        {
+          "text": "accuracy rating",
+          "min": "237",
+          "max": "346",
+          "scope": "Global"
+        }
+      ],
+      "spawn_tags": {
+        "quiver": 1,
+        "default": 0
+      },
+      "craft_tags": [
+        "Attack"
+      ],
+      "notes": [
+        "Task 8C manually captured structured natural Base Quiver modifier row.",
+        "Weights/probabilities are intentionally excluded."
+      ]
+    },
+    {
+      "source_record_key": null,
+      "source_uri": "https://poe2db.tw/us/Quivers",
+      "retrieved_at": "2026-08-12T00:00:00+02:00",
+      "display_name": "Ranger's",
+      "family": "IncreasedAccuracy",
+      "domain": "Item",
+      "generation_type": "Prefix",
+      "required_level": 67,
+      "tier": "2",
+      "stats": [
+        {
+          "text": "accuracy rating",
+          "min": "347",
+          "max": "450",
+          "scope": "Global"
+        }
+      ],
+      "spawn_tags": {
+        "quiver": 1,
+        "default": 0
+      },
+      "craft_tags": [
+        "Attack"
+      ],
+      "notes": [
+        "Task 8C manually captured structured natural Base Quiver modifier row.",
+        "Weights/probabilities are intentionally excluded."
+      ]
+    },
+    {
+      "source_record_key": null,
+      "source_uri": "https://poe2db.tw/us/Quivers",
+      "retrieved_at": "2026-08-12T00:00:00+02:00",
+      "display_name": "Amazon's",
+      "family": "IncreasedAccuracy",
+      "domain": "Item",
+      "generation_type": "Prefix",
+      "required_level": 76,
+      "tier": "1",
+      "stats": [
+        {
+          "text": "accuracy rating",
+          "min": "451",
+          "max": "550",
+          "scope": "Global"
+        }
+      ],
+      "spawn_tags": {
+        "quiver": 1,
+        "default": 0
+      },
+      "craft_tags": [
+        "Attack"
+      ],
+      "notes": [
+        "Task 8C manually captured structured natural Base Quiver modifier row.",
+        "Weights/probabilities are intentionally excluded."
+      ]
+    },
+    {
+      "source_record_key": null,
+      "source_uri": "https://poe2db.tw/us/Quivers",
+      "retrieved_at": "2026-08-12T00:00:00+02:00",
+      "display_name": "Darting",
+      "family": "ProjectileSpeed",
+      "domain": "Item",
+      "generation_type": "Prefix",
+      "required_level": 14,
+      "tier": "5",
+      "stats": [
+        {
+          "text": "base projectile speed +%",
+          "min": "10",
+          "max": "17",
+          "scope": "Global"
+        }
+      ],
+      "spawn_tags": {
+        "quiver": 1,
+        "default": 0
+      },
+      "craft_tags": [
+        "Speed"
+      ],
+      "notes": [
+        "Task 8C manually captured structured natural Base Quiver modifier row.",
+        "Weights/probabilities are intentionally excluded."
+      ]
+    },
+    {
+      "source_record_key": null,
+      "source_uri": "https://poe2db.tw/us/Quivers",
+      "retrieved_at": "2026-08-12T00:00:00+02:00",
+      "display_name": "Brisk",
+      "family": "ProjectileSpeed",
+      "domain": "Item",
+      "generation_type": "Prefix",
+      "required_level": 27,
+      "tier": "4",
+      "stats": [
+        {
+          "text": "base projectile speed +%",
+          "min": "18",
+          "max": "25",
+          "scope": "Global"
+        }
+      ],
+      "spawn_tags": {
+        "quiver": 1,
+        "default": 0
+      },
+      "craft_tags": [
+        "Speed"
+      ],
+      "notes": [
+        "Task 8C manually captured structured natural Base Quiver modifier row.",
+        "Weights/probabilities are intentionally excluded."
+      ]
+    },
+    {
+      "source_record_key": null,
+      "source_uri": "https://poe2db.tw/us/Quivers",
+      "retrieved_at": "2026-08-12T00:00:00+02:00",
+      "display_name": "Quick",
+      "family": "ProjectileSpeed",
+      "domain": "Item",
+      "generation_type": "Prefix",
+      "required_level": 41,
+      "tier": "3",
+      "stats": [
+        {
+          "text": "base projectile speed +%",
+          "min": "26",
+          "max": "33",
+          "scope": "Global"
+        }
+      ],
+      "spawn_tags": {
+        "quiver": 1,
+        "default": 0
+      },
+      "craft_tags": [
+        "Speed"
+      ],
+      "notes": [
+        "Task 8C manually captured structured natural Base Quiver modifier row.",
+        "Weights/probabilities are intentionally excluded."
+      ]
+    },
+    {
+      "source_record_key": null,
+      "source_uri": "https://poe2db.tw/us/Quivers",
+      "retrieved_at": "2026-08-12T00:00:00+02:00",
+      "display_name": "Rapid",
+      "family": "ProjectileSpeed",
+      "domain": "Item",
+      "generation_type": "Prefix",
+      "required_level": 55,
+      "tier": "2",
+      "stats": [
+        {
+          "text": "base projectile speed +%",
+          "min": "34",
+          "max": "41",
+          "scope": "Global"
+        }
+      ],
+      "spawn_tags": {
+        "quiver": 1,
+        "default": 0
+      },
+      "craft_tags": [
+        "Speed"
+      ],
+      "notes": [
+        "Task 8C manually captured structured natural Base Quiver modifier row.",
+        "Weights/probabilities are intentionally excluded."
+      ]
+    },
+    {
+      "source_record_key": null,
+      "source_uri": "https://poe2db.tw/us/Quivers",
+      "retrieved_at": "2026-08-12T00:00:00+02:00",
+      "display_name": "Nimble",
+      "family": "ProjectileSpeed",
+      "domain": "Item",
+      "generation_type": "Prefix",
+      "required_level": 82,
+      "tier": "1",
+      "stats": [
+        {
+          "text": "base projectile speed +%",
+          "min": "42",
+          "max": "46",
+          "scope": "Global"
+        }
+      ],
+      "spawn_tags": {
+        "quiver": 1,
+        "default": 0
+      },
+      "craft_tags": [
+        "Speed"
+      ],
+      "notes": [
+        "Task 8C manually captured structured natural Base Quiver modifier row.",
+        "Weights/probabilities are intentionally excluded."
+      ]
+    },
+    {
+      "source_record_key": null,
+      "source_uri": "https://poe2db.tw/us/Quivers",
+      "retrieved_at": "2026-08-12T00:00:00+02:00",
+      "display_name": "Acute",
+      "family": "DamageWithWeaponTypeSkill",
+      "domain": "Item",
+      "generation_type": "Prefix",
+      "required_level": 1,
+      "tier": "6",
+      "stats": [
+        {
+          "text": "damage +% with bow skills",
+          "min": "11",
+          "max": "20",
+          "scope": "Global"
+        }
+      ],
+      "spawn_tags": {
+        "quiver": 1,
+        "default": 0
+      },
+      "craft_tags": [
+        "Damage"
+      ],
+      "notes": [
+        "Task 8C manually captured structured natural Base Quiver modifier row.",
+        "Weights/probabilities are intentionally excluded."
+      ]
+    },
+    {
+      "source_record_key": null,
+      "source_uri": "https://poe2db.tw/us/Quivers",
+      "retrieved_at": "2026-08-12T00:00:00+02:00",
+      "display_name": "Trenchant",
+      "family": "DamageWithWeaponTypeSkill",
+      "domain": "Item",
+      "generation_type": "Prefix",
+      "required_level": 16,
+      "tier": "5",
+      "stats": [
+        {
+          "text": "damage +% with bow skills",
+          "min": "21",
+          "max": "30",
+          "scope": "Global"
+        }
+      ],
+      "spawn_tags": {
+        "quiver": 1,
+        "default": 0
+      },
+      "craft_tags": [
+        "Damage"
+      ],
+      "notes": [
+        "Task 8C manually captured structured natural Base Quiver modifier row.",
+        "Weights/probabilities are intentionally excluded."
+      ]
+    },
+    {
+      "source_record_key": null,
+      "source_uri": "https://poe2db.tw/us/Quivers",
+      "retrieved_at": "2026-08-12T00:00:00+02:00",
+      "display_name": "Perforating",
+      "family": "DamageWithWeaponTypeSkill",
+      "domain": "Item",
+      "generation_type": "Prefix",
+      "required_level": 33,
+      "tier": "4",
+      "stats": [
+        {
+          "text": "damage +% with bow skills",
+          "min": "31",
+          "max": "36",
+          "scope": "Global"
+        }
+      ],
+      "spawn_tags": {
+        "quiver": 1,
+        "default": 0
+      },
+      "craft_tags": [
+        "Damage"
+      ],
+      "notes": [
+        "Task 8C manually captured structured natural Base Quiver modifier row.",
+        "Weights/probabilities are intentionally excluded."
+      ]
+    },
+    {
+      "source_record_key": null,
+      "source_uri": "https://poe2db.tw/us/Quivers",
+      "retrieved_at": "2026-08-12T00:00:00+02:00",
+      "display_name": "Incisive",
+      "family": "DamageWithWeaponTypeSkill",
+      "domain": "Item",
+      "generation_type": "Prefix",
+      "required_level": 46,
+      "tier": "3",
+      "stats": [
+        {
+          "text": "damage +% with bow skills",
+          "min": "37",
+          "max": "42",
+          "scope": "Global"
+        }
+      ],
+      "spawn_tags": {
+        "quiver": 1,
+        "default": 0
+      },
+      "craft_tags": [
+        "Damage"
+      ],
+      "notes": [
+        "Task 8C manually captured structured natural Base Quiver modifier row.",
+        "Weights/probabilities are intentionally excluded."
+      ]
+    },
+    {
+      "source_record_key": null,
+      "source_uri": "https://poe2db.tw/us/Quivers",
+      "retrieved_at": "2026-08-12T00:00:00+02:00",
+      "display_name": "Lacerating",
+      "family": "DamageWithWeaponTypeSkill",
+      "domain": "Item",
+      "generation_type": "Prefix",
+      "required_level": 60,
+      "tier": "2",
+      "stats": [
+        {
+          "text": "damage +% with bow skills",
+          "min": "43",
+          "max": "50",
+          "scope": "Global"
+        }
+      ],
+      "spawn_tags": {
+        "quiver": 1,
+        "default": 0
+      },
+      "craft_tags": [
+        "Damage"
+      ],
+      "notes": [
+        "Task 8C manually captured structured natural Base Quiver modifier row.",
+        "Weights/probabilities are intentionally excluded."
+      ]
+    },
+    {
+      "source_record_key": null,
+      "source_uri": "https://poe2db.tw/us/Quivers",
+      "retrieved_at": "2026-08-12T00:00:00+02:00",
+      "display_name": "Impaling",
+      "family": "DamageWithWeaponTypeSkill",
+      "domain": "Item",
+      "generation_type": "Prefix",
+      "required_level": 81,
+      "tier": "1",
+      "stats": [
+        {
+          "text": "damage +% with bow skills",
+          "min": "51",
+          "max": "59",
+          "scope": "Global"
+        }
+      ],
+      "spawn_tags": {
+        "quiver": 1,
+        "default": 0
+      },
+      "craft_tags": [
+        "Damage"
+      ],
+      "notes": [
+        "Task 8C manually captured structured natural Base Quiver modifier row.",
+        "Weights/probabilities are intentionally excluded."
+      ]
+    },
+    {
+      "source_record_key": null,
+      "source_uri": "https://poe2db.tw/us/Quivers",
+      "retrieved_at": "2026-08-12T00:00:00+02:00",
+      "display_name": "of the Mongoose",
+      "family": "Dexterity",
+      "domain": "Item",
+      "generation_type": "Suffix",
+      "required_level": 1,
+      "tier": "8",
+      "stats": [
+        {
+          "text": "additional dexterity",
+          "min": "5",
+          "max": "8",
+          "scope": "Global"
+        }
+      ],
+      "spawn_tags": {
+        "quiver": 1,
+        "default": 0
+      },
+      "craft_tags": [
+        "Attribute"
+      ],
+      "notes": [
+        "Task 8C manually captured structured natural Base Quiver modifier row.",
+        "Weights/probabilities are intentionally excluded."
+      ]
+    },
+    {
+      "source_record_key": null,
+      "source_uri": "https://poe2db.tw/us/Quivers",
+      "retrieved_at": "2026-08-12T00:00:00+02:00",
+      "display_name": "of the Lynx",
+      "family": "Dexterity",
+      "domain": "Item",
+      "generation_type": "Suffix",
+      "required_level": 11,
+      "tier": "7",
+      "stats": [
+        {
+          "text": "additional dexterity",
+          "min": "9",
+          "max": "12",
+          "scope": "Global"
+        }
+      ],
+      "spawn_tags": {
+        "quiver": 1,
+        "default": 0
+      },
+      "craft_tags": [
+        "Attribute"
+      ],
+      "notes": [
+        "Task 8C manually captured structured natural Base Quiver modifier row.",
+        "Weights/probabilities are intentionally excluded."
+      ]
+    },
+    {
+      "source_record_key": null,
+      "source_uri": "https://poe2db.tw/us/Quivers",
+      "retrieved_at": "2026-08-12T00:00:00+02:00",
+      "display_name": "of the Fox",
+      "family": "Dexterity",
+      "domain": "Item",
+      "generation_type": "Suffix",
+      "required_level": 22,
+      "tier": "6",
+      "stats": [
+        {
+          "text": "additional dexterity",
+          "min": "13",
+          "max": "16",
+          "scope": "Global"
+        }
+      ],
+      "spawn_tags": {
+        "quiver": 1,
+        "default": 0
+      },
+      "craft_tags": [
+        "Attribute"
+      ],
+      "notes": [
+        "Task 8C manually captured structured natural Base Quiver modifier row.",
+        "Weights/probabilities are intentionally excluded."
+      ]
+    },
+    {
+      "source_record_key": null,
+      "source_uri": "https://poe2db.tw/us/Quivers",
+      "retrieved_at": "2026-08-12T00:00:00+02:00",
+      "display_name": "of the Falcon",
+      "family": "Dexterity",
+      "domain": "Item",
+      "generation_type": "Suffix",
+      "required_level": 33,
+      "tier": "5",
+      "stats": [
+        {
+          "text": "additional dexterity",
+          "min": "17",
+          "max": "20",
+          "scope": "Global"
+        }
+      ],
+      "spawn_tags": {
+        "quiver": 1,
+        "default": 0
+      },
+      "craft_tags": [
+        "Attribute"
+      ],
+      "notes": [
+        "Task 8C manually captured structured natural Base Quiver modifier row.",
+        "Weights/probabilities are intentionally excluded."
+      ]
+    },
+    {
+      "source_record_key": null,
+      "source_uri": "https://poe2db.tw/us/Quivers",
+      "retrieved_at": "2026-08-12T00:00:00+02:00",
+      "display_name": "of the Panther",
+      "family": "Dexterity",
+      "domain": "Item",
+      "generation_type": "Suffix",
+      "required_level": 44,
+      "tier": "4",
+      "stats": [
+        {
+          "text": "additional dexterity",
+          "min": "21",
+          "max": "24",
+          "scope": "Global"
+        }
+      ],
+      "spawn_tags": {
+        "quiver": 1,
+        "default": 0
+      },
+      "craft_tags": [
+        "Attribute"
+      ],
+      "notes": [
+        "Task 8C manually captured structured natural Base Quiver modifier row.",
+        "Weights/probabilities are intentionally excluded."
+      ]
+    },
+    {
+      "source_record_key": null,
+      "source_uri": "https://poe2db.tw/us/Quivers",
+      "retrieved_at": "2026-08-12T00:00:00+02:00",
+      "display_name": "of the Leopard",
+      "family": "Dexterity",
+      "domain": "Item",
+      "generation_type": "Suffix",
+      "required_level": 55,
+      "tier": "3",
+      "stats": [
+        {
+          "text": "additional dexterity",
+          "min": "25",
+          "max": "27",
+          "scope": "Global"
+        }
+      ],
+      "spawn_tags": {
+        "quiver": 1,
+        "default": 0
+      },
+      "craft_tags": [
+        "Attribute"
+      ],
+      "notes": [
+        "Task 8C manually captured structured natural Base Quiver modifier row.",
+        "Weights/probabilities are intentionally excluded."
+      ]
+    },
+    {
+      "source_record_key": null,
+      "source_uri": "https://poe2db.tw/us/Quivers",
+      "retrieved_at": "2026-08-12T00:00:00+02:00",
+      "display_name": "of the Jaguar",
+      "family": "Dexterity",
+      "domain": "Item",
+      "generation_type": "Suffix",
+      "required_level": 66,
+      "tier": "2",
+      "stats": [
+        {
+          "text": "additional dexterity",
+          "min": "28",
+          "max": "30",
+          "scope": "Global"
+        }
+      ],
+      "spawn_tags": {
+        "quiver": 1,
+        "default": 0
+      },
+      "craft_tags": [
+        "Attribute"
+      ],
+      "notes": [
+        "Task 8C manually captured structured natural Base Quiver modifier row.",
+        "Weights/probabilities are intentionally excluded."
+      ]
+    },
+    {
+      "source_record_key": null,
+      "source_uri": "https://poe2db.tw/us/Quivers",
+      "retrieved_at": "2026-08-12T00:00:00+02:00",
+      "display_name": "of the Phantom",
+      "family": "Dexterity",
+      "domain": "Item",
+      "generation_type": "Suffix",
+      "required_level": 74,
+      "tier": "1",
+      "stats": [
+        {
+          "text": "additional dexterity",
+          "min": "31",
+          "max": "33",
+          "scope": "Global"
+        }
+      ],
+      "spawn_tags": {
+        "quiver": 1,
+        "default": 0
+      },
+      "craft_tags": [
+        "Attribute"
+      ],
+      "notes": [
+        "Task 8C manually captured structured natural Base Quiver modifier row.",
+        "Weights/probabilities are intentionally excluded."
+      ]
+    },
+    {
+      "source_record_key": null,
+      "source_uri": "https://poe2db.tw/us/Quivers",
+      "retrieved_at": "2026-08-12T00:00:00+02:00",
+      "display_name": "of the Archer",
+      "family": "IncreaseSocketedGemLevel",
+      "domain": "Item",
+      "generation_type": "Suffix",
+      "required_level": 5,
+      "tier": "1",
+      "stats": [
+        {
+          "text": "projectile skill gem level +",
+          "min": "1",
+          "max": "1",
+          "scope": "Global"
+        }
+      ],
+      "spawn_tags": {
+        "quiver": 1,
+        "default": 0
+      },
+      "craft_tags": [],
+      "notes": [
+        "Task 8C manually captured structured natural Base Quiver modifier row.",
+        "Weights/probabilities are intentionally excluded."
+      ]
+    },
+    {
+      "source_record_key": null,
+      "source_uri": "https://poe2db.tw/us/Quivers",
+      "retrieved_at": "2026-08-12T00:00:00+02:00",
+      "display_name": "of Success",
+      "family": "LifeGainedFromEnemyDeath",
+      "domain": "Item",
+      "generation_type": "Suffix",
+      "required_level": 1,
+      "tier": "6",
+      "stats": [
+        {
+          "text": "base life gained on enemy death",
+          "min": "4",
+          "max": "6",
+          "scope": "Global"
+        }
+      ],
+      "spawn_tags": {
+        "quiver": 1,
+        "default": 0
+      },
+      "craft_tags": [
+        "Life"
+      ],
+      "notes": [
+        "Task 8C manually captured structured natural Base Quiver modifier row.",
+        "Weights/probabilities are intentionally excluded."
+      ]
+    },
+    {
+      "source_record_key": null,
+      "source_uri": "https://poe2db.tw/us/Quivers",
+      "retrieved_at": "2026-08-12T00:00:00+02:00",
+      "display_name": "of Victory",
+      "family": "LifeGainedFromEnemyDeath",
+      "domain": "Item",
+      "generation_type": "Suffix",
+      "required_level": 11,
+      "tier": "5",
+      "stats": [
+        {
+          "text": "base life gained on enemy death",
+          "min": "7",
+          "max": "9",
+          "scope": "Global"
+        }
+      ],
+      "spawn_tags": {
+        "quiver": 1,
+        "default": 0
+      },
+      "craft_tags": [
+        "Life"
+      ],
+      "notes": [
+        "Task 8C manually captured structured natural Base Quiver modifier row.",
+        "Weights/probabilities are intentionally excluded."
+      ]
+    },
+    {
+      "source_record_key": null,
+      "source_uri": "https://poe2db.tw/us/Quivers",
+      "retrieved_at": "2026-08-12T00:00:00+02:00",
+      "display_name": "of Triumph",
+      "family": "LifeGainedFromEnemyDeath",
+      "domain": "Item",
+      "generation_type": "Suffix",
+      "required_level": 22,
+      "tier": "4",
+      "stats": [
+        {
+          "text": "base life gained on enemy death",
+          "min": "10",
+          "max": "18",
+          "scope": "Global"
+        }
+      ],
+      "spawn_tags": {
+        "quiver": 1,
+        "default": 0
+      },
+      "craft_tags": [
+        "Life"
+      ],
+      "notes": [
+        "Task 8C manually captured structured natural Base Quiver modifier row.",
+        "Weights/probabilities are intentionally excluded."
+      ]
+    },
+    {
+      "source_record_key": null,
+      "source_uri": "https://poe2db.tw/us/Quivers",
+      "retrieved_at": "2026-08-12T00:00:00+02:00",
+      "display_name": "of Conquest",
+      "family": "LifeGainedFromEnemyDeath",
+      "domain": "Item",
+      "generation_type": "Suffix",
+      "required_level": 33,
+      "tier": "3",
+      "stats": [
+        {
+          "text": "base life gained on enemy death",
+          "min": "19",
+          "max": "28",
+          "scope": "Global"
+        }
+      ],
+      "spawn_tags": {
+        "quiver": 1,
+        "default": 0
+      },
+      "craft_tags": [
+        "Life"
+      ],
+      "notes": [
+        "Task 8C manually captured structured natural Base Quiver modifier row.",
+        "Weights/probabilities are intentionally excluded."
+      ]
+    },
+    {
+      "source_record_key": null,
+      "source_uri": "https://poe2db.tw/us/Quivers",
+      "retrieved_at": "2026-08-12T00:00:00+02:00",
+      "display_name": "of Vanquishing",
+      "family": "LifeGainedFromEnemyDeath",
+      "domain": "Item",
+      "generation_type": "Suffix",
+      "required_level": 44,
+      "tier": "2",
+      "stats": [
+        {
+          "text": "base life gained on enemy death",
+          "min": "29",
+          "max": "40",
+          "scope": "Global"
+        }
+      ],
+      "spawn_tags": {
+        "quiver": 1,
+        "default": 0
+      },
+      "craft_tags": [
+        "Life"
+      ],
+      "notes": [
+        "Task 8C manually captured structured natural Base Quiver modifier row.",
+        "Weights/probabilities are intentionally excluded."
+      ]
+    },
+    {
+      "source_record_key": null,
+      "source_uri": "https://poe2db.tw/us/Quivers",
+      "retrieved_at": "2026-08-12T00:00:00+02:00",
+      "display_name": "of Valour",
+      "family": "LifeGainedFromEnemyDeath",
+      "domain": "Item",
+      "generation_type": "Suffix",
+      "required_level": 55,
+      "tier": "1",
+      "stats": [
+        {
+          "text": "base life gained on enemy death",
+          "min": "41",
+          "max": "53",
+          "scope": "Global"
+        }
+      ],
+      "spawn_tags": {
+        "quiver": 1,
+        "default": 0
+      },
+      "craft_tags": [
+        "Life"
+      ],
+      "notes": [
+        "Task 8C manually captured structured natural Base Quiver modifier row.",
+        "Weights/probabilities are intentionally excluded."
+      ]
+    },
+    {
+      "source_record_key": null,
+      "source_uri": "https://poe2db.tw/us/Quivers",
+      "retrieved_at": "2026-08-12T00:00:00+02:00",
+      "display_name": "of Absorption",
+      "family": "ManaGainedFromEnemyDeath",
+      "domain": "Item",
+      "generation_type": "Suffix",
+      "required_level": 1,
+      "tier": "6",
+      "stats": [
+        {
+          "text": "base mana gained on enemy death",
+          "min": "2",
+          "max": "3",
+          "scope": "Global"
+        }
+      ],
+      "spawn_tags": {
+        "quiver": 1,
+        "default": 0
+      },
+      "craft_tags": [
+        "Mana"
+      ],
+      "notes": [
+        "Task 8C manually captured structured natural Base Quiver modifier row.",
+        "Weights/probabilities are intentionally excluded."
+      ]
+    },
+    {
+      "source_record_key": null,
+      "source_uri": "https://poe2db.tw/us/Quivers",
+      "retrieved_at": "2026-08-12T00:00:00+02:00",
+      "display_name": "of Osmosis",
+      "family": "ManaGainedFromEnemyDeath",
+      "domain": "Item",
+      "generation_type": "Suffix",
+      "required_level": 12,
+      "tier": "5",
+      "stats": [
+        {
+          "text": "base mana gained on enemy death",
+          "min": "4",
+          "max": "5",
+          "scope": "Global"
+        }
+      ],
+      "spawn_tags": {
+        "quiver": 1,
+        "default": 0
+      },
+      "craft_tags": [
+        "Mana"
+      ],
+      "notes": [
+        "Task 8C manually captured structured natural Base Quiver modifier row.",
+        "Weights/probabilities are intentionally excluded."
+      ]
+    },
+    {
+      "source_record_key": null,
+      "source_uri": "https://poe2db.tw/us/Quivers",
+      "retrieved_at": "2026-08-12T00:00:00+02:00",
+      "display_name": "of Infusion",
+      "family": "ManaGainedFromEnemyDeath",
+      "domain": "Item",
+      "generation_type": "Suffix",
+      "required_level": 23,
+      "tier": "4",
+      "stats": [
+        {
+          "text": "base mana gained on enemy death",
+          "min": "6",
+          "max": "9",
+          "scope": "Global"
+        }
+      ],
+      "spawn_tags": {
+        "quiver": 1,
+        "default": 0
+      },
+      "craft_tags": [
+        "Mana"
+      ],
+      "notes": [
+        "Task 8C manually captured structured natural Base Quiver modifier row.",
+        "Weights/probabilities are intentionally excluded."
+      ]
+    },
+    {
+      "source_record_key": null,
+      "source_uri": "https://poe2db.tw/us/Quivers",
+      "retrieved_at": "2026-08-12T00:00:00+02:00",
+      "display_name": "of Enveloping",
+      "family": "ManaGainedFromEnemyDeath",
+      "domain": "Item",
+      "generation_type": "Suffix",
+      "required_level": 34,
+      "tier": "3",
+      "stats": [
+        {
+          "text": "base mana gained on enemy death",
+          "min": "10",
+          "max": "14",
+          "scope": "Global"
+        }
+      ],
+      "spawn_tags": {
+        "quiver": 1,
+        "default": 0
+      },
+      "craft_tags": [
+        "Mana"
+      ],
+      "notes": [
+        "Task 8C manually captured structured natural Base Quiver modifier row.",
+        "Weights/probabilities are intentionally excluded."
+      ]
+    },
+    {
+      "source_record_key": null,
+      "source_uri": "https://poe2db.tw/us/Quivers",
+      "retrieved_at": "2026-08-12T00:00:00+02:00",
+      "display_name": "of Consumption",
+      "family": "ManaGainedFromEnemyDeath",
+      "domain": "Item",
+      "generation_type": "Suffix",
+      "required_level": 45,
+      "tier": "2",
+      "stats": [
+        {
+          "text": "base mana gained on enemy death",
+          "min": "15",
+          "max": "20",
+          "scope": "Global"
+        }
+      ],
+      "spawn_tags": {
+        "quiver": 1,
+        "default": 0
+      },
+      "craft_tags": [
+        "Mana"
+      ],
+      "notes": [
+        "Task 8C manually captured structured natural Base Quiver modifier row.",
+        "Weights/probabilities are intentionally excluded."
+      ]
+    },
+    {
+      "source_record_key": null,
+      "source_uri": "https://poe2db.tw/us/Quivers",
+      "retrieved_at": "2026-08-12T00:00:00+02:00",
+      "display_name": "of Siphoning",
+      "family": "ManaGainedFromEnemyDeath",
+      "domain": "Item",
+      "generation_type": "Suffix",
+      "required_level": 56,
+      "tier": "1",
+      "stats": [
+        {
+          "text": "base mana gained on enemy death",
+          "min": "21",
+          "max": "27",
+          "scope": "Global"
+        }
+      ],
+      "spawn_tags": {
+        "quiver": 1,
+        "default": 0
+      },
+      "craft_tags": [
+        "Mana"
+      ],
+      "notes": [
+        "Task 8C manually captured structured natural Base Quiver modifier row.",
+        "Weights/probabilities are intentionally excluded."
+      ]
+    },
+    {
+      "source_record_key": null,
+      "source_uri": "https://poe2db.tw/us/Quivers",
+      "retrieved_at": "2026-08-12T00:00:00+02:00",
+      "display_name": "of Skill",
+      "family": "IncreasedAttackSpeed",
+      "domain": "Item",
+      "generation_type": "Suffix",
+      "required_level": 1,
+      "tier": "4",
+      "stats": [
+        {
+          "text": "attack speed +%",
+          "min": "5",
+          "max": "7",
+          "scope": "Global"
+        }
+      ],
+      "spawn_tags": {
+        "quiver": 1,
+        "default": 0
+      },
+      "craft_tags": [
+        "Attack",
+        "Speed"
+      ],
+      "notes": [
+        "Task 8C manually captured structured natural Base Quiver modifier row.",
+        "Weights/probabilities are intentionally excluded."
+      ]
+    },
+    {
+      "source_record_key": null,
+      "source_uri": "https://poe2db.tw/us/Quivers",
+      "retrieved_at": "2026-08-12T00:00:00+02:00",
+      "display_name": "of Ease",
+      "family": "IncreasedAttackSpeed",
+      "domain": "Item",
+      "generation_type": "Suffix",
+      "required_level": 22,
+      "tier": "3",
+      "stats": [
+        {
+          "text": "attack speed +%",
+          "min": "8",
+          "max": "10",
+          "scope": "Global"
+        }
+      ],
+      "spawn_tags": {
+        "quiver": 1,
+        "default": 0
+      },
+      "craft_tags": [
+        "Attack",
+        "Speed"
+      ],
+      "notes": [
+        "Task 8C manually captured structured natural Base Quiver modifier row.",
+        "Weights/probabilities are intentionally excluded."
+      ]
+    },
+    {
+      "source_record_key": null,
+      "source_uri": "https://poe2db.tw/us/Quivers",
+      "retrieved_at": "2026-08-12T00:00:00+02:00",
+      "display_name": "of Mastery",
+      "family": "IncreasedAttackSpeed",
+      "domain": "Item",
+      "generation_type": "Suffix",
+      "required_level": 37,
+      "tier": "2",
+      "stats": [
+        {
+          "text": "attack speed +%",
+          "min": "11",
+          "max": "13",
+          "scope": "Global"
+        }
+      ],
+      "spawn_tags": {
+        "quiver": 1,
+        "default": 0
+      },
+      "craft_tags": [
+        "Attack",
+        "Speed"
+      ],
+      "notes": [
+        "Task 8C manually captured structured natural Base Quiver modifier row.",
+        "Weights/probabilities are intentionally excluded."
+      ]
+    },
+    {
+      "source_record_key": null,
+      "source_uri": "https://poe2db.tw/us/Quivers",
+      "retrieved_at": "2026-08-12T00:00:00+02:00",
+      "display_name": "of Renown",
+      "family": "IncreasedAttackSpeed",
+      "domain": "Item",
+      "generation_type": "Suffix",
+      "required_level": 60,
+      "tier": "1",
+      "stats": [
+        {
+          "text": "attack speed +%",
+          "min": "14",
+          "max": "16",
+          "scope": "Global"
+        }
+      ],
+      "spawn_tags": {
+        "quiver": 1,
+        "default": 0
+      },
+      "craft_tags": [
+        "Attack",
+        "Speed"
+      ],
+      "notes": [
+        "Task 8C manually captured structured natural Base Quiver modifier row.",
+        "Weights/probabilities are intentionally excluded."
+      ]
+    },
+    {
+      "source_record_key": null,
+      "source_uri": "https://poe2db.tw/us/Quivers",
+      "retrieved_at": "2026-08-12T00:00:00+02:00",
+      "display_name": "of Menace",
+      "family": "CriticalStrikeChanceIncrease",
+      "domain": "Item",
+      "generation_type": "Suffix",
+      "required_level": 5,
+      "tier": "6",
+      "stats": [
+        {
+          "text": "attack critical strike chance +%",
+          "min": "10",
+          "max": "14",
+          "scope": "Global"
+        }
+      ],
+      "spawn_tags": {
+        "quiver": 1,
+        "default": 0
+      },
+      "craft_tags": [
+        "Attack",
+        "Critical"
+      ],
+      "notes": [
+        "Task 8C manually captured structured natural Base Quiver modifier row.",
+        "Weights/probabilities are intentionally excluded."
+      ]
+    },
+    {
+      "source_record_key": null,
+      "source_uri": "https://poe2db.tw/us/Quivers",
+      "retrieved_at": "2026-08-12T00:00:00+02:00",
+      "display_name": "of Havoc",
+      "family": "CriticalStrikeChanceIncrease",
+      "domain": "Item",
+      "generation_type": "Suffix",
+      "required_level": 20,
+      "tier": "5",
+      "stats": [
+        {
+          "text": "attack critical strike chance +%",
+          "min": "15",
+          "max": "19",
+          "scope": "Global"
+        }
+      ],
+      "spawn_tags": {
+        "quiver": 1,
+        "default": 0
+      },
+      "craft_tags": [
+        "Attack",
+        "Critical"
+      ],
+      "notes": [
+        "Task 8C manually captured structured natural Base Quiver modifier row.",
+        "Weights/probabilities are intentionally excluded."
+      ]
+    },
+    {
+      "source_record_key": null,
+      "source_uri": "https://poe2db.tw/us/Quivers",
+      "retrieved_at": "2026-08-12T00:00:00+02:00",
+      "display_name": "of Disaster",
+      "family": "CriticalStrikeChanceIncrease",
+      "domain": "Item",
+      "generation_type": "Suffix",
+      "required_level": 30,
+      "tier": "4",
+      "stats": [
+        {
+          "text": "attack critical strike chance +%",
+          "min": "20",
+          "max": "24",
+          "scope": "Global"
+        }
+      ],
+      "spawn_tags": {
+        "quiver": 1,
+        "default": 0
+      },
+      "craft_tags": [
+        "Attack",
+        "Critical"
+      ],
+      "notes": [
+        "Task 8C manually captured structured natural Base Quiver modifier row.",
+        "Weights/probabilities are intentionally excluded."
+      ]
+    },
+    {
+      "source_record_key": null,
+      "source_uri": "https://poe2db.tw/us/Quivers",
+      "retrieved_at": "2026-08-12T00:00:00+02:00",
+      "display_name": "of Calamity",
+      "family": "CriticalStrikeChanceIncrease",
+      "domain": "Item",
+      "generation_type": "Suffix",
+      "required_level": 44,
+      "tier": "3",
+      "stats": [
+        {
+          "text": "attack critical strike chance +%",
+          "min": "25",
+          "max": "29",
+          "scope": "Global"
+        }
+      ],
+      "spawn_tags": {
+        "quiver": 1,
+        "default": 0
+      },
+      "craft_tags": [
+        "Attack",
+        "Critical"
+      ],
+      "notes": [
+        "Task 8C manually captured structured natural Base Quiver modifier row.",
+        "Weights/probabilities are intentionally excluded."
+      ]
+    },
+    {
+      "source_record_key": null,
+      "source_uri": "https://poe2db.tw/us/Quivers",
+      "retrieved_at": "2026-08-12T00:00:00+02:00",
+      "display_name": "of Ruin",
+      "family": "CriticalStrikeChanceIncrease",
+      "domain": "Item",
+      "generation_type": "Suffix",
+      "required_level": 58,
+      "tier": "2",
+      "stats": [
+        {
+          "text": "attack critical strike chance +%",
+          "min": "30",
+          "max": "34",
+          "scope": "Global"
+        }
+      ],
+      "spawn_tags": {
+        "quiver": 1,
+        "default": 0
+      },
+      "craft_tags": [
+        "Attack",
+        "Critical"
+      ],
+      "notes": [
+        "Task 8C manually captured structured natural Base Quiver modifier row.",
+        "Weights/probabilities are intentionally excluded."
+      ]
+    },
+    {
+      "source_record_key": null,
+      "source_uri": "https://poe2db.tw/us/Quivers",
+      "retrieved_at": "2026-08-12T00:00:00+02:00",
+      "display_name": "of Unmaking",
+      "family": "CriticalStrikeChanceIncrease",
+      "domain": "Item",
+      "generation_type": "Suffix",
+      "required_level": 72,
+      "tier": "1",
+      "stats": [
+        {
+          "text": "attack critical strike chance +%",
+          "min": "35",
+          "max": "38",
+          "scope": "Global"
+        }
+      ],
+      "spawn_tags": {
+        "quiver": 1,
+        "default": 0
+      },
+      "craft_tags": [
+        "Attack",
+        "Critical"
+      ],
+      "notes": [
+        "Task 8C manually captured structured natural Base Quiver modifier row.",
+        "Weights/probabilities are intentionally excluded."
+      ]
+    },
+    {
+      "source_record_key": null,
+      "source_uri": "https://poe2db.tw/us/Quivers",
+      "retrieved_at": "2026-08-12T00:00:00+02:00",
+      "display_name": "of Ire",
+      "family": "CriticalStrikeMultiplier",
+      "domain": "Item",
+      "generation_type": "Suffix",
+      "required_level": 8,
+      "tier": "6",
+      "stats": [
+        {
+          "text": "attack critical strike multiplier +",
+          "min": "10",
+          "max": "14",
+          "scope": "Global"
+        }
+      ],
+      "spawn_tags": {
+        "quiver": 1,
+        "default": 0
+      },
+      "craft_tags": [
+        "Damage",
+        "Attack",
+        "Critical"
+      ],
+      "notes": [
+        "Task 8C manually captured structured natural Base Quiver modifier row.",
+        "Weights/probabilities are intentionally excluded."
+      ]
+    },
+    {
+      "source_record_key": null,
+      "source_uri": "https://poe2db.tw/us/Quivers",
+      "retrieved_at": "2026-08-12T00:00:00+02:00",
+      "display_name": "of Anger",
+      "family": "CriticalStrikeMultiplier",
+      "domain": "Item",
+      "generation_type": "Suffix",
+      "required_level": 21,
+      "tier": "5",
+      "stats": [
+        {
+          "text": "attack critical strike multiplier +",
+          "min": "15",
+          "max": "19",
+          "scope": "Global"
+        }
+      ],
+      "spawn_tags": {
+        "quiver": 1,
+        "default": 0
+      },
+      "craft_tags": [
+        "Damage",
+        "Attack",
+        "Critical"
+      ],
+      "notes": [
+        "Task 8C manually captured structured natural Base Quiver modifier row.",
+        "Weights/probabilities are intentionally excluded."
+      ]
+    },
+    {
+      "source_record_key": null,
+      "source_uri": "https://poe2db.tw/us/Quivers",
+      "retrieved_at": "2026-08-12T00:00:00+02:00",
+      "display_name": "of Rage",
+      "family": "CriticalStrikeMultiplier",
+      "domain": "Item",
+      "generation_type": "Suffix",
+      "required_level": 31,
+      "tier": "4",
+      "stats": [
+        {
+          "text": "attack critical strike multiplier +",
+          "min": "20",
+          "max": "24",
+          "scope": "Global"
+        }
+      ],
+      "spawn_tags": {
+        "quiver": 1,
+        "default": 0
+      },
+      "craft_tags": [
+        "Damage",
+        "Attack",
+        "Critical"
+      ],
+      "notes": [
+        "Task 8C manually captured structured natural Base Quiver modifier row.",
+        "Weights/probabilities are intentionally excluded."
+      ]
+    },
+    {
+      "source_record_key": null,
+      "source_uri": "https://poe2db.tw/us/Quivers",
+      "retrieved_at": "2026-08-12T00:00:00+02:00",
+      "display_name": "of Fury",
+      "family": "CriticalStrikeMultiplier",
+      "domain": "Item",
+      "generation_type": "Suffix",
+      "required_level": 45,
+      "tier": "3",
+      "stats": [
+        {
+          "text": "attack critical strike multiplier +",
+          "min": "25",
+          "max": "29",
+          "scope": "Global"
+        }
+      ],
+      "spawn_tags": {
+        "quiver": 1,
+        "default": 0
+      },
+      "craft_tags": [
+        "Damage",
+        "Attack",
+        "Critical"
+      ],
+      "notes": [
+        "Task 8C manually captured structured natural Base Quiver modifier row.",
+        "Weights/probabilities are intentionally excluded."
+      ]
+    },
+    {
+      "source_record_key": null,
+      "source_uri": "https://poe2db.tw/us/Quivers",
+      "retrieved_at": "2026-08-12T00:00:00+02:00",
+      "display_name": "of Ferocity",
+      "family": "CriticalStrikeMultiplier",
+      "domain": "Item",
+      "generation_type": "Suffix",
+      "required_level": 59,
+      "tier": "2",
+      "stats": [
+        {
+          "text": "attack critical strike multiplier +",
+          "min": "30",
+          "max": "34",
+          "scope": "Global"
+        }
+      ],
+      "spawn_tags": {
+        "quiver": 1,
+        "default": 0
+      },
+      "craft_tags": [
+        "Damage",
+        "Attack",
+        "Critical"
+      ],
+      "notes": [
+        "Task 8C manually captured structured natural Base Quiver modifier row.",
+        "Weights/probabilities are intentionally excluded."
+      ]
+    },
+    {
+      "source_record_key": null,
+      "source_uri": "https://poe2db.tw/us/Quivers",
+      "retrieved_at": "2026-08-12T00:00:00+02:00",
+      "display_name": "of Destruction",
+      "family": "CriticalStrikeMultiplier",
+      "domain": "Item",
+      "generation_type": "Suffix",
+      "required_level": 74,
+      "tier": "1",
+      "stats": [
+        {
+          "text": "attack critical strike multiplier +",
+          "min": "35",
+          "max": "39",
+          "scope": "Global"
+        }
+      ],
+      "spawn_tags": {
+        "quiver": 1,
+        "default": 0
+      },
+      "craft_tags": [
+        "Damage",
+        "Attack",
+        "Critical"
+      ],
+      "notes": [
+        "Task 8C manually captured structured natural Base Quiver modifier row.",
+        "Weights/probabilities are intentionally excluded."
+      ]
+    },
+    {
+      "source_record_key": null,
+      "source_uri": "https://poe2db.tw/us/Quivers",
+      "retrieved_at": "2026-08-12T00:00:00+02:00",
+      "display_name": "of Piercing",
+      "family": "ChanceToPierce",
+      "domain": "Item",
+      "generation_type": "Suffix",
+      "required_level": 11,
+      "tier": "5",
+      "stats": [
+        {
+          "text": "base chance to pierce %",
+          "min": "12",
+          "max": "14",
+          "scope": "Global"
+        }
+      ],
+      "spawn_tags": {
+        "quiver": 1,
+        "default": 0
+      },
+      "craft_tags": [],
+      "notes": [
+        "Task 8C manually captured structured natural Base Quiver modifier row.",
+        "Weights/probabilities are intentionally excluded."
+      ]
+    },
+    {
+      "source_record_key": null,
+      "source_uri": "https://poe2db.tw/us/Quivers",
+      "retrieved_at": "2026-08-12T00:00:00+02:00",
+      "display_name": "of Drilling",
+      "family": "ChanceToPierce",
+      "domain": "Item",
+      "generation_type": "Suffix",
+      "required_level": 26,
+      "tier": "4",
+      "stats": [
+        {
+          "text": "base chance to pierce %",
+          "min": "15",
+          "max": "17",
+          "scope": "Global"
+        }
+      ],
+      "spawn_tags": {
+        "quiver": 1,
+        "default": 0
+      },
+      "craft_tags": [],
+      "notes": [
+        "Task 8C manually captured structured natural Base Quiver modifier row.",
+        "Weights/probabilities are intentionally excluded."
+      ]
+    },
+    {
+      "source_record_key": null,
+      "source_uri": "https://poe2db.tw/us/Quivers",
+      "retrieved_at": "2026-08-12T00:00:00+02:00",
+      "display_name": "of Puncturing",
+      "family": "ChanceToPierce",
+      "domain": "Item",
+      "generation_type": "Suffix",
+      "required_level": 44,
+      "tier": "3",
+      "stats": [
+        {
+          "text": "base chance to pierce %",
+          "min": "18",
+          "max": "20",
+          "scope": "Global"
+        }
+      ],
+      "spawn_tags": {
+        "quiver": 1,
+        "default": 0
+      },
+      "craft_tags": [],
+      "notes": [
+        "Task 8C manually captured structured natural Base Quiver modifier row.",
+        "Weights/probabilities are intentionally excluded."
+      ]
+    },
+    {
+      "source_record_key": null,
+      "source_uri": "https://poe2db.tw/us/Quivers",
+      "retrieved_at": "2026-08-12T00:00:00+02:00",
+      "display_name": "of Skewering",
+      "family": "ChanceToPierce",
+      "domain": "Item",
+      "generation_type": "Suffix",
+      "required_level": 61,
+      "tier": "2",
+      "stats": [
+        {
+          "text": "base chance to pierce %",
+          "min": "21",
+          "max": "23",
+          "scope": "Global"
+        }
+      ],
+      "spawn_tags": {
+        "quiver": 1,
+        "default": 0
+      },
+      "craft_tags": [],
+      "notes": [
+        "Task 8C manually captured structured natural Base Quiver modifier row.",
+        "Weights/probabilities are intentionally excluded."
+      ]
+    },
+    {
+      "source_record_key": null,
+      "source_uri": "https://poe2db.tw/us/Quivers",
+      "retrieved_at": "2026-08-12T00:00:00+02:00",
+      "display_name": "of Penetrating",
+      "family": "ChanceToPierce",
+      "domain": "Item",
+      "generation_type": "Suffix",
+      "required_level": 77,
+      "tier": "1",
+      "stats": [
+        {
+          "text": "base chance to pierce %",
+          "min": "24",
+          "max": "26",
+          "scope": "Global"
+        }
+      ],
+      "spawn_tags": {
+        "quiver": 1,
+        "default": 0
+      },
+      "craft_tags": [],
+      "notes": [
+        "Task 8C manually captured structured natural Base Quiver modifier row.",
+        "Weights/probabilities are intentionally excluded."
+      ]
+    },
+    {
+      "source_record_key": null,
+      "source_uri": "https://poe2db.tw/us/Quivers",
+      "retrieved_at": "2026-08-12T00:00:00+02:00",
+      "display_name": "of Surplus",
+      "family": "AdditionalArrows",
+      "domain": "Item",
+      "generation_type": "Suffix",
+      "required_level": 46,
+      "tier": "2",
+      "stats": [
+        {
+          "text": "chance to fire 1 additional projectile % with rollover with bow attacks",
+          "min": "25",
+          "max": "40",
+          "scope": "Global"
+        }
+      ],
+      "spawn_tags": {
+        "quiver": 1,
+        "default": 0
+      },
+      "craft_tags": [
+        "Attack"
+      ],
+      "notes": [
+        "Task 8C manually captured structured natural Base Quiver modifier row.",
+        "Weights/probabilities are intentionally excluded."
+      ]
+    },
+    {
+      "source_record_key": null,
+      "source_uri": "https://poe2db.tw/us/Quivers",
+      "retrieved_at": "2026-08-12T00:00:00+02:00",
+      "display_name": "of Splintering",
+      "family": "AdditionalArrows",
+      "domain": "Item",
+      "generation_type": "Suffix",
+      "required_level": 80,
+      "tier": "1",
+      "stats": [
+        {
+          "text": "chance to fire 1 additional projectile % with rollover with bow attacks",
+          "min": "41",
+          "max": "60",
+          "scope": "Global"
+        }
+      ],
+      "spawn_tags": {
+        "quiver": 1,
+        "default": 0
+      },
+      "craft_tags": [
+        "Attack"
+      ],
+      "notes": [
+        "Task 8C manually captured structured natural Base Quiver modifier row.",
+        "Weights/probabilities are intentionally excluded."
+      ]
+    }
+  ]
+}

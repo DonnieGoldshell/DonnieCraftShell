@@ -87,6 +87,8 @@ This example is based on the offline research fixture. It remains `NEEDS VERIFIC
 
 Task 5C does not implement a production scraper, modifier weights, probabilities, valuation, economy, crafting simulation, Craft Advisor logic, or meta scoring.
 
-## Task 8B Modifier Pool Use
+## Task 8C Modifier Pool Use
 
-Task 8B uses resolved or otherwise source-backed modifier group information to filter legal Exalted-style candidate pools. If an existing parsed modifier is unresolved and lacks group data, the pool resolver warns that conflict filtering is incomplete instead of assuming the modifier conflicts with nothing.
+Task 8C uses resolved or otherwise source-backed modifier group information to filter legal Exalted-style candidate pools against the expanded natural Quiver Base dataset. If an existing parsed modifier is unresolved and lacks group data, the pool resolver warns that conflict filtering is incomplete instead of assuming the modifier conflicts with nothing.
+
+Advanced Copy can display a fixed source range as a plain value, such as a `1` minimum damage roll where the source range is `1-1`. The resolver treats that as compatible only when the observed fixed value equals a canonical fixed range; variable ranges still require explicit displayed range agreement.

@@ -56,13 +56,27 @@ The hash input includes game, domain, modifier family, generation type, tier, no
 
 ## Current Coverage
 
-The Task 5C fixture dataset contains 17 source-backed Quiver-applicable records across 12 normalized modifier families. Dataset version:
+The Task 5C fixture dataset remains as a historical resolver regression set with 17 source-backed Quiver-applicable records across 12 normalized modifier families.
+
+Task 8C adds the current natural explicit Quiver Base pool dataset:
 
 ```text
-poe2db-unknown-version-2026-08-11-task5c-quiver
+poe2db-unknown-version-2026-08-12-task8c-fullx1
 ```
 
-See [QUIVER_DATASET_STATUS.md](QUIVER_DATASET_STATUS.md) for coverage, unresolved modifiers, and dataset quality notes.
+Task 8C raw capture:
+
+```text
+data/raw/poe2db/quiver-natural-base-modifiers-2026-08-12/raw_modifiers.json
+```
+
+Regeneration command:
+
+```bash
+python -m packages.shared.donniecraftshell_contracts.normalize_game_data data/raw/poe2db/quiver-natural-base-modifiers-2026-08-12/raw_modifiers.json --out-root data/normalized
+```
+
+See [QUIVER_MODIFIER_POOL_STATUS.md](QUIVER_MODIFIER_POOL_STATUS.md) for current natural Base pool counts and completeness. See [QUIVER_DATASET_STATUS.md](QUIVER_DATASET_STATUS.md) for the earlier Task 5C fixture coverage notes.
 
 ## Regeneration
 
@@ -78,7 +92,7 @@ This command performs no network I/O.
 
 Dataset loading fails on duplicate canonical IDs, missing snapshot/dataset identity, invalid tier values, invalid required levels, `min > max` roll ranges, invalid affix/generation types, missing provenance, or applicability that references an unknown modifier.
 
-Task 8B adds regression coverage that raw Quiver modifier fixtures regenerate the normalized family/tier counts and duplicate semantic tier records are rejected through deterministic canonical ID collisions.
+Task 8C adds regression coverage that the expanded raw Quiver natural Base modifier fixture regenerates `16` normalized families and `100` tier definitions. Duplicate semantic tier records are still rejected through deterministic canonical ID collisions.
 
 ## Future Imports
 

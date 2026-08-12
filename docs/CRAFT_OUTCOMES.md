@@ -32,7 +32,7 @@ Executable contracts live in `packages/shared/donniecraftshell_contracts/craft_o
 - Annulment actions enumerate explicit modifier-removal states.
 - Sinistral/Dextral Annulment restrict removal states to prefix/suffix modifiers.
 - Greater Annulment is `PARTIAL`; it records two-modifier removal semantics but pairwise state enumeration is deferred.
-- Exalted-style actions enumerate source-backed candidate modifier additions from the current Quiver game-data fixture when applicable.
+- Exalted-style actions enumerate source-backed candidate modifier additions from the current natural Quiver Base modifier pool when applicable.
 - Sinistral/Dextral Exaltation restrict candidate additions to prefix/suffix pools.
 - Greater Exaltation records two-modifier addition semantics, but candidate pair enumeration is deferred.
 - Essence of Hysteria represents random removal and guaranteed Quiver modifier as separate deltas.
@@ -41,9 +41,11 @@ Executable contracts live in `packages/shared/donniecraftshell_contracts/craft_o
 
 Annulment on a parsed item can be `COMPLETE` for outcome space when the eligible explicit modifier set is known. Probability remains `UNKNOWN`.
 
-Exalted-style additions are currently `PARTIAL` because the Quiver modifier dataset is a fixture-backed subset, modifier groups/conflicts are incomplete, and modifier weights are unavailable.
+Exalted-style additions may be `COMPLETE` for outcome space when action semantics are modeled, the relevant open side is known, existing modifier groups are source-backed, and the natural Quiver Base pool is complete for the selected dataset snapshot.
 
-Task 8B moves Exalted-style candidate filtering into `ModifierPoolResolver`; see [QUIVER_MODIFIER_POOL_STATUS.md](QUIVER_MODIFIER_POOL_STATUS.md) for current pool counts and completeness.
+Task 8C expands the natural Quiver Base pool to `100` source-backed tiers for the selected PoE2DB snapshot. See [QUIVER_MODIFIER_POOL_STATUS.md](QUIVER_MODIFIER_POOL_STATUS.md) for scoped completeness, counts, and exclusions.
+
+Probability completeness remains `UNKNOWN` for Exalted-style additions because modifier weights/probabilities are not captured and equal weighting is never inferred.
 
 Essence of Hysteria is `PARTIAL` because the guaranteed family is represented, but atomic replacement/addition behavior and full pool interactions still need stronger source backing.
 

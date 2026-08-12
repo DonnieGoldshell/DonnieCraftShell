@@ -49,7 +49,11 @@ class CanonicalModifierResolver(ModifierResolver):
         supported = []
         rejected_reasons: list[str] = []
         for modifier_tier, family, applicability in candidates:
-            range_match, range_reason = _ranges_match(modifier.allowed_range, modifier_tier.roll_ranges)
+            range_match, range_reason = _ranges_match(
+                modifier.observed_rolls,
+                modifier.allowed_range,
+                modifier_tier.roll_ranges,
+            )
             if not range_match:
                 rejected_reasons.append(
                     f"{modifier_tier.canonical_id} rejected: {range_reason}"
@@ -137,17 +141,46 @@ def generate_enrichment_id() -> str:
     return f"enrichment-{uuid.uuid7()}"
 
 
-def _ranges_match(observed: tuple[RollValue, ...], canonical: tuple[RollValue, ...]) -> tuple[bool, str]:
-    observed_ranges = tuple(roll for roll in observed if roll.min_value is not None or roll.max_value is not None)
+def _ranges_match(
+    observed_rolls: tuple[RollValue, ...],
+    observed_allowed_ranges: tuple[RollValue, ...],
+    canonical: tuple[RollValue, ...],
+) -> tuple[bool, str]:
+    observed_ranges = tuple(roll for roll in observed_allowed_ranges if roll.min_value is not None or roll.max_value is not None)
     if not canonical or not observed_ranges:
         return True, "range evidence unavailable or not required"
     if len(observed_ranges) != len(canonical):
+        roll_match = _observed_rolls_match_canonical_ranges(observed_rolls, canonical)
+        if roll_match:
+            return True, "displayed ranges matched, including fixed-value canonical ranges"
         return False, "range count mismatch"
     parsed_ranges = sorted(_range_pair(roll) for roll in observed_ranges)
     canonical_ranges = sorted(_range_pair(roll) for roll in canonical)
     if parsed_ranges != canonical_ranges:
         return False, "displayed range conflicts with canonical range"
     return True, "displayed range matched"
+
+
+def _observed_rolls_match_canonical_ranges(
+    observed_rolls: tuple[RollValue, ...],
+    canonical: tuple[RollValue, ...],
+) -> bool:
+    if len(observed_rolls) != len(canonical):
+        return False
+    for observed, canonical_roll in zip(observed_rolls, canonical):
+        if observed.min_value is not None or observed.max_value is not None:
+            if _range_pair(observed) != _range_pair(canonical_roll):
+                return False
+            continue
+        if (
+            observed.value is None
+            or canonical_roll.min_value is None
+            or canonical_roll.max_value is None
+            or canonical_roll.min_value != canonical_roll.max_value
+            or observed.value != canonical_roll.min_value
+        ):
+            return False
+    return True
 
 
 def _range_pair(roll: RollValue) -> tuple[str, str]:

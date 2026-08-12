@@ -234,9 +234,12 @@ class CraftOutcomeEngine:
                 scope,
                 game_data_repository,
                 game_data_dataset_version,
+                minimum_modifier_level=_minimum_modifier_level(action.action_id),
             )
             candidates = pool.candidates
             warnings = list(pool.warnings)
+            if _minimum_modifier_level(action.action_id) is not None:
+                warnings.append("Minimum Modifier Level filtering is applied from provisional source-backed action data.")
             dataset_versions = (game_data_dataset_version,)
         else:
             warnings.append("No game-data repository supplied for modifier pool enumeration.")
@@ -372,3 +375,11 @@ def _is_exalted(action_id: str) -> bool:
 
 def _is_essence_hysteria(action_id: str) -> bool:
     return action_id.endswith(":essence-of-hysteria")
+
+
+def _minimum_modifier_level(action_id: str) -> int | None:
+    if action_id.endswith(":perfect-exalted-orb"):
+        return 50
+    if action_id.endswith(":greater-exalted-orb"):
+        return 35
+    return None
