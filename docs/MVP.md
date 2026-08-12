@@ -53,10 +53,12 @@ PASTE QUIVER
 - Outcome enumeration may produce hypothetical item states, but MVP recommendations must still wait for verified probability, valuation, EV, and SELL NOW comparison.
 - Complete outcome enumeration is not enough for EV. Probability evidence must be explicit; no MVP recommendation may use equal-probability fallback for random crafting outcomes.
 - Probability readiness for EV requires `OutcomeProbabilityModel` completeness, numeric final-outcome probabilities, and total probability mass of `1`. Deterministic operation evidence alone is insufficient.
+- Scenario analysis may show descriptive outcome valuation ranges before EV is possible. Scenario median and best/worst outcomes must be labeled as descriptive and partial when valuation/probability coverage is incomplete.
 - Current value and outcome values include estimated value, plausible range, confidence, comparable count or quality where available, and timestamp.
 - Rare-item valuation should be listing-derived unless actual sale evidence exists. A generated comparable search plus manual listing observations is acceptable for MVP when automatic Trade integration is not defensibly supported.
 - Task 10B uses `ManualTradeProvider` for comparable evidence capture; this is not automated Trade access.
 - Task 10C can aggregate manual comparable evidence into a `LISTING_DERIVED` valuation estimate when readiness policy is satisfied. This remains listing evidence, not realized sale value or a SELL NOW recommendation.
+- Task 11A can report `SCENARIO_ONLY`, `INSUFFICIENT_DATA`, `NOT_APPLICABLE`, or `EV_READY`; it must not calculate EV or recommend an action.
 - Expected value, ROI, probability of profit, downside risk, and required capital are represented in the recommendation model, even if early implementations mark inputs as `NEEDS VERIFICATION`.
 - Craft session data can track item states, actions, costs, total invested, current estimated value, and unrealized profit/loss.
 

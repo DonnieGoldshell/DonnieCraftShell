@@ -19,6 +19,8 @@ The product must prioritize economic decision support over generic crafting advi
 9. Store provenance for important data.
 10. Build the Quiver MVP vertically before expanding horizontally.
 
+Scenario analysis may be shown before Expected Value is available, but descriptive scenario statistics must never be presented as EV, probability-weighted expectation, or a recommendation.
+
 ## Major Modules
 
 ### Craft Advisor

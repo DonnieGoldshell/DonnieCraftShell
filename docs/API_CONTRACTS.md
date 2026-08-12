@@ -31,6 +31,7 @@ POST /api/v1/valuation
 POST /api/v1/valuation/comparables
 POST /api/v1/crafts/simulate
 POST /api/v1/crafts/probabilities
+POST /api/v1/crafts/scenarios
 POST /api/v1/advisor
 POST /api/v1/sessions
 POST /api/v1/sessions/{id}/steps
@@ -57,6 +58,8 @@ Future action-candidate DTOs may include material costs, but they must keep `app
 Future probability DTOs should expose `OutcomeProbabilityModel` from [PROBABILITY_MODEL.md](PROBABILITY_MODEL.md). Unknown probability must serialize as `null`, not `0`. Responses must preserve probability completeness, total known probability mass, evidence provenance, dataset versions, deterministic operation evidence, and warnings. The endpoint must not normalize partial/unknown probabilities or divide unknown mass equally.
 
 Future valuation DTOs should expose the contracts from [VALUATION_MODEL.md](VALUATION_MODEL.md) and [VALUATION_AGGREGATION.md](VALUATION_AGGREGATION.md). Requests should accept a current or hypothetical valuation subject plus comparable strategy and modifier-role inputs. Comparable endpoints should return query definitions, manual workflow instructions, listing observations, normalized comparable evidence where available, readiness, economy conversion snapshots, provenance, and warnings. Aggregation responses must label estimates as `LISTING_DERIVED`, expose used/excluded comparable IDs, preserve policy ID and strategy composition, and allow `INSUFFICIENT_DATA` without fabricating an estimate.
+
+Future scenario DTOs should expose [SCENARIO_ANALYSIS.md](SCENARIO_ANALYSIS.md) and [DECISION_READINESS.md](DECISION_READINESS.md) concepts. Responses must include decision readiness, outcome valuation coverage, probability completeness, EV readiness, descriptive scenario statistics, warnings, and evidence references. They must not include EV, ranking, recommendation, or probability-weighted statistics until future Advisor/EV contracts explicitly allow them.
 
 ## Error Model
 

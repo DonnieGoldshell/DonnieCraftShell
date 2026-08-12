@@ -29,6 +29,7 @@ The initial executable contracts live in `packages/shared/donniecraftshell_contr
 - Task 7B adds `affix_capacity.py`: `AffixCapacityDefinition`, `ModifierSlotConsumptionRule`, `AffixCapacityDatasetSnapshot`, `AffixStateResolution`, and `AffixStateResolver`. These derive open explicit affix slots from parser observations plus a versioned capacity dataset.
 - Task 7C adds `craft_action_candidates.py`: `CraftActionCandidate`, `CraftActionCostService`, and candidate enumeration that combines applicability with `CraftMaterialCost`.
 - Task 8A adds `craft_outcomes.py`: `CraftOutcomeDefinition`, `ItemStateDelta`, `HypotheticalItemState`, `CraftOutcomeSet`, and `CraftOutcomeEngine`. These model hypothetical outcome states without probabilities, valuation, EV, or recommendations.
+- Task 11A adds `scenario_analysis.py`: `OutcomeValuation`, `ScenarioValue`, `ScenarioAnalysis`, `DecisionReadiness`, and `ScenarioAnalysisService`. These compose current valuation, action candidates, outcome sets, probability models, and outcome valuations without calculating EV or ranking actions.
 - `CraftOutcome`: resulting item or state delta, optional probability, probability confidence, valuation, profit/loss, and provenance.
 - `SimulationResult`: action cost, outcomes, probability coverage, EV/ROI/risk fields, confidence, assumptions, warnings, and completeness.
 - `AdvisorRecommendation`: current valuation, candidates, selected action when available, comparisons, risk, bankroll exposure, confidence, reasons, warnings, and timestamp. It supports `NO_RECOMMENDATION`.
@@ -55,6 +56,8 @@ Craft action candidates are not recommendations. They expose mechanics status an
 Craft outcome sets are hypothetical derived data. They must retain source item identity, action identity, dataset versions, provenance, outcome-space completeness, and probability completeness. Missing weights mean probability remains `UNKNOWN`.
 
 Task 9B implements the probability evidence boundary in `probability.py`. Probability evidence distinguishes deterministic, exact mechanics, derived mechanics, empirical estimates, and unknowns; it carries source, methodology, dataset/game version, confidence, sample size where relevant, and uncertainty interval where empirical. See [PROBABILITY_MODEL.md](PROBABILITY_MODEL.md).
+
+Scenario analysis is descriptive. Scenario median is not Expected Value, best/worst scenario uses only currently valuated outcomes, and `EV_READY` means a future EV engine may run only after strict probability, valuation, applicability, cost, and normalization prerequisites are satisfied.
 
 ## Boundaries
 

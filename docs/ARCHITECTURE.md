@@ -39,6 +39,7 @@ apps/web
 - **Affix Capacity Resolver**: derives open explicit prefix/suffix slots from parsed modifiers and source-backed capacity definitions.
 - **Craft Outcome Engine**: enumerates mechanically possible hypothetical item-state deltas without probability, valuation, or recommendations.
 - **Probability Evidence Layer**: future layer that may attach exact, derived, empirical, or unknown probabilities to outcome states only when provenance supports them.
+- **Scenario Analysis Layer**: composes action candidates, outcome sets, probabilities, and valuations into descriptive readiness results without EV or ranking.
 - **Modifier Pool Resolver**: filters natural explicit modifier candidates by item class, side, item level, capacity, and source-backed modifier-group conflicts.
 - **Craft Simulator**: models legal actions and outcomes only when mechanics are verified.
 
@@ -87,6 +88,8 @@ Task 9B adds [PROBABILITY_MODEL.md](PROBABILITY_MODEL.md). Outcome-space complet
 Task 10B adds [VALUATION_MODEL.md](VALUATION_MODEL.md) and [MANUAL_TRADE_WORKFLOW.md](MANUAL_TRADE_WORKFLOW.md). Current and hypothetical item states share `ValuationSubject`, and manual comparable evidence flows through `ManualTradeProvider` with no network calls or undocumented Trade access.
 
 Task 10C adds [VALUATION_AGGREGATION.md](VALUATION_AGGREGATION.md). `ValuationAggregator` turns manual normalized comparable evidence into listing-derived valuation results using Decimal median/quantile policy, strict/moderate precedence, explicit readiness, confidence, liquidity, and retained evidence provenance.
+
+Task 11A adds [SCENARIO_ANALYSIS.md](SCENARIO_ANALYSIS.md) and [DECISION_READINESS.md](DECISION_READINESS.md). Scenario analysis is allowed when EV is not; `EV_READY` is a strict gate for future EV work and does not calculate EV.
 
 Community game-data sources such as PoE2DB must be imported through source adapters into raw snapshots and normalized records. Runtime analysis should use normalized data or database records, not live scraping.
 
