@@ -89,6 +89,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/observations/review": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Review Observations */
+        post: operations["review_observations_api_v1_observations_review_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/health": {
         parameters: {
             query?: never;
@@ -656,6 +673,89 @@ export interface components {
              */
             warnings: string[];
         };
+        /** ObservationReviewDecisionDto */
+        ObservationReviewDecisionDto: {
+            /** Note */
+            note?: string | null;
+            /** Raw Record Id */
+            raw_record_id: string;
+            /** Reviewed At */
+            reviewed_at?: string | null;
+            /** Reviewer Id */
+            reviewer_id?: string | null;
+            /**
+             * Status
+             * @default PENDING
+             */
+            status: string;
+        };
+        /** ObservationReviewRecordDto */
+        ObservationReviewRecordDto: {
+            /** Action Id */
+            action_id?: string | null;
+            /** Classification Method */
+            classification_method?: string | null;
+            /** Duplicate */
+            duplicate: boolean;
+            /** Exported */
+            exported: boolean;
+            /** Outcome Id */
+            outcome_id?: string | null;
+            /** Raw Record Id */
+            raw_record_id: string;
+            /** Source Outcome Set Id */
+            source_outcome_set_id?: string | null;
+            /** Status */
+            status: string;
+            /**
+             * Synthetic
+             * @default false
+             */
+            synthetic: boolean;
+            /**
+             * Unclassified
+             * @default false
+             */
+            unclassified: boolean;
+            /**
+             * Warnings
+             * @default []
+             */
+            warnings: string[];
+        };
+        /** ObservationReviewRequestDto */
+        ObservationReviewRequestDto: {
+            /** Batches */
+            batches?: {
+                [key: string]: unknown;
+            }[];
+            /** Decisions */
+            decisions?: components["schemas"]["ObservationReviewDecisionDto"][];
+            /** Observations */
+            observations?: {
+                [key: string]: unknown;
+            }[];
+        };
+        /** ObservationReviewResponseDto */
+        ObservationReviewResponseDto: {
+            /** Accepted Export */
+            accepted_export: {
+                [key: string]: unknown;
+            };
+            /** Records */
+            records: components["schemas"]["ObservationReviewRecordDto"][];
+            /** Review Manifest */
+            review_manifest: {
+                [key: string]: unknown;
+            };
+            /** Review Version */
+            review_version: string;
+            /**
+             * Warnings
+             * @default []
+             */
+            warnings: string[];
+        };
         /** OutcomeCandidateDto */
         OutcomeCandidateDto: {
             /** Outcome Id */
@@ -1004,6 +1104,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["CraftObservationRecordResponseDto"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    review_observations_api_v1_observations_review_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ObservationReviewRequestDto"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ObservationReviewResponseDto"];
                 };
             };
             /** @description Validation Error */

@@ -59,3 +59,39 @@ class CraftObservationExportResponseDto(ApiModel):
     exported_at: datetime
     observations: list[dict]
     warnings: list[str] = []
+
+
+class ObservationReviewDecisionDto(ApiModel):
+    raw_record_id: str
+    status: str = "PENDING"
+    reviewed_at: datetime | None = None
+    note: str | None = None
+    reviewer_id: str | None = None
+
+
+class ObservationReviewRequestDto(ApiModel):
+    batches: list[dict] = Field(default_factory=list)
+    observations: list[dict] = Field(default_factory=list)
+    decisions: list[ObservationReviewDecisionDto] = Field(default_factory=list)
+
+
+class ObservationReviewRecordDto(ApiModel):
+    raw_record_id: str
+    status: str
+    duplicate: bool
+    exported: bool
+    classification_method: str | None = None
+    outcome_id: str | None = None
+    unclassified: bool = False
+    synthetic: bool = False
+    action_id: str | None = None
+    source_outcome_set_id: str | None = None
+    warnings: list[str] = []
+
+
+class ObservationReviewResponseDto(ApiModel):
+    review_version: str
+    records: list[ObservationReviewRecordDto]
+    accepted_export: dict
+    review_manifest: dict
+    warnings: list[str] = []

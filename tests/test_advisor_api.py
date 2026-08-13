@@ -75,6 +75,9 @@ class AdvisorApiTests(unittest.TestCase):
         self.assertIn("AdvisorAnalyzeResponseDto", schema_names)
         self.assertIn("ProbabilitySummaryDto", schema_names)
         self.assertIn("CraftObservationRecordRequestDto", schema_names)
+        self.assertIn("/api/v1/observations/review", openapi["paths"])
+        self.assertIn("ObservationReviewRequestDto", schema_names)
+        self.assertIn("ObservationReviewResponseDto", schema_names)
 
     def test_valid_quiver_6_partial_response(self):
         response = self.client.post("/api/v1/advisor/analyze", json=base_request())
@@ -413,6 +416,45 @@ class AdvisorApiTests(unittest.TestCase):
         self.assertEqual(exported["crafting_dataset_version"], CRAFTING_DATASET_ID)
         self.assertEqual(exported["modifier_dataset_version"], GAME_DATASET_ID)
 
+    def test_observation_review_endpoint_exports_only_accepted_records(self):
+        from packages.shared.donniecraftshell_contracts.empirical_observation_import import (
+            ObservationImportBatch,
+            aggregate_observations,
+            empirical_observation_from_dict,
+        )
+
+        accepted = self._observation_export_record("manual-craft-observation-api-accepted", "outcome-api-1")
+        rejected = self._observation_export_record("manual-craft-observation-api-rejected", "outcome-api-2")
+
+        response = self.client.post(
+            "/api/v1/observations/review",
+            json={
+                "batches": [{"observations": [accepted, rejected]}],
+                "decisions": [
+                    {
+                        "raw_record_id": accepted["raw_record_id"],
+                        "status": "ACCEPTED",
+                        "note": "reviewed from screenshot",
+                    },
+                    {
+                        "raw_record_id": rejected["raw_record_id"],
+                        "status": "REJECTED",
+                        "note": "wrong context",
+                    },
+                ],
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        body = response.json()
+        self.assertEqual(body["accepted_export"]["observations"], [accepted])
+        self.assertEqual(body["review_manifest"]["accepted_count"], 1)
+        self.assertEqual(body["review_manifest"]["rejected_count"], 1)
+        self.assertEqual(body["review_manifest"]["records"][1]["note"], "wrong context")
+        imported = tuple(empirical_observation_from_dict(record) for record in body["accepted_export"]["observations"])
+        result = aggregate_observations(ObservationImportBatch(imported))
+        self.assertEqual(result.accepted_record_count, 1)
+
     def test_wrong_crafting_dataset_version_is_rejected(self):
         response = self.client.post(
             "/api/v1/observations/record",
@@ -733,6 +775,35 @@ class AdvisorApiTests(unittest.TestCase):
 
     def _action(self, body: dict, action_id: str) -> dict:
         return next(action for action in body["actions"] if action["action_id"] == action_id)
+
+    def _observation_export_record(self, raw_record_id: str, outcome_id: str) -> dict:
+        return {
+            "raw_record_id": raw_record_id,
+            "action_id": "dc:poe2:craft-action:orb-of-annulment",
+            "source_outcome_set_id": "backend-outcome-set:annulment:api-test",
+            "item_class": "Quivers",
+            "league": LEAGUE,
+            "game": "Path of Exile 2",
+            "game_version": "synthetic-test-version",
+            "crafting_dataset_version": CRAFTING_DATASET_ID,
+            "modifier_dataset_version": GAME_DATASET_ID,
+            "observed_at": AS_OF,
+            "source_id": "api-test-review",
+            "source_type": "MANUAL_RESEARCH",
+            "source_uri": "local://tests/api-observation-review",
+            "synthetic": True,
+            "outcome_id": outcome_id,
+            "unclassified": False,
+            "verification_status": "NEEDS_VERIFICATION",
+            "notes": "synthetic API review test",
+            "classification_method": "MANUAL",
+            "classification_reason": "manual test classification",
+            "classification_warnings": [],
+            "before_item_fingerprint": "before-api",
+            "after_item_fingerprint": "after-api",
+            "recorder_version": "dc-observation-recorder-v1",
+            "warnings": [],
+        }
 
 
 if __name__ == "__main__":

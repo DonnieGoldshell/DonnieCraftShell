@@ -14,6 +14,12 @@ from packages.shared.donniecraftshell_contracts.observation_recorder import (
     OBSERVATION_RECORDER_VERSION,
     ObservationDraft,
 )
+from packages.shared.donniecraftshell_contracts.observation_review import (
+    OBSERVATION_REVIEW_VERSION,
+    ObservationReviewDecision,
+    ObservationReviewStatus,
+    review_observation_batches,
+)
 from packages.shared.donniecraftshell_contracts.parser import parse_clipboard_item
 
 from services.api.app.dependencies.advisor import get_advisor_orchestrator
@@ -22,6 +28,9 @@ from services.api.app.schemas.observations import (
     CraftObservationExportResponseDto,
     CraftObservationRecordRequestDto,
     CraftObservationRecordResponseDto,
+    ObservationReviewRecordDto,
+    ObservationReviewRequestDto,
+    ObservationReviewResponseDto,
     ObservationClassificationDto,
 )
 
@@ -114,6 +123,69 @@ def export_observations(request: CraftObservationExportRequestDto) -> CraftObser
         exported_at=datetime.now(timezone.utc),
         observations=request.observations,
         warnings=["Recorder exports are raw observations; import/readiness gates still apply."],
+    )
+
+
+@router.post("/review", response_model=ObservationReviewResponseDto)
+def review_observations(request: ObservationReviewRequestDto) -> ObservationReviewResponseDto:
+    batch_payloads = list(request.batches)
+    if request.observations:
+        batch_payloads.append({"observations": request.observations})
+    if not batch_payloads:
+        raise HTTPException(
+            status_code=400,
+            detail={
+                "code": "VALIDATION_ERROR",
+                "message": "At least one observation batch or observations list is required.",
+                "recoverable": True,
+                "reliable_no_result": True,
+            },
+        )
+    try:
+        decisions = tuple(
+            ObservationReviewDecision(
+                raw_record_id=decision.raw_record_id,
+                status=ObservationReviewStatus(decision.status),
+                reviewed_at=decision.reviewed_at,
+                note=decision.note,
+                reviewer_id=decision.reviewer_id,
+            )
+            for decision in request.decisions
+        )
+        result = review_observation_batches(batch_payloads, decisions)
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=400,
+            detail={
+                "code": "VALIDATION_ERROR",
+                "message": str(exc),
+                "recoverable": True,
+                "reliable_no_result": True,
+            },
+        ) from exc
+
+    manifest = result.manifest.to_dict()
+    return ObservationReviewResponseDto(
+        review_version=OBSERVATION_REVIEW_VERSION,
+        records=[
+            ObservationReviewRecordDto(
+                raw_record_id=record.raw_record_id,
+                status=record.decision.status.value,
+                duplicate=record.duplicate,
+                exported=record.accepted_for_export,
+                classification_method=record.original_record.get("classification_method"),
+                outcome_id=record.original_record.get("outcome_id"),
+                unclassified=bool(record.original_record.get("unclassified", False)),
+                synthetic=bool(record.original_record.get("synthetic", False)),
+                action_id=record.original_record.get("action_id"),
+                source_outcome_set_id=record.original_record.get("source_outcome_set_id"),
+                warnings=list(record.warnings),
+            )
+            for record in result.records
+        ],
+        accepted_export=result.accepted_export,
+        review_manifest=manifest,
+        warnings=list(result.warnings),
     )
 
 

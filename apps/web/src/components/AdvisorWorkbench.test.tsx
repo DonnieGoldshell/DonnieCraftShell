@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
@@ -410,6 +410,93 @@ describe("AdvisorWorkbench", () => {
           ],
           warnings: ["Recorder exports are raw observations; import/readiness gates still apply."]
         })
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          review_version: "dc-observation-review-v1",
+          records: [
+            {
+              raw_record_id: "manual-craft-observation-test",
+              status: "PENDING",
+              duplicate: false,
+              exported: false,
+              classification_method: "MANUAL",
+              outcome_id: "outcome-1",
+              unclassified: false,
+              synthetic: false,
+              action_id: "dc:poe2:craft-action:orb-of-annulment",
+              source_outcome_set_id: "manual-recorder:dc:poe2:craft-action:orb-of-annulment",
+              warnings: ["Manual classification remains manual evidence after curation."]
+            }
+          ],
+          accepted_export: {
+            review_version: "dc-observation-review-v1",
+            exported_at: "2026-08-13T10:02:00Z",
+            observations: [],
+            warnings: []
+          },
+          review_manifest: {
+            review_version: "dc-observation-review-v1",
+            generated_at: "2026-08-13T10:02:00Z",
+            accepted_count: 0,
+            rejected_count: 0,
+            pending_count: 1,
+            duplicate_count: 0,
+            records: []
+          },
+          warnings: []
+        })
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          review_version: "dc-observation-review-v1",
+          records: [
+            {
+              raw_record_id: "manual-craft-observation-test",
+              status: "ACCEPTED",
+              duplicate: false,
+              exported: true,
+              classification_method: "MANUAL",
+              outcome_id: "outcome-1",
+              unclassified: false,
+              synthetic: false,
+              action_id: "dc:poe2:craft-action:orb-of-annulment",
+              source_outcome_set_id: "manual-recorder:dc:poe2:craft-action:orb-of-annulment",
+              warnings: ["Manual classification remains manual evidence after curation."]
+            }
+          ],
+          accepted_export: {
+            review_version: "dc-observation-review-v1",
+            exported_at: "2026-08-13T10:03:00Z",
+            observations: [
+              {
+                raw_record_id: "manual-craft-observation-test",
+                outcome_id: "outcome-1",
+                unclassified: false,
+                classification_method: "MANUAL"
+              }
+            ],
+            warnings: []
+          },
+          review_manifest: {
+            review_version: "dc-observation-review-v1",
+            generated_at: "2026-08-13T10:03:00Z",
+            accepted_count: 1,
+            rejected_count: 0,
+            pending_count: 0,
+            duplicate_count: 0,
+            records: [
+              {
+                raw_record_id: "manual-craft-observation-test",
+                status: "ACCEPTED",
+                note: "reviewed in browser"
+              }
+            ]
+          },
+          warnings: []
+        })
       });
     vi.stubGlobal("fetch", fetchMock);
     const user = userEvent.setup();
@@ -438,6 +525,34 @@ describe("AdvisorWorkbench", () => {
       expect.objectContaining({
         raw_record_id: "manual-craft-observation-test",
         classification_method: "MANUAL"
+      })
+    ]);
+
+    const recorderExport = JSON.stringify({
+      observations: [
+        {
+          raw_record_id: "manual-craft-observation-test",
+          outcome_id: "outcome-1",
+          unclassified: false,
+          classification_method: "MANUAL"
+        }
+      ]
+    });
+    fireEvent.change(screen.getByLabelText(/recorder export json/i), { target: { value: recorderExport } });
+    await user.click(screen.getByRole("button", { name: /load review batch/i }));
+    expect(await screen.findByText(/manual classification remains manual evidence/i)).toBeInTheDocument();
+
+    await user.selectOptions(screen.getByLabelText(/review status manual-craft-observation-test/i), "ACCEPTED");
+    await user.type(screen.getByLabelText(/review note manual-craft-observation-test/i), "reviewed in browser");
+    await user.click(screen.getByRole("button", { name: /export accepted json/i }));
+    expect((await screen.findAllByText(/dc-observation-review-v1/i)).length).toBeGreaterThanOrEqual(2);
+    const reviewBody = JSON.parse(fetchMock.mock.calls[4][1].body as string);
+    expect(reviewBody.decisions).toEqual([
+      expect.objectContaining({
+        raw_record_id: "manual-craft-observation-test",
+        status: "ACCEPTED",
+        note: "reviewed in browser",
+        reviewer_id: "browser-observation-review-session"
       })
     ]);
   });
