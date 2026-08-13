@@ -8,11 +8,15 @@ import {
   DEFAULT_LEAGUE,
   analyzeAdvisor,
   createDefaultAdvisorRequest,
-  type AdvisorAnalyzeResponse
+  type AdvisorAnalyzeResponse,
+  type ManualListingObservation,
+  type ManualValuationEvidence,
+  type OutcomeManualValuationEvidence
 } from "@/api/advisor";
 import { ActionTable } from "./ActionTable";
 import { DecisionPanel } from "./DecisionPanel";
 import { ItemSummary } from "./ItemSummary";
+import { ManualValuationPanel } from "./ManualValuationPanel";
 import { MissingRequirements } from "./MissingRequirements";
 import { StatusBadge } from "./StatusBadge";
 
@@ -26,6 +30,8 @@ export function AdvisorWorkbench() {
   const [gameDataDataset, setGameDataDataset] = useState(DEFAULT_GAME_DATA_DATASET);
   const [craftingDataset, setCraftingDataset] = useState(DEFAULT_CRAFTING_DATASET);
   const [affixDataset, setAffixDataset] = useState(DEFAULT_AFFIX_CAPACITY_DATASET);
+  const [currentObservations, setCurrentObservations] = useState<ManualListingObservation[]>([]);
+  const [outcomeObservations, setOutcomeObservations] = useState<Record<string, ManualListingObservation[]>>({});
   const [analysis, setAnalysis] = useState<AdvisorAnalyzeResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -40,7 +46,9 @@ export function AdvisorWorkbench() {
         league,
         game_data_dataset_version: gameDataDataset,
         crafting_dataset_version: craftingDataset,
-        affix_capacity_dataset_version: affixDataset
+        affix_capacity_dataset_version: affixDataset,
+        current_valuation_evidence: buildManualEvidence(currentObservations),
+        outcome_valuation_evidence: buildOutcomeEvidence(outcomeObservations)
       };
       const result = await analyzeAdvisor(request);
       setAnalysis(result);
@@ -87,12 +95,34 @@ export function AdvisorWorkbench() {
             </label>
           </div>
           <button type="submit" disabled={loading || !clipboardText.trim()}>
-            {loading ? "Analyzing..." : "Analyze Quiver"}
+            {loading ? "Analyzing..." : analysis ? "Re-run Analysis" : "Analyze Quiver"}
           </button>
           {error && <p className="error-message">{error}</p>}
         </form>
 
         <section className="results-column">
+          <ManualValuationPanel
+            actions={analysis?.actions ?? []}
+            currentObservations={currentObservations}
+            outcomeObservations={outcomeObservations}
+            onAddCurrentObservation={(observation) =>
+              setCurrentObservations((observations) => [...observations, observation])
+            }
+            onAddOutcomeObservation={(outcomeId, observation) =>
+              setOutcomeObservations((groups) => ({
+                ...groups,
+                [outcomeId]: [...(groups[outcomeId] ?? []), observation]
+              }))
+            }
+            onClearCurrentObservations={() => setCurrentObservations([])}
+            onClearOutcomeObservations={(outcomeId) =>
+              setOutcomeObservations((groups) => {
+                const next = { ...groups };
+                delete next[outcomeId];
+                return next;
+              })
+            }
+          />
           {analysis ? (
             <>
               <ItemSummary item={analysis.item} affixState={analysis.affix_state} />
@@ -113,4 +143,28 @@ export function AdvisorWorkbench() {
       </section>
     </main>
   );
+}
+
+function buildManualEvidence(observations: ManualListingObservation[]): ManualValuationEvidence | null {
+  if (!observations.length) return null;
+  return {
+    strategy: "STRICT",
+    observations,
+    notes: "User-entered manual comparable listing evidence. Listing-derived estimate is not a realized sale price."
+  };
+}
+
+function buildOutcomeEvidence(
+  groupedObservations: Record<string, ManualListingObservation[]>
+): OutcomeManualValuationEvidence[] {
+  return Object.entries(groupedObservations)
+    .filter(([, observations]) => observations.length > 0)
+    .map(([outcome_id, observations]) => ({
+      outcome_id,
+      evidence: {
+        strategy: "STRICT",
+        observations,
+        notes: "User-entered manual outcome comparable listing evidence."
+      }
+    }));
 }

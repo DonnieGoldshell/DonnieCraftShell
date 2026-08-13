@@ -6,6 +6,8 @@ import {
   DEFAULT_CRAFTING_DATASET,
   DEFAULT_GAME_DATA_DATASET,
   DEFAULT_LEAGUE,
+  DIVINE_ASSET_ID,
+  EXALTED_ASSET_ID,
   type AdvisorAnalyzeResponse
 } from "@/api/advisor";
 import { AdvisorWorkbench } from "./AdvisorWorkbench";
@@ -182,6 +184,34 @@ const quiverResponse: AdvisorAnalyzeResponse = {
   provenance: []
 };
 
+const valuedQuiverResponse: AdvisorAnalyzeResponse = {
+  ...quiverResponse,
+  status: "SCENARIO_READY",
+  actions: quiverResponse.actions.map((action) =>
+    action.action_id === "dc:poe2:craft-action:orb-of-annulment"
+      ? {
+          ...action,
+          scenario: {
+            readiness: "SCENARIO_ONLY",
+            outcome_count: 6,
+            valued_outcome_count: 1,
+            unvalued_outcome_count: 5,
+            valuation_completeness: "PARTIAL",
+            best_valuated_outcome: { amount: "110", unit: "EXALTED_ECONOMIC_UNIT" },
+            worst_valuated_outcome: { amount: "110", unit: "EXALTED_ECONOMIC_UNIT" },
+            median_valuated_outcome: { amount: "110", unit: "EXALTED_ECONOMIC_UNIT" },
+            upside_relative_to_current: null,
+            downside_relative_to_current: null,
+            reasons: ["Synthetic test response with one valuated outcome."]
+          }
+        }
+      : action
+  ),
+  missing_requirements: quiverResponse.missing_requirements.filter(
+    (requirement) => requirement.type !== "CURRENT_VALUATION_EVIDENCE_REQUIRED"
+  )
+};
+
 describe("AdvisorWorkbench", () => {
   afterEach(() => {
     vi.unstubAllGlobals();
@@ -206,11 +236,110 @@ describe("AdvisorWorkbench", () => {
     expect(screen.getByText("Advisor Decision")).toBeInTheDocument();
     expect(screen.getAllByText("No Recommendation").length).toBeGreaterThan(0);
     expect(screen.getByText("Orb of Annulment")).toBeInTheDocument();
-    expect(screen.getByText("Exalted Orb")).toBeInTheDocument();
+    expect(screen.getAllByText("Exalted Orb").length).toBeGreaterThan(0);
     expect(screen.getByText("Missing price")).toBeInTheDocument();
     expect(screen.getByText("No open explicit affix slot")).toBeInTheDocument();
     expect(screen.getByText("Current Valuation Evidence Required")).toBeInTheDocument();
     expect(screen.getAllByText("Probability Evidence Required").length).toBeGreaterThan(0);
+    expect(screen.getByText(/listing-derived estimates are not guaranteed sale prices/i)).toBeInTheDocument();
+  });
+
+  it("adds current-item manual comparable observations to the next advisor request", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => quiverResponse
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    const user = userEvent.setup();
+
+    render(<AdvisorWorkbench />);
+    await user.type(screen.getByLabelText(/listing amount/i), "5.5");
+    await user.type(screen.getByLabelText(/listing id/i), "current-listing-1");
+    await user.type(screen.getByLabelText(/listing\/item note/i), "manual current comparable");
+    await user.click(screen.getByRole("button", { name: /add observation/i }));
+    expect(screen.getByText("5.5 Divine Orb")).toBeInTheDocument();
+
+    await user.type(screen.getByLabelText(/clipboard item text/i), "Item Class: Quivers\nRarity: Rare");
+    await user.click(screen.getByRole("button", { name: /analyze quiver/i }));
+
+    await screen.findByText("Primed Quiver");
+    const body = JSON.parse(fetchMock.mock.calls[0][1].body as string);
+    expect(body.current_valuation_evidence).toEqual({
+      strategy: "STRICT",
+      notes: expect.stringContaining("User-entered manual comparable"),
+      observations: [
+        expect.objectContaining({
+          amount: "5.5",
+          currency_asset_id: DIVINE_ASSET_ID,
+          external_listing_id: "current-listing-1",
+          item_summary: "manual current comparable"
+        })
+      ]
+    });
+    expect(body.outcome_valuation_evidence).toEqual([]);
+  });
+
+  it("adds outcome manual comparable observations and re-runs analysis with outcome IDs", async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => quiverResponse
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => valuedQuiverResponse
+      });
+    vi.stubGlobal("fetch", fetchMock);
+    const user = userEvent.setup();
+
+    render(<AdvisorWorkbench />);
+    await user.type(screen.getByLabelText(/clipboard item text/i), "Item Class: Quivers\nRarity: Rare");
+    await user.click(screen.getByRole("button", { name: /analyze quiver/i }));
+    await screen.findByText("Primed Quiver");
+
+    await user.selectOptions(screen.getByLabelText(/evidence subject/i), "outcome");
+    await user.selectOptions(screen.getByLabelText(/outcome id/i), "outcome-2");
+    await user.clear(screen.getByLabelText(/listing amount/i));
+    await user.type(screen.getByLabelText(/listing amount/i), "110");
+    await user.selectOptions(screen.getByLabelText(/currency/i), EXALTED_ASSET_ID);
+    await user.type(screen.getByLabelText(/evidence notes/i), "manual outcome comparable");
+    await user.click(screen.getByRole("button", { name: /add observation/i }));
+    expect(screen.getByText("Outcome outcome-2 observations")).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: /re-run analysis/i }));
+
+    await screen.findByText("Scenario Ready");
+    expect(screen.getByText("Median: 110 Ex")).toBeInTheDocument();
+    const body = JSON.parse(fetchMock.mock.calls[1][1].body as string);
+    expect(body.outcome_valuation_evidence).toEqual([
+      {
+        outcome_id: "outcome-2",
+        evidence: {
+          strategy: "STRICT",
+          notes: "User-entered manual outcome comparable listing evidence.",
+          observations: [
+            expect.objectContaining({
+              amount: "110",
+              currency_asset_id: EXALTED_ASSET_ID,
+              notes: "manual outcome comparable"
+            })
+          ]
+        }
+      }
+    ]);
+  });
+
+  it("keeps incomplete manual valuation evidence local instead of sending an empty observation", async () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+    const user = userEvent.setup();
+
+    render(<AdvisorWorkbench />);
+    await user.click(screen.getByRole("button", { name: /add observation/i }));
+
+    expect(screen.getByText("Listing amount is required.")).toBeInTheDocument();
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 
   it("shows API errors without fabricating analysis", async () => {

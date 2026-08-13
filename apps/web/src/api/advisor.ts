@@ -9,6 +9,12 @@ export type AdvisorAnalyzeRequest = components["schemas"]["AdvisorAnalyzeRequest
 export type AdvisorAnalyzeResponse = components["schemas"]["AdvisorAnalyzeResponseDto"];
 export type ActionAnalysis = components["schemas"]["ActionAnalysisDto"];
 export type MissingRequirement = components["schemas"]["MissingRequirementDto"];
+export type ManualListingObservation = components["schemas"]["ManualListingObservationDto"];
+export type ManualValuationEvidence = components["schemas"]["ManualValuationEvidenceDto"];
+export type OutcomeManualValuationEvidence = components["schemas"]["OutcomeManualValuationEvidenceDto"];
+
+export const EXALTED_ASSET_ID = "dc:poe2:economy-asset:currency:exalted-orb";
+export const DIVINE_ASSET_ID = "dc:poe2:economy-asset:currency:divine-orb";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000";
 

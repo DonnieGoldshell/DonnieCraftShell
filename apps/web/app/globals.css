@@ -30,6 +30,7 @@ body {
 
 button,
 input,
+select,
 textarea {
   font: inherit;
 }
@@ -101,7 +102,8 @@ label {
 }
 
 textarea,
-input {
+input,
+select {
   width: 100%;
   border: 1px solid var(--line);
   border-radius: 6px;
@@ -131,6 +133,13 @@ button {
 button:disabled {
   background: #9ba7ad;
   cursor: not-allowed;
+}
+
+.secondary-button {
+  border: 1px solid var(--line);
+  background: #f4f6f7;
+  color: var(--ink);
+  padding: 6px 10px;
 }
 
 .context-grid {
@@ -164,6 +173,7 @@ dd {
 }
 
 .modifier-list,
+.evidence-list,
 .reason-list,
 .requirement-list,
 .warning-list {
@@ -175,6 +185,7 @@ dd {
 }
 
 .modifier-list li,
+.evidence-list li,
 .requirement-list li,
 .warning-list li {
   border: 1px solid var(--line);
@@ -260,12 +271,42 @@ th {
   padding-top: 12px;
 }
 
+.evidence-form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin: 14px 0;
+}
+
+.wide-field {
+  grid-column: 1 / -1;
+}
+
+.evidence-panel {
+  border-left: 4px solid var(--accent);
+}
+
+.evidence-list-block {
+  border-top: 1px solid var(--line);
+  margin-top: 12px;
+  padding-top: 12px;
+}
+
+.compact-heading {
+  margin-bottom: 8px;
+}
+
 .error-message {
   background: var(--bad-bg);
   color: var(--bad);
   border-radius: 6px;
   padding: 10px;
   margin: 12px 0 0;
+}
+
+.error-message.compact {
+  grid-column: 1 / -1;
+  margin: 0;
 }
 
 .empty-state {
@@ -280,6 +321,7 @@ th {
   }
 
   .workspace,
+  .evidence-form,
   .facts-grid,
   .mod-columns {
     grid-template-columns: 1fr;

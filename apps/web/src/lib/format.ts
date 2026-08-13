@@ -21,3 +21,8 @@ export function costLabel(action: ActionAnalysis): string {
   if (!action.material_cost.complete) return "Missing price";
   return action.material_cost.total ? `${action.material_cost.total.amount} Ex` : "No cost";
 }
+
+export function economicValueLabel(value: { amount: string; unit: string } | null | undefined): string {
+  if (!value) return "Unavailable";
+  return value.unit === "EXALTED_ECONOMIC_UNIT" ? `${value.amount} Ex` : `${value.amount} ${value.unit}`;
+}
