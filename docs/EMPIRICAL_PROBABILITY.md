@@ -20,6 +20,12 @@ Task 15B connects this provider boundary to Advisor orchestration and
 `POST /api/v1/advisor/analyze`. API callers may select an explicit configured
 empirical dataset version with `empirical_probability_dataset_version`.
 
+Task 15C adds the observation import workflow documented in
+[EMPIRICAL_OBSERVATION_IMPORT.md](EMPIRICAL_OBSERVATION_IMPORT.md). It
+validates JSON/CSV observation batches, deduplicates raw record IDs, partitions
+incompatible contexts, and writes the raw empirical probability dataset shape
+consumed here.
+
 ## Raw Dataset Format
 
 Raw datasets live under `data/raw/probability/`.
