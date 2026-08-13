@@ -4,23 +4,10 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 
-from packages.shared.donniecraftshell_contracts.craft_outcomes import (
-    CraftOutcomeOperation,
-    CraftOutcomeSet,
-    HypotheticalItemState,
-    ItemStateDelta,
-    OutcomeProbabilityStatus,
-    OutcomeSpaceCompleteness,
-)
-from packages.shared.donniecraftshell_contracts.crafting_actions import CraftApplicabilityStatus
-from packages.shared.donniecraftshell_contracts.domain import (
-    AffixType,
-    GameContext,
-    ItemModifier,
-    ModifierOrigin,
-)
+from packages.shared.donniecraftshell_contracts.advisor_orchestration import CraftAdvisorOrchestrator
+from packages.shared.donniecraftshell_contracts.domain import GameContext
 from packages.shared.donniecraftshell_contracts.observation_recorder import (
     CraftObservationRecorder,
     OBSERVATION_RECORDER_VERSION,
@@ -28,6 +15,7 @@ from packages.shared.donniecraftshell_contracts.observation_recorder import (
 )
 from packages.shared.donniecraftshell_contracts.parser import parse_clipboard_item
 
+from services.api.app.dependencies.advisor import get_advisor_orchestrator
 from services.api.app.schemas.observations import (
     CraftObservationExportRequestDto,
     CraftObservationExportResponseDto,
@@ -41,7 +29,10 @@ router = APIRouter(prefix="/api/v1/observations", tags=["observations"])
 
 
 @router.post("/record", response_model=CraftObservationRecordResponseDto)
-def record_observation(request: CraftObservationRecordRequestDto) -> CraftObservationRecordResponseDto:
+def record_observation(
+    request: CraftObservationRecordRequestDto,
+    orchestrator: CraftAdvisorOrchestrator = Depends(get_advisor_orchestrator),
+) -> CraftObservationRecordResponseDto:
     if not request.before_clipboard_text.strip() or not request.after_clipboard_text.strip():
         raise HTTPException(
             status_code=400,
@@ -65,13 +56,14 @@ def record_observation(request: CraftObservationRecordRequestDto) -> CraftObserv
                 "reliable_no_result": True,
             },
         )
+    _validate_item_context(request, before.item, after.item)
+    outcome_set = _trusted_outcome_set(request, before.item, orchestrator)
 
     recorder = CraftObservationRecorder()
-    outcome_set = _outcome_set_from_request(request)
     if request.manual_outcome_id or request.manual_reason:
         classification = recorder.classify_manually(
             request.manual_outcome_id,
-            tuple(candidate.outcome_id for candidate in request.outcome_candidates),
+            tuple(state.outcome_id for state in outcome_set.hypothetical_states),
             request.manual_reason or "",
         )
     else:
@@ -81,7 +73,7 @@ def record_observation(request: CraftObservationRecordRequestDto) -> CraftObserv
         ObservationDraft(
             action_id=request.action_id,
             source_outcome_set_id=request.source_outcome_set_id,
-            item_class=request.item_class,
+            item_class=before.item.item_class or "",
             league=request.league,
             before_item=before.item,
             after_item=after.item,
@@ -121,33 +113,57 @@ def export_observations(request: CraftObservationExportRequestDto) -> CraftObser
     )
 
 
-def _outcome_set_from_request(request: CraftObservationRecordRequestDto) -> CraftOutcomeSet:
-    states = tuple(
-        HypotheticalItemState(
-            outcome_id=candidate.outcome_id,
-            source_item_analysis_id=request.source_outcome_set_id.split(":", 1)[0],
-            action_id=request.action_id,
-            deltas=(
-                ItemStateDelta(
-                    operation=CraftOutcomeOperation.REMOVE_MODIFIER,
-                    removed_modifier=ItemModifier(
-                        raw_text=candidate.removed_modifier_raw_text,
-                        affix_type=AffixType.UNKNOWN,
-                        origin=ModifierOrigin.NATURAL,
-                    ),
-                ),
-            )
-            if candidate.removed_modifier_raw_text
-            else (),
+def _validate_item_context(request: CraftObservationRecordRequestDto, before_item, after_item) -> None:
+    if before_item.item_class != after_item.item_class:
+        _bad_request("before and after item_class must match.")
+    if request.item_class and before_item.item_class != request.item_class:
+        _bad_request("request item_class does not match parsed before/after items.")
+    identity_fields = ("rarity", "base_type", "item_level", "required_level")
+    for field_name in identity_fields:
+        if getattr(before_item, field_name) != getattr(after_item, field_name):
+            _bad_request(f"before and after item {field_name} must match for recorder evidence.")
+    before_implicits = tuple(modifier.raw_text for modifier in before_item.implicit_modifiers)
+    after_implicits = tuple(modifier.raw_text for modifier in after_item.implicit_modifiers)
+    if before_implicits != after_implicits:
+        _bad_request("before and after implicit modifiers must match for recorder evidence.")
+
+
+def _trusted_outcome_set(request: CraftObservationRecordRequestDto, before_item, orchestrator: CraftAdvisorOrchestrator):
+    try:
+        action = next(
+            action
+            for action in orchestrator.craft_action_engine.dataset.actions
+            if action.action_id == request.action_id
         )
-        for candidate in request.outcome_candidates
+    except StopIteration as exc:
+        raise HTTPException(
+            status_code=400,
+            detail={
+                "code": "VALIDATION_ERROR",
+                "message": f"Unknown craft action: {request.action_id}",
+                "recoverable": True,
+                "reliable_no_result": True,
+            },
+        ) from exc
+    affix_state = orchestrator.affix_state_resolver.resolve(before_item)
+    applicability = orchestrator.craft_action_engine.evaluate_action(action, before_item, affix_state)
+    return orchestrator.outcome_engine.enumerate_outcomes(
+        before_item,
+        affix_state,
+        action,
+        applicability,
+        orchestrator.game_data_repository,
+        request.modifier_dataset_version,
     )
-    return CraftOutcomeSet(
-        action_id=request.action_id,
-        source_item_analysis_id=request.source_outcome_set_id.split(":", 1)[0],
-        applicability_status=CraftApplicabilityStatus.APPLICABLE,
-        outcome_definition=None,
-        hypothetical_states=states,
-        outcome_space_completeness=OutcomeSpaceCompleteness.PARTIAL,
-        probability_completeness=OutcomeProbabilityStatus.UNKNOWN,
+
+
+def _bad_request(message: str) -> None:
+    raise HTTPException(
+        status_code=400,
+        detail={
+            "code": "VALIDATION_ERROR",
+            "message": message,
+            "recoverable": True,
+            "reliable_no_result": True,
+        },
     )

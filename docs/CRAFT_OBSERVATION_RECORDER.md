@@ -23,13 +23,24 @@ or Advisor recommendations.
 ## Classification Semantics
 
 The first automatic classifier is intentionally conservative. It supports only a
-single explicit modifier removal that matches exactly one `CraftOutcomeSet`
-state. Ambiguous, unsupported, added-modifier, special-origin, corrupted, or
-otherwise unclear transitions are recorded as `UNCLASSIFIED`.
+single explicit modifier removal that matches exactly one backend-derived
+`CraftOutcomeSet` state. Client-supplied candidate IDs or modifier text are not
+authoritative for `AUTOMATIC` classification. Ambiguous, unsupported,
+added-modifier, special-origin, corrupted, or otherwise unclear transitions are
+recorded as `UNCLASSIFIED`.
 
 Manual classification is allowed, but it is preserved as `MANUAL` and requires
-an explicit outcome ID from the current outcome set. DonnieCraftShell never
-silently invents or guesses an outcome ID.
+an explicit outcome ID from the backend-derived current outcome set.
+DonnieCraftShell never silently invents or guesses an outcome ID.
+
+## Item Context Validation
+
+Recorder context is derived from parsed before/after item text. The API rejects
+records when the request item class does not match the parsed item class, when
+before/after item classes differ, or when conservative identity fields such as
+rarity, base type, item level, required level, or implicits differ. This prevents
+evidence labeled as one item context from being produced by unrelated item
+states.
 
 ## Raw Record ID Policy
 

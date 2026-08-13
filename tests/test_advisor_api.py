@@ -348,13 +348,85 @@ class AdvisorApiTests(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         body = response.json()
         self.assertEqual(body["classification"]["method"], "AUTOMATIC")
-        self.assertEqual(body["classification"]["outcome_id"], "outcome-entombing-removed")
+        self.assertTrue(body["classification"]["outcome_id"].startswith("outcome-"))
+        self.assertNotEqual(body["classification"]["outcome_id"], "outcome-entombing-removed")
         observation = empirical_observation_from_dict(body["export_record"])
         self.assertEqual(observation.raw_record_id, body["raw_record_id"])
         result = aggregate_observations(ObservationImportBatch((observation,)))
         self.assertEqual(result.accepted_record_count, 1)
 
+    def test_fabricated_client_outcome_candidate_cannot_create_automatic_classification(self):
+        before = fixture("quiver_6_crafted_desecrated_advanced.txt")
+        removed_raw = (
+            '{ Prefix Modifier "Entombing" (Tier: 1) — Damage, Elemental, Cold, Attack }\n'
+            "Adds 22(21-24) to 37(32-37) Cold damage to Attacks"
+        )
+        response = self.client.post(
+            "/api/v1/observations/record",
+            json={
+                "before_clipboard_text": before,
+                "after_clipboard_text": before.replace(removed_raw + "\n", ""),
+                "action_id": "dc:poe2:craft-action:orb-of-annulment",
+                "source_outcome_set_id": "analysis-test:dc:poe2:craft-action:orb-of-annulment",
+                "item_class": "Quivers",
+                "league": LEAGUE,
+                "observed_at": AS_OF,
+                "outcome_candidates": [
+                    {
+                        "outcome_id": "fabricated-client-outcome-id",
+                        "removed_modifier_raw_text": removed_raw,
+                    }
+                ],
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        body = response.json()
+        self.assertEqual(body["classification"]["method"], "AUTOMATIC")
+        self.assertNotEqual(body["classification"]["outcome_id"], "fabricated-client-outcome-id")
+
+    def test_observation_item_class_mismatch_is_rejected(self):
+        response = self.client.post(
+            "/api/v1/observations/record",
+            json={
+                "before_clipboard_text": fixture("quiver_6_crafted_desecrated_advanced.txt"),
+                "after_clipboard_text": fixture("quiver_6_crafted_desecrated_advanced.txt"),
+                "action_id": "dc:poe2:craft-action:orb-of-annulment",
+                "source_outcome_set_id": "analysis-test:dc:poe2:craft-action:orb-of-annulment",
+                "item_class": "Rings",
+                "league": LEAGUE,
+                "observed_at": AS_OF,
+            },
+        )
+
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("item_class", response.json()["detail"]["message"])
+
+    def test_incompatible_before_after_item_identity_is_rejected(self):
+        response = self.client.post(
+            "/api/v1/observations/record",
+            json={
+                "before_clipboard_text": fixture("quiver_6_crafted_desecrated_advanced.txt"),
+                "after_clipboard_text": fixture("quiver_6_crafted_desecrated_advanced.txt").replace(
+                    "Item Level: 82",
+                    "Item Level: 81",
+                ),
+                "action_id": "dc:poe2:craft-action:orb-of-annulment",
+                "source_outcome_set_id": "analysis-test:dc:poe2:craft-action:orb-of-annulment",
+                "item_class": "Quivers",
+                "league": LEAGUE,
+                "observed_at": AS_OF,
+                "manual_outcome_id": "fabricated-client-outcome-id",
+                "manual_reason": "attempt to classify mismatched items",
+            },
+        )
+
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("item_level", response.json()["detail"]["message"])
+
     def test_observation_manual_classification_is_labeled_manual(self):
+        initial = self.client.post("/api/v1/advisor/analyze", json=base_request()).json()
+        outcome_id = self._action(initial, "dc:poe2:craft-action:orb-of-annulment")["outcome_ids"][0]
         response = self.client.post(
             "/api/v1/observations/record",
             json={
@@ -365,15 +437,15 @@ class AdvisorApiTests(unittest.TestCase):
                 "item_class": "Quivers",
                 "league": LEAGUE,
                 "observed_at": AS_OF,
-                "manual_outcome_id": "outcome-manual",
+                "manual_outcome_id": outcome_id,
                 "manual_reason": "User explicitly selected the outcome.",
-                "outcome_candidates": [{"outcome_id": "outcome-manual"}],
             },
         )
 
         self.assertEqual(response.status_code, 200)
         body = response.json()
         self.assertEqual(body["classification"]["method"], "MANUAL")
+        self.assertEqual(body["classification"]["outcome_id"], outcome_id)
         self.assertEqual(body["export_record"]["classification_method"], "MANUAL")
 
     def test_unexpected_dependency_error_returns_5xx(self):
