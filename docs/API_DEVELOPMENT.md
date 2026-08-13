@@ -70,10 +70,13 @@ Do not silently use mutable `latest` datasets. No secrets or GGG credentials are
 
 ## TypeScript Generation Plan
 
-Do not hand-write duplicate frontend contracts. Once the frontend is ready, generate TypeScript types/client from OpenAPI with a tool such as:
+Do not hand-write duplicate frontend contracts. Task 14A generates TypeScript API types from the local FastAPI OpenAPI schema:
 
 ```bash
-npx openapi-typescript http://localhost:8000/openapi.json -o apps/web/src/api/openapi.d.ts
+cd apps/web
+npm run generate:openapi
 ```
 
-The exact command may change with the selected frontend client stack.
+The command exports `src/api/openapi.json` from the local FastAPI app and then writes `src/api/openapi.d.ts` using `openapi-typescript`. The generated TypeScript types are the frontend transport contract; domain rules remain in the backend/domain packages.
+
+The generated files may be refreshed without network access after backend dependencies and frontend npm dependencies are installed.

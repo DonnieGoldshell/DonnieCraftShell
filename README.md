@@ -50,6 +50,8 @@ tests/             Cross-service integration and acceptance tests
 
 The repository now contains the framework-independent DonnieCraftShell domain engines for the rare Quiver vertical slice plus a FastAPI transport layer for item parsing and Advisor analysis.
 
+The first frontend vertical slice lives in `apps/web/`. It is a Next.js + React + TypeScript Craft Advisor workbench that posts Quiver clipboard text to the Advisor API and renders partial analysis, action candidates, costs, missing requirements, and raw/risk-adjusted decisions without duplicating backend decision logic.
+
 Implemented API endpoints:
 
 - `GET /health`
@@ -81,3 +83,21 @@ http://localhost:8000/docs
 ```
 
 See `docs/ADVISOR_API.md` and `docs/API_DEVELOPMENT.md` for the Advisor endpoint contract, local configuration, and future TypeScript generation plan.
+
+## Frontend Development
+
+Install and run the web app from `apps/web/`:
+
+```bash
+npm install
+npm run generate:openapi
+npm run dev
+```
+
+Frontend checks:
+
+```bash
+npm run typecheck
+npm test
+npm run build
+```

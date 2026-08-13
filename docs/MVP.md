@@ -65,6 +65,7 @@ PASTE QUIVER
 - Task 12B applies risk and bankroll policy after raw EV ranking. Risk-adjusted decisions preserve raw economic results and never promote scenario-only actions.
 - Task 13A composes the vertical Rare Quiver pipeline through `CraftAdvisorOrchestrator`. Partial analysis is a valid successful result: Quiver parsing, enrichment, action legality, costs, outcomes, probability status, valuation coverage, scenario readiness, EV availability, raw Advisor decision, and optional risk adjustment are returned together without inventing missing inputs.
 - Task 13B exposes the vertical pipeline through `POST /api/v1/advisor/analyze` with Pydantic DTOs, explicit league/dataset context, manual valuation evidence inputs, structured partial responses, and OpenAPI transport schemas.
+- Task 14A provides the first web Craft Advisor workbench. It posts pasted Quiver clipboard text to the Advisor API, renders partial analysis and missing requirements honestly, and relies on generated OpenAPI TypeScript types instead of duplicating backend contracts.
 - Expected value, ROI, probability of profit, downside risk, and required capital are represented in the recommendation model, even if early implementations mark inputs as `NEEDS VERIFICATION`.
 - Craft session data can track item states, actions, costs, total invested, current estimated value, and unrealized profit/loss.
 
