@@ -12,6 +12,10 @@ export type MissingRequirement = components["schemas"]["MissingRequirementDto"];
 export type ManualListingObservation = components["schemas"]["ManualListingObservationDto"];
 export type ManualValuationEvidence = components["schemas"]["ManualValuationEvidenceDto"];
 export type OutcomeManualValuationEvidence = components["schemas"]["OutcomeManualValuationEvidenceDto"];
+export type CraftObservationRecordRequest = components["schemas"]["CraftObservationRecordRequestDto"];
+export type CraftObservationRecordResponse = components["schemas"]["CraftObservationRecordResponseDto"];
+export type CraftObservationExportRequest = components["schemas"]["CraftObservationExportRequestDto"];
+export type CraftObservationExportResponse = components["schemas"]["CraftObservationExportResponseDto"];
 
 export const EXALTED_ASSET_ID = "dc:poe2:economy-asset:currency:exalted-orb";
 export const DIVINE_ASSET_ID = "dc:poe2:economy-asset:currency:divine-orb";
@@ -50,4 +54,47 @@ export async function analyzeAdvisor(request: AdvisorAnalyzeRequest): Promise<Ad
   }
 
   return response.json() as Promise<AdvisorAnalyzeResponse>;
+}
+
+export async function recordCraftObservation(
+  request: CraftObservationRecordRequest
+): Promise<CraftObservationRecordResponse> {
+  const response = await fetch(`${API_BASE_URL}/api/v1/observations/record`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(request)
+  });
+
+  if (!response.ok) {
+    let message = `Observation recorder API returned ${response.status}`;
+    try {
+      const payload = await response.json();
+      message = payload?.detail?.message ?? payload?.detail ?? message;
+    } catch {
+      // Keep the status-based message.
+    }
+    throw new Error(message);
+  }
+
+  return response.json() as Promise<CraftObservationRecordResponse>;
+}
+
+export async function exportCraftObservations(
+  request: CraftObservationExportRequest
+): Promise<CraftObservationExportResponse> {
+  const response = await fetch(`${API_BASE_URL}/api/v1/observations/export`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(request)
+  });
+
+  if (!response.ok) {
+    throw new Error(`Observation export API returned ${response.status}`);
+  }
+
+  return response.json() as Promise<CraftObservationExportResponse>;
 }

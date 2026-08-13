@@ -235,7 +235,7 @@ describe("AdvisorWorkbench", () => {
     expect(screen.getByText("3/3 prefixes, 3/3 suffixes")).toBeInTheDocument();
     expect(screen.getByText("Advisor Decision")).toBeInTheDocument();
     expect(screen.getAllByText("No Recommendation").length).toBeGreaterThan(0);
-    expect(screen.getByText("Orb of Annulment")).toBeInTheDocument();
+    expect(screen.getAllByText("Orb of Annulment").length).toBeGreaterThan(0);
     expect(screen.getAllByText("Exalted Orb").length).toBeGreaterThan(0);
     expect(screen.getByText("Missing price")).toBeInTheDocument();
     expect(screen.getByText("No open explicit affix slot")).toBeInTheDocument();
@@ -299,7 +299,7 @@ describe("AdvisorWorkbench", () => {
     await screen.findByText("Primed Quiver");
 
     await user.selectOptions(screen.getByLabelText(/evidence subject/i), "outcome");
-    await user.selectOptions(screen.getByLabelText(/outcome id/i), "outcome-2");
+    await user.selectOptions(screen.getByLabelText(/^Outcome ID$/i), "outcome-2");
     await user.clear(screen.getByLabelText(/listing amount/i));
     await user.type(screen.getByLabelText(/listing amount/i), "110");
     await user.selectOptions(screen.getByLabelText(/currency/i), EXALTED_ASSET_ID);
@@ -359,5 +359,86 @@ describe("AdvisorWorkbench", () => {
 
     await waitFor(() => expect(screen.getByText("Clipboard text is malformed.")).toBeInTheDocument());
     expect(screen.queryByText("Primed Quiver")).not.toBeInTheDocument();
+  });
+
+  it("records, reviews, and exports one manual craft observation", async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => quiverResponse
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          raw_record_id: "manual-craft-observation-test",
+          classification: {
+            method: "MANUAL",
+            outcome_id: "outcome-1",
+            reason: "User explicitly selected the outcome.",
+            warnings: []
+          },
+          before_item_fingerprint: "before-fingerprint",
+          after_item_fingerprint: "after-fingerprint",
+          export_record: {
+            raw_record_id: "manual-craft-observation-test",
+            action_id: "dc:poe2:craft-action:orb-of-annulment",
+            source_outcome_set_id: "manual-recorder:dc:poe2:craft-action:orb-of-annulment",
+            item_class: "Quivers",
+            league: DEFAULT_LEAGUE,
+            observed_at: "2026-08-13T10:00:00Z",
+            source_id: "browser-manual-recorder-session",
+            source_type: "MANUAL_RESEARCH",
+            outcome_id: "outcome-1",
+            unclassified: false,
+            classification_method: "MANUAL"
+          },
+          warnings: ["Observation does not make probability evidence complete by itself."]
+        })
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          recorder_version: "dc-observation-recorder-v1",
+          exported_at: "2026-08-13T10:01:00Z",
+          observations: [
+            {
+              raw_record_id: "manual-craft-observation-test",
+              outcome_id: "outcome-1",
+              unclassified: false
+            }
+          ],
+          warnings: ["Recorder exports are raw observations; import/readiness gates still apply."]
+        })
+      });
+    vi.stubGlobal("fetch", fetchMock);
+    const user = userEvent.setup();
+
+    render(<AdvisorWorkbench />);
+    await user.type(screen.getByLabelText(/clipboard item text/i), "Item Class: Quivers\nRarity: Rare");
+    await user.click(screen.getByRole("button", { name: /analyze quiver/i }));
+    await screen.findByText("Craft Observation Recorder");
+
+    await user.selectOptions(screen.getByLabelText(/craft action/i), "dc:poe2:craft-action:orb-of-annulment");
+    await user.selectOptions(screen.getByLabelText(/manual outcome id/i), "outcome-1");
+    await user.type(screen.getByLabelText(/manual classification reason/i), "observed after craft");
+    await user.type(screen.getByLabelText(/after craft clipboard text/i), "Item Class: Quivers\nRarity: Rare\nafter");
+    await user.click(screen.getByRole("button", { name: /record observation/i }));
+
+    expect(await screen.findByText("MANUAL")).toBeInTheDocument();
+    expect(screen.getByText(/manual-cra.*n-test/i)).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: /export json/i }));
+    await screen.findByText(/dc-observation-recorder-v1/i);
+    const recordBody = JSON.parse(fetchMock.mock.calls[1][1].body as string);
+    expect(recordBody.manual_outcome_id).toBe("outcome-1");
+    expect(recordBody.manual_reason).toBe("observed after craft");
+    const exportBody = JSON.parse(fetchMock.mock.calls[2][1].body as string);
+    expect(exportBody.observations).toEqual([
+      expect.objectContaining({
+        raw_record_id: "manual-craft-observation-test",
+        classification_method: "MANUAL"
+      })
+    ]);
   });
 });

@@ -55,6 +55,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/observations/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Export Observations */
+        post: operations["export_observations_api_v1_observations_export_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/observations/record": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Record Observation */
+        post: operations["record_observation_api_v1_observations_record_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/health": {
         parameters: {
             query?: never;
@@ -276,6 +310,103 @@ export interface components {
              * @default false
              */
             reliable_no_result: boolean;
+        };
+        /** CraftObservationExportRequestDto */
+        CraftObservationExportRequestDto: {
+            /** Observations */
+            observations: {
+                [key: string]: unknown;
+            }[];
+        };
+        /** CraftObservationExportResponseDto */
+        CraftObservationExportResponseDto: {
+            /**
+             * Exported At
+             * Format: date-time
+             */
+            exported_at: string;
+            /** Observations */
+            observations: {
+                [key: string]: unknown;
+            }[];
+            /** Recorder Version */
+            recorder_version: string;
+            /**
+             * Warnings
+             * @default []
+             */
+            warnings: string[];
+        };
+        /** CraftObservationRecordRequestDto */
+        CraftObservationRecordRequestDto: {
+            /** Action Id */
+            action_id: string;
+            /** After Clipboard Text */
+            after_clipboard_text: string;
+            /** Before Clipboard Text */
+            before_clipboard_text: string;
+            /** Crafting Dataset Version */
+            crafting_dataset_version?: string | null;
+            /**
+             * Game
+             * @default Path of Exile 2
+             */
+            game: string;
+            /** Game Version */
+            game_version?: string | null;
+            /**
+             * Item Class
+             * @default Quivers
+             */
+            item_class: string;
+            /** League */
+            league: string;
+            /** Manual Outcome Id */
+            manual_outcome_id?: string | null;
+            /** Manual Reason */
+            manual_reason?: string | null;
+            /** Modifier Dataset Version */
+            modifier_dataset_version?: string | null;
+            /**
+             * Observed At
+             * Format: date-time
+             */
+            observed_at: string;
+            /** Outcome Candidates */
+            outcome_candidates?: components["schemas"]["OutcomeCandidateDto"][];
+            /**
+             * Source Id
+             * @default api-manual-craft-observation
+             */
+            source_id: string;
+            /** Source Outcome Set Id */
+            source_outcome_set_id: string;
+            /** Source Uri */
+            source_uri?: string | null;
+            /**
+             * Synthetic
+             * @default false
+             */
+            synthetic: boolean;
+        };
+        /** CraftObservationRecordResponseDto */
+        CraftObservationRecordResponseDto: {
+            /** After Item Fingerprint */
+            after_item_fingerprint: string;
+            /** Before Item Fingerprint */
+            before_item_fingerprint: string;
+            classification: components["schemas"]["ObservationClassificationDto"];
+            /** Export Record */
+            export_record: {
+                [key: string]: unknown;
+            };
+            /** Raw Record Id */
+            raw_record_id: string;
+            /**
+             * Warnings
+             * @default []
+             */
+            warnings: string[];
         };
         /** EconomicValueDto */
         EconomicValueDto: {
@@ -510,6 +641,27 @@ export interface components {
             tags: string[];
             /** Tier */
             tier?: string | null;
+        };
+        /** ObservationClassificationDto */
+        ObservationClassificationDto: {
+            /** Method */
+            method: string;
+            /** Outcome Id */
+            outcome_id?: string | null;
+            /** Reason */
+            reason: string;
+            /**
+             * Warnings
+             * @default []
+             */
+            warnings: string[];
+        };
+        /** OutcomeCandidateDto */
+        OutcomeCandidateDto: {
+            /** Outcome Id */
+            outcome_id: string;
+            /** Removed Modifier Raw Text */
+            removed_modifier_raw_text?: string | null;
         };
         /** OutcomeManualValuationEvidenceDto */
         OutcomeManualValuationEvidenceDto: {
@@ -786,6 +938,72 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ParseItemResponseDto"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    export_observations_api_v1_observations_export_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CraftObservationExportRequestDto"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CraftObservationExportResponseDto"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    record_observation_api_v1_observations_record_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CraftObservationRecordRequestDto"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CraftObservationRecordResponseDto"];
                 };
             };
             /** @description Validation Error */

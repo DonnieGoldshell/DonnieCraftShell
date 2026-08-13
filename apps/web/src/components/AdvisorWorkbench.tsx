@@ -14,6 +14,7 @@ import {
   type OutcomeManualValuationEvidence
 } from "@/api/advisor";
 import { ActionTable } from "./ActionTable";
+import { CraftObservationRecorderPanel } from "./CraftObservationRecorderPanel";
 import { DecisionPanel } from "./DecisionPanel";
 import { ItemSummary } from "./ItemSummary";
 import { ManualValuationPanel } from "./ManualValuationPanel";
@@ -128,6 +129,13 @@ export function AdvisorWorkbench() {
               <ItemSummary item={analysis.item} affixState={analysis.affix_state} />
               <DecisionPanel decision={analysis.decision} riskDecision={analysis.risk_adjusted_decision} />
               <ActionTable actions={analysis.actions} />
+              <CraftObservationRecorderPanel
+                actions={analysis.actions}
+                defaultBeforeText={clipboardText}
+                league={league}
+                craftingDatasetVersion={craftingDataset}
+                modifierDatasetVersion={gameDataDataset}
+              />
               <MissingRequirements requirements={analysis.missing_requirements} warnings={analysis.warnings} />
             </>
           ) : (

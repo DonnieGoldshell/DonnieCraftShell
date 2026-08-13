@@ -594,6 +594,232 @@
         "title": "ApiErrorDto",
         "type": "object"
       },
+      "CraftObservationExportRequestDto": {
+        "properties": {
+          "observations": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "title": "Observations",
+            "type": "array"
+          }
+        },
+        "required": [
+          "observations"
+        ],
+        "title": "CraftObservationExportRequestDto",
+        "type": "object"
+      },
+      "CraftObservationExportResponseDto": {
+        "properties": {
+          "exported_at": {
+            "format": "date-time",
+            "title": "Exported At",
+            "type": "string"
+          },
+          "observations": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "title": "Observations",
+            "type": "array"
+          },
+          "recorder_version": {
+            "title": "Recorder Version",
+            "type": "string"
+          },
+          "warnings": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Warnings",
+            "type": "array"
+          }
+        },
+        "required": [
+          "recorder_version",
+          "exported_at",
+          "observations"
+        ],
+        "title": "CraftObservationExportResponseDto",
+        "type": "object"
+      },
+      "CraftObservationRecordRequestDto": {
+        "properties": {
+          "action_id": {
+            "title": "Action Id",
+            "type": "string"
+          },
+          "after_clipboard_text": {
+            "title": "After Clipboard Text",
+            "type": "string"
+          },
+          "before_clipboard_text": {
+            "title": "Before Clipboard Text",
+            "type": "string"
+          },
+          "crafting_dataset_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Crafting Dataset Version"
+          },
+          "game": {
+            "default": "Path of Exile 2",
+            "title": "Game",
+            "type": "string"
+          },
+          "game_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Game Version"
+          },
+          "item_class": {
+            "default": "Quivers",
+            "title": "Item Class",
+            "type": "string"
+          },
+          "league": {
+            "title": "League",
+            "type": "string"
+          },
+          "manual_outcome_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Manual Outcome Id"
+          },
+          "manual_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Manual Reason"
+          },
+          "modifier_dataset_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Modifier Dataset Version"
+          },
+          "observed_at": {
+            "format": "date-time",
+            "title": "Observed At",
+            "type": "string"
+          },
+          "outcome_candidates": {
+            "items": {
+              "$ref": "#/components/schemas/OutcomeCandidateDto"
+            },
+            "title": "Outcome Candidates",
+            "type": "array"
+          },
+          "source_id": {
+            "default": "api-manual-craft-observation",
+            "title": "Source Id",
+            "type": "string"
+          },
+          "source_outcome_set_id": {
+            "title": "Source Outcome Set Id",
+            "type": "string"
+          },
+          "source_uri": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Uri"
+          },
+          "synthetic": {
+            "default": false,
+            "title": "Synthetic",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "before_clipboard_text",
+          "after_clipboard_text",
+          "action_id",
+          "source_outcome_set_id",
+          "league",
+          "observed_at"
+        ],
+        "title": "CraftObservationRecordRequestDto",
+        "type": "object"
+      },
+      "CraftObservationRecordResponseDto": {
+        "properties": {
+          "after_item_fingerprint": {
+            "title": "After Item Fingerprint",
+            "type": "string"
+          },
+          "before_item_fingerprint": {
+            "title": "Before Item Fingerprint",
+            "type": "string"
+          },
+          "classification": {
+            "$ref": "#/components/schemas/ObservationClassificationDto"
+          },
+          "export_record": {
+            "additionalProperties": true,
+            "title": "Export Record",
+            "type": "object"
+          },
+          "raw_record_id": {
+            "title": "Raw Record Id",
+            "type": "string"
+          },
+          "warnings": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Warnings",
+            "type": "array"
+          }
+        },
+        "required": [
+          "raw_record_id",
+          "classification",
+          "before_item_fingerprint",
+          "after_item_fingerprint",
+          "export_record"
+        ],
+        "title": "CraftObservationRecordResponseDto",
+        "type": "object"
+      },
       "EconomicValueDto": {
         "properties": {
           "amount": {
@@ -1265,6 +1491,67 @@
         "title": "ModifierDto",
         "type": "object"
       },
+      "ObservationClassificationDto": {
+        "properties": {
+          "method": {
+            "title": "Method",
+            "type": "string"
+          },
+          "outcome_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Outcome Id"
+          },
+          "reason": {
+            "title": "Reason",
+            "type": "string"
+          },
+          "warnings": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Warnings",
+            "type": "array"
+          }
+        },
+        "required": [
+          "method",
+          "reason"
+        ],
+        "title": "ObservationClassificationDto",
+        "type": "object"
+      },
+      "OutcomeCandidateDto": {
+        "properties": {
+          "outcome_id": {
+            "title": "Outcome Id",
+            "type": "string"
+          },
+          "removed_modifier_raw_text": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Removed Modifier Raw Text"
+          }
+        },
+        "required": [
+          "outcome_id"
+        ],
+        "title": "OutcomeCandidateDto",
+        "type": "object"
+      },
       "OutcomeManualValuationEvidenceDto": {
         "properties": {
           "evidence": {
@@ -1923,6 +2210,88 @@
         "summary": "Parse Item",
         "tags": [
           "items"
+        ]
+      }
+    },
+    "/api/v1/observations/export": {
+      "post": {
+        "operationId": "export_observations_api_v1_observations_export_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CraftObservationExportRequestDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CraftObservationExportResponseDto"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Export Observations",
+        "tags": [
+          "observations"
+        ]
+      }
+    },
+    "/api/v1/observations/record": {
+      "post": {
+        "operationId": "record_observation_api_v1_observations_record_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CraftObservationRecordRequestDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CraftObservationRecordResponseDto"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Record Observation",
+        "tags": [
+          "observations"
         ]
       }
     },

@@ -69,10 +69,12 @@ class AdvisorApiTests(unittest.TestCase):
         openapi = self.client.get("/openapi.json").json()
 
         self.assertIn("/api/v1/advisor/analyze", openapi["paths"])
+        self.assertIn("/api/v1/observations/record", openapi["paths"])
         schema_names = set(openapi["components"]["schemas"])
         self.assertIn("AdvisorAnalyzeRequestDto", schema_names)
         self.assertIn("AdvisorAnalyzeResponseDto", schema_names)
         self.assertIn("ProbabilitySummaryDto", schema_names)
+        self.assertIn("CraftObservationRecordRequestDto", schema_names)
 
     def test_valid_quiver_6_partial_response(self):
         response = self.client.post("/api/v1/advisor/analyze", json=base_request())
@@ -302,6 +304,77 @@ class AdvisorApiTests(unittest.TestCase):
         annulment = self._action(response.json(), "dc:poe2:craft-action:orb-of-annulment")
         self.assertEqual(annulment["probability"]["completeness"], "UNKNOWN")
         self.assertTrue(any("does not match" in warning for warning in annulment["warnings"]))
+
+    def test_observation_record_endpoint_exports_importer_compatible_record(self):
+        from packages.shared.donniecraftshell_contracts.empirical_observation_import import (
+            ObservationImportBatch,
+            aggregate_observations,
+            empirical_observation_from_dict,
+        )
+
+        before = fixture("quiver_6_crafted_desecrated_advanced.txt")
+        removed_raw = (
+            '{ Prefix Modifier "Entombing" (Tier: 1) — Damage, Elemental, Cold, Attack }\n'
+            "Adds 22(21-24) to 37(32-37) Cold damage to Attacks"
+        )
+        after = before.replace(
+            removed_raw + "\n",
+            "",
+        )
+        response = self.client.post(
+            "/api/v1/observations/record",
+            json={
+                "before_clipboard_text": before,
+                "after_clipboard_text": after,
+                "action_id": "dc:poe2:craft-action:orb-of-annulment",
+                "source_outcome_set_id": "analysis-test:dc:poe2:craft-action:orb-of-annulment",
+                "item_class": "Quivers",
+                "league": LEAGUE,
+                "observed_at": AS_OF,
+                "source_id": "api-test-recorder",
+                "game_version": "synthetic-test-version",
+                "crafting_dataset_version": CRAFTING_DATASET_ID,
+                "modifier_dataset_version": GAME_DATASET_ID,
+                "synthetic": True,
+                "outcome_candidates": [
+                    {
+                        "outcome_id": "outcome-entombing-removed",
+                        "removed_modifier_raw_text": removed_raw,
+                    }
+                ],
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        body = response.json()
+        self.assertEqual(body["classification"]["method"], "AUTOMATIC")
+        self.assertEqual(body["classification"]["outcome_id"], "outcome-entombing-removed")
+        observation = empirical_observation_from_dict(body["export_record"])
+        self.assertEqual(observation.raw_record_id, body["raw_record_id"])
+        result = aggregate_observations(ObservationImportBatch((observation,)))
+        self.assertEqual(result.accepted_record_count, 1)
+
+    def test_observation_manual_classification_is_labeled_manual(self):
+        response = self.client.post(
+            "/api/v1/observations/record",
+            json={
+                "before_clipboard_text": fixture("quiver_6_crafted_desecrated_advanced.txt"),
+                "after_clipboard_text": fixture("quiver_6_crafted_desecrated_advanced.txt"),
+                "action_id": "dc:poe2:craft-action:orb-of-annulment",
+                "source_outcome_set_id": "analysis-test:dc:poe2:craft-action:orb-of-annulment",
+                "item_class": "Quivers",
+                "league": LEAGUE,
+                "observed_at": AS_OF,
+                "manual_outcome_id": "outcome-manual",
+                "manual_reason": "User explicitly selected the outcome.",
+                "outcome_candidates": [{"outcome_id": "outcome-manual"}],
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        body = response.json()
+        self.assertEqual(body["classification"]["method"], "MANUAL")
+        self.assertEqual(body["export_record"]["classification_method"], "MANUAL")
 
     def test_unexpected_dependency_error_returns_5xx(self):
         from fastapi.testclient import TestClient

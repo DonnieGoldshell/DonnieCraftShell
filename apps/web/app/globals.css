@@ -278,11 +278,23 @@ th {
   margin: 14px 0;
 }
 
+.recorder-form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin: 14px 0;
+}
+
+.recorder-form textarea {
+  min-height: 160px;
+}
+
 .wide-field {
   grid-column: 1 / -1;
 }
 
-.evidence-panel {
+.evidence-panel,
+.recorder-panel {
   border-left: 4px solid var(--accent);
 }
 
@@ -322,6 +334,7 @@ th {
 
   .workspace,
   .evidence-form,
+  .recorder-form,
   .facts-grid,
   .mod-columns {
     grid-template-columns: 1fr;
