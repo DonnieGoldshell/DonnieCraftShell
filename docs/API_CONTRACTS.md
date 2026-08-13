@@ -75,6 +75,12 @@ Task 13B implements `POST /api/v1/advisor/analyze`. See [ADVISOR_API.md](ADVISOR
 
 Task 15B extends the same endpoint with optional empirical probability dataset selection and serialized probability evidence details. Default production assembly skips synthetic empirical fixtures and keeps real actions `UNKNOWN` without compatible evidence.
 
+Task 15C adds an offline operator workflow rather than a public HTTP endpoint:
+`scripts/import_empirical_observations.py` reads JSON/CSV observation batches and
+writes Task 15A-compatible raw empirical probability datasets. Future API
+collection endpoints must preserve the same raw record identity, provenance,
+context partitioning, unclassified handling, and no-fabrication policy.
+
 See [API_DEVELOPMENT.md](API_DEVELOPMENT.md) for FastAPI/Pydantic version assumptions, local startup, configuration, and future OpenAPI-to-TypeScript generation.
 
 Task 14A adds the first frontend consumer for `POST /api/v1/advisor/analyze`. The web app uses generated OpenAPI TypeScript types under `apps/web/src/api/` and must not manually duplicate response DTOs or reimplement Advisor logic. The UI treats partial analysis, unsupported items, and `NO_RECOMMENDATION` as successful transport states rather than HTTP failures.

@@ -69,6 +69,7 @@ PASTE QUIVER
 - Task 14B extends the web workbench with manual comparable listing observation entry for the current item and API-exposed hypothetical outcome IDs. The frontend still does not calculate valuation; it sends evidence to the backend and renders returned readiness/results.
 - Task 15A adds offline empirical probability evidence ingestion for explicit outcome-count observations. This enables synthetic and future source-backed `EMPIRICAL_ESTIMATE` models, but current real actions remain `UNKNOWN` unless compatible empirical evidence is explicitly supplied. No equal-probability fallback is allowed.
 - Task 15B connects empirical probability evidence to Advisor orchestration and API responses. Production defaults do not load synthetic fixtures, and empirical evidence must match explicit league/game/dataset context before it can affect EV readiness.
+- Task 15C adds an offline JSON/CSV import workflow for raw crafting observations. It deduplicates raw record IDs, preserves unclassified observations in the denominator, partitions incompatible contexts, and writes Task 15A-compatible raw empirical datasets without fabricating observations.
 - Expected value, ROI, probability of profit, downside risk, and required capital are represented in the recommendation model, even if early implementations mark inputs as `NEEDS VERIFICATION`.
 - Craft session data can track item states, actions, costs, total invested, current estimated value, and unrealized profit/loss.
 

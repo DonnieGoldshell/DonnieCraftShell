@@ -57,6 +57,11 @@ API dependency assembly. Production/default assembly uses only explicitly
 configured offline empirical dataset paths and skips synthetic fixtures; tests
 may inject synthetic datasets explicitly.
 
+Task 15C adds an offline empirical observation import workflow. Observation
+JSON/CSV batches are validated, deduplicated, partitioned by context, and
+aggregated into the raw empirical probability dataset shape. This still performs
+no scraping and does not make real actions numeric without compatible evidence.
+
 ## Item-Class Modularity
 
 Quiver logic belongs behind item-class interfaces. Future bows, rings, amulets, and armour modules should supply their own base definitions, modifier mappings, affix rules, legal action providers, and valuation features without changing the core engines.
