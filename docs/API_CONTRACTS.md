@@ -73,6 +73,8 @@ Task 13B implements `POST /api/v1/advisor/analyze`. See [ADVISOR_API.md](ADVISOR
 
 See [API_DEVELOPMENT.md](API_DEVELOPMENT.md) for FastAPI/Pydantic version assumptions, local startup, configuration, and future OpenAPI-to-TypeScript generation.
 
+Task 14A adds the first frontend consumer for `POST /api/v1/advisor/analyze`. The web app uses generated OpenAPI TypeScript types under `apps/web/src/api/` and must not manually duplicate response DTOs or reimplement Advisor logic. The UI treats partial analysis, unsupported items, and `NO_RECOMMENDATION` as successful transport states rather than HTTP failures.
+
 ## Error Model
 
 Common API errors use:

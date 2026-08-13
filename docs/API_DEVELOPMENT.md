@@ -64,16 +64,37 @@ Configured defaults are explicit and returned in responses:
 - affix-capacity dataset ID/path,
 - economy snapshot paths,
 - supported leagues,
+- CORS allowed origins,
 - environment.
 
 Do not silently use mutable `latest` datasets. No secrets or GGG credentials are required for Task 13B.
 
-## TypeScript Generation Plan
+## CORS
 
-Do not hand-write duplicate frontend contracts. Once the frontend is ready, generate TypeScript types/client from OpenAPI with a tool such as:
+The API uses a narrow configurable CORS allow-list so the local Next.js frontend can call FastAPI from the browser. The default local/offline policy allows:
 
-```bash
-npx openapi-typescript http://localhost:8000/openapi.json -o apps/web/src/api/openapi.d.ts
+```text
+http://localhost:3000
+http://127.0.0.1:3000
 ```
 
-The exact command may change with the selected frontend client stack.
+Override it with a comma-separated environment variable:
+
+```bash
+DCS_CORS_ALLOWED_ORIGINS=http://localhost:3000,http://127.0.0.1:3000
+```
+
+Do not use unrestricted `*` origins as a production default. Add deployed frontend origins explicitly when the app is hosted.
+
+## TypeScript Generation Plan
+
+Do not hand-write duplicate frontend contracts. Task 14A generates TypeScript API types from the local FastAPI OpenAPI schema:
+
+```bash
+cd apps/web
+npm run generate:openapi
+```
+
+The command exports `src/api/openapi.json` from the local FastAPI app and then writes `src/api/openapi.d.ts` using `openapi-typescript`. The generated TypeScript types are the frontend transport contract; domain rules remain in the backend/domain packages.
+
+The generated files may be refreshed without network access after backend dependencies and frontend npm dependencies are installed.

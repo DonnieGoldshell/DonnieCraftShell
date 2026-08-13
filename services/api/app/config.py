@@ -21,6 +21,7 @@ class ApiSettings:
     default_affix_capacity_path: Path
     economy_snapshot_paths: tuple[Path, ...]
     supported_leagues: tuple[str, ...]
+    cors_allowed_origins: tuple[str, ...]
 
 
 def get_settings() -> ApiSettings:
@@ -45,5 +46,10 @@ def get_settings() -> ApiSettings:
             league.strip()
             for league in os.getenv("DCS_SUPPORTED_LEAGUES", "Runes of Aldur").split(",")
             if league.strip()
+        ),
+        cors_allowed_origins=tuple(
+            origin.strip()
+            for origin in os.getenv("DCS_CORS_ALLOWED_ORIGINS", "http://localhost:3000,http://127.0.0.1:3000").split(",")
+            if origin.strip()
         ),
     )
