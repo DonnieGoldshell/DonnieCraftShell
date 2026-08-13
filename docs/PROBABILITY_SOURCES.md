@@ -48,3 +48,8 @@ This action remains probability `UNKNOWN`.
 ## Empirical Evidence
 
 No public empirical dataset was accepted as authoritative in Task 9A. Empirical estimates should be modeled as `EMPIRICAL_ESTIMATE` with sample size, confidence interval, patch/version, and methodology. They must never be presented as exact mechanics.
+
+Task 15A adds a synthetic offline fixture only to prove the empirical pipeline.
+It is marked `synthetic` and `test-only`, carries local provenance, and is not a
+real PoE2 probability source. No real public empirical probability dataset was
+ingested in Task 15A.

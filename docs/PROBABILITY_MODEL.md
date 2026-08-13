@@ -27,6 +27,12 @@ Executable contracts live in `packages/shared/donniecraftshell_contracts/probabi
 - `ProbabilityProvider`: provider interface.
 - `CurrentResearchProbabilityProvider`: Task 9A-compliant provider returning explicit unknown final probabilities for current real actions.
 
+Task 15A adds the empirical evidence pipeline in `empirical_probability.py`.
+It loads offline outcome-count observations, validates context and
+provenance, and emits `EMPIRICAL_ESTIMATE` evidence through the existing
+`OutcomeProbabilityModel` contract. See
+[EMPIRICAL_PROBABILITY.md](EMPIRICAL_PROBABILITY.md).
+
 ## Invariants
 
 Known numeric probabilities use `Decimal` and must satisfy `0 <= p <= 1`. Binary floating point is rejected.
@@ -38,6 +44,10 @@ If `probability_completeness = COMPLETE`, every outcome must have a numeric prob
 If `probability_completeness = PARTIAL`, known mass may be less than `1`.
 
 If `probability_completeness = UNKNOWN`, no normalization is performed and no equal distribution fallback is allowed.
+
+Empirical evidence uses observed frequencies from preserved raw counts. Missing,
+unclassified, unmapped, or context-incompatible observations do not become zero
+probabilities and do not pass EV readiness.
 
 ## Current Action Status
 

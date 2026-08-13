@@ -67,6 +67,7 @@ PASTE QUIVER
 - Task 13B exposes the vertical pipeline through `POST /api/v1/advisor/analyze` with Pydantic DTOs, explicit league/dataset context, manual valuation evidence inputs, structured partial responses, and OpenAPI transport schemas.
 - Task 14A provides the first web Craft Advisor workbench. It posts pasted Quiver clipboard text to the Advisor API, renders partial analysis and missing requirements honestly, and relies on generated OpenAPI TypeScript types instead of duplicating backend contracts.
 - Task 14B extends the web workbench with manual comparable listing observation entry for the current item and API-exposed hypothetical outcome IDs. The frontend still does not calculate valuation; it sends evidence to the backend and renders returned readiness/results.
+- Task 15A adds offline empirical probability evidence ingestion for explicit outcome-count observations. This enables synthetic and future source-backed `EMPIRICAL_ESTIMATE` models, but current real actions remain `UNKNOWN` unless compatible empirical evidence is explicitly supplied. No equal-probability fallback is allowed.
 - Expected value, ROI, probability of profit, downside risk, and required capital are represented in the recommendation model, even if early implementations mark inputs as `NEEDS VERIFICATION`.
 - Craft session data can track item states, actions, costs, total invested, current estimated value, and unrealized profit/loss.
 

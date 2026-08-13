@@ -1,0 +1,34 @@
+{
+  "dataset_id": "synthetic-empirical-probability-2026-08-13-test-only",
+  "action_id": "dc:test:craft-action:synthetic-annulment",
+  "source_outcome_set_id": "synthetic-quiver-analysis:dc:test:craft-action:synthetic-annulment",
+  "game": "Path of Exile 2",
+  "league": "Synthetic Test League",
+  "item_class": "Quivers",
+  "game_version": "synthetic-test-version",
+  "crafting_dataset_version": "synthetic-crafting-dataset",
+  "modifier_dataset_version": "synthetic-modifier-dataset",
+  "retrieved_at": "2026-08-13T00:00:00+00:00",
+  "source_uri": "local://tests/synthetic-empirical-annulment-outcomes",
+  "source_type": "INTERNAL",
+  "synthetic": true,
+  "verification_status": "NEEDS_VERIFICATION",
+  "methodology": "synthetic controlled unit-test outcome counts",
+  "notes": "Synthetic test-only data used to prove empirical probability plumbing; not PoE2 market or gameplay evidence.",
+  "warnings": [
+    "Synthetic fixture must not be loaded as production probability evidence."
+  ],
+  "unclassified_count": 0,
+  "observations": [
+    {
+      "outcome_id": "synthetic-outcome-a",
+      "observed_count": 25,
+      "raw_record_ids": ["synthetic-record-001"]
+    },
+    {
+      "outcome_id": "synthetic-outcome-b",
+      "observed_count": 75,
+      "raw_record_ids": ["synthetic-record-002"]
+    }
+  ]
+}
