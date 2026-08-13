@@ -83,6 +83,17 @@ context partitioning, unclassified handling, and no-fabrication policy.
 Aggregated dataset IDs must include both context and accepted observation
 content so independent batches cannot collide under the same context.
 
+Task 16A implements `POST /api/v1/observations/record` and
+`POST /api/v1/observations/export` for the manual empirical craft observation
+recorder. See [CRAFT_OBSERVATION_RECORDER.md](CRAFT_OBSERVATION_RECORDER.md).
+The endpoints map before/after clipboard observations into stable raw record
+IDs and Task 15C-compatible export records. They do not persist a database
+session, calculate probabilities, or alter Advisor readiness. Automatic
+classification must use backend-derived outcome enumeration; request-supplied
+candidate data is not trusted as evidence for `AUTOMATIC` results. Exported
+source outcome-set and dataset-version provenance must be backend-derived or
+strictly validated against configured backend datasets.
+
 See [API_DEVELOPMENT.md](API_DEVELOPMENT.md) for FastAPI/Pydantic version assumptions, local startup, configuration, and future OpenAPI-to-TypeScript generation.
 
 Task 14A adds the first frontend consumer for `POST /api/v1/advisor/analyze`. The web app uses generated OpenAPI TypeScript types under `apps/web/src/api/` and must not manually duplicate response DTOs or reimplement Advisor logic. The UI treats partial analysis, unsupported items, and `NO_RECOMMENDATION` as successful transport states rather than HTTP failures.

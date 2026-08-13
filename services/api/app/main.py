@@ -12,7 +12,7 @@ except ModuleNotFoundError as exc:  # pragma: no cover - documents missing deps
     ) from exc
 
 from services.api.app.config import get_settings
-from services.api.app.routes import advisor, health, items
+from services.api.app.routes import advisor, health, items, observations
 
 
 app = FastAPI(title="DonnieCraftShell API", version="0.1.0")
@@ -28,3 +28,4 @@ if settings.cors_allowed_origins:
 app.include_router(health.router)
 app.include_router(items.router)
 app.include_router(advisor.router)
+app.include_router(observations.router)

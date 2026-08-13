@@ -62,6 +62,12 @@ JSON/CSV batches are validated, deduplicated, partitioned by context, and
 aggregated into the raw empirical probability dataset shape. This still performs
 no scraping and does not make real actions numeric without compatible evidence.
 
+Task 16A adds a manual craft observation recorder before the import workflow.
+The recorder captures before/after clipboard text, item fingerprints,
+classification method, and Task 15C-compatible raw records. It is evidence
+collection only; probability, EV, valuation, and Advisor readiness remain owned
+by their existing engines.
+
 ## Item-Class Modularity
 
 Quiver logic belongs behind item-class interfaces. Future bows, rings, amulets, and armour modules should supply their own base definitions, modifier mappings, affix rules, legal action providers, and valuation features without changing the core engines.

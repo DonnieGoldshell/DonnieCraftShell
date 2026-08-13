@@ -70,6 +70,7 @@ PASTE QUIVER
 - Task 15A adds offline empirical probability evidence ingestion for explicit outcome-count observations. This enables synthetic and future source-backed `EMPIRICAL_ESTIMATE` models, but current real actions remain `UNKNOWN` unless compatible empirical evidence is explicitly supplied. No equal-probability fallback is allowed.
 - Task 15B connects empirical probability evidence to Advisor orchestration and API responses. Production defaults do not load synthetic fixtures, and empirical evidence must match explicit league/game/dataset context before it can affect EV readiness.
 - Task 15C adds an offline JSON/CSV import workflow for raw crafting observations. It deduplicates raw record IDs, preserves unclassified observations in the denominator, partitions incompatible contexts, and writes Task 15A-compatible raw empirical datasets without fabricating observations.
+- Task 16A adds a manual craft observation recorder to the web/API vertical slice. Users can paste before/after craft clipboard text, classify defensible outcomes automatically or manually, preserve unclassified observations, review local-session records, and export Task 15C-compatible JSON. Recording observations does not itself change probability readiness.
 - Expected value, ROI, probability of profit, downside risk, and required capital are represented in the recommendation model, even if early implementations mark inputs as `NEEDS VERIFICATION`.
 - Craft session data can track item states, actions, costs, total invested, current estimated value, and unrealized profit/loss.
 
