@@ -1,4 +1,6 @@
+import importlib
 import importlib.util
+import os
 import unittest
 from datetime import datetime, timezone
 from decimal import Decimal
@@ -109,6 +111,63 @@ class AdvisorApiTests(unittest.TestCase):
 
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.json()["detail"]["code"], "VALIDATION_ERROR")
+
+    def test_configured_frontend_origin_receives_cors_preflight(self):
+        response = self.client.options(
+            "/api/v1/advisor/analyze",
+            headers={
+                "Origin": "http://localhost:3000",
+                "Access-Control-Request-Method": "POST",
+                "Access-Control-Request-Headers": "content-type",
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.headers["access-control-allow-origin"], "http://localhost:3000")
+        self.assertIn("POST", response.headers["access-control-allow-methods"])
+
+    def test_unconfigured_origin_does_not_receive_cors_allow_origin(self):
+        response = self.client.options(
+            "/api/v1/advisor/analyze",
+            headers={
+                "Origin": "https://example.invalid",
+                "Access-Control-Request-Method": "POST",
+                "Access-Control-Request-Headers": "content-type",
+            },
+        )
+
+        self.assertEqual(response.status_code, 400)
+        self.assertNotIn("access-control-allow-origin", response.headers)
+
+    def test_cors_allowed_origins_are_configurable(self):
+        from fastapi.testclient import TestClient
+        import services.api.app.config as api_config
+        import services.api.app.main as api_main
+
+        previous = os.environ.get("DCS_CORS_ALLOWED_ORIGINS")
+        os.environ["DCS_CORS_ALLOWED_ORIGINS"] = "http://custom.local:3000"
+        try:
+            importlib.reload(api_config)
+            api_main = importlib.reload(api_main)
+            client = TestClient(api_main.app)
+            response = client.options(
+                "/api/v1/advisor/analyze",
+                headers={
+                    "Origin": "http://custom.local:3000",
+                    "Access-Control-Request-Method": "POST",
+                    "Access-Control-Request-Headers": "content-type",
+                },
+            )
+        finally:
+            if previous is None:
+                os.environ.pop("DCS_CORS_ALLOWED_ORIGINS", None)
+            else:
+                os.environ["DCS_CORS_ALLOWED_ORIGINS"] = previous
+            importlib.reload(api_config)
+            importlib.reload(api_main)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.headers["access-control-allow-origin"], "http://custom.local:3000")
 
     def test_decimal_timestamps_and_uuid_serialize_as_strings(self):
         response = self.client.post("/api/v1/advisor/analyze", json=base_request())

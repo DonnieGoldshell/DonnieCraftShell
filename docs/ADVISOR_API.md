@@ -10,6 +10,17 @@ POST /api/v1/advisor/analyze
 
 The endpoint performs no external network calls. It uses configured local/offline repositories plus request-supplied manual valuation evidence.
 
+## Browser Access / CORS
+
+The local API is configured to allow the local Next.js frontend origin by default:
+
+```text
+http://localhost:3000
+http://127.0.0.1:3000
+```
+
+Use `DCS_CORS_ALLOWED_ORIGINS` to configure a comma-separated allow-list for other environments. Keep the allow-list explicit; do not use `*` as the production default.
+
 ## Request
 
 Required fields:

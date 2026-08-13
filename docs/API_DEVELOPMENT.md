@@ -64,9 +64,27 @@ Configured defaults are explicit and returned in responses:
 - affix-capacity dataset ID/path,
 - economy snapshot paths,
 - supported leagues,
+- CORS allowed origins,
 - environment.
 
 Do not silently use mutable `latest` datasets. No secrets or GGG credentials are required for Task 13B.
+
+## CORS
+
+The API uses a narrow configurable CORS allow-list so the local Next.js frontend can call FastAPI from the browser. The default local/offline policy allows:
+
+```text
+http://localhost:3000
+http://127.0.0.1:3000
+```
+
+Override it with a comma-separated environment variable:
+
+```bash
+DCS_CORS_ALLOWED_ORIGINS=http://localhost:3000,http://127.0.0.1:3000
+```
+
+Do not use unrestricted `*` origins as a production default. Add deployed frontend origins explicitly when the app is hosted.
 
 ## TypeScript Generation Plan
 

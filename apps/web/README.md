@@ -54,3 +54,12 @@ NEXT_PUBLIC_API_BASE_URL=http://localhost:8000
 ## API Contract
 
 `src/api/openapi.json` and `src/api/openapi.d.ts` are generated from FastAPI OpenAPI using `openapi-typescript`. Do not hand-write duplicate frontend API contracts.
+
+## Dependency Audit
+
+Task 14A uses npm overrides for two transitive packages pulled through `next`:
+
+- `postcss` is overridden to `^8.5.26`.
+- `sharp` is overridden to `^0.35.0`.
+
+This resolves the initial high-severity `npm audit` findings for PostCSS source-map disclosure/path traversal advisories and the sharp/libvips advisory without moving the app to a Next.js major-version preview.
