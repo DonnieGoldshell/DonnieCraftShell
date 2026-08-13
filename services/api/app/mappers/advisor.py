@@ -49,6 +49,10 @@ from services.api.app.schemas.advisor import (
     MaterialRequirementDto,
     MissingRequirementDto,
     ModifierDto,
+    OutcomeProbabilitySummaryDto,
+    ProbabilityEvidenceSummaryDto,
+    ProbabilityIntervalDto,
+    ProbabilitySummaryDto,
     RiskAdjustedDecisionDto,
     ScenarioSummaryDto,
 )
@@ -97,6 +101,7 @@ def advisor_request_to_domain(
         game_data_dataset_version=request.game_data_dataset_version,
         crafting_dataset_version=request.crafting_dataset_version,
         affix_capacity_dataset_version=request.affix_capacity_dataset_version,
+        empirical_probability_dataset_version=request.empirical_probability_dataset_version,
         current_valuation=current_valuation,
         outcome_valuations_by_outcome_id=outcome_valuations,
         risk_context=_risk_context(request),
@@ -114,6 +119,7 @@ def advisor_result_to_dto(result: AdvisorAnalysisResult) -> AdvisorAnalyzeRespon
             game_data_dataset_version=result.dataset_versions[0] if len(result.dataset_versions) > 0 else "",
             crafting_dataset_version=result.dataset_versions[1] if len(result.dataset_versions) > 1 else "",
             affix_capacity_dataset_version=result.dataset_versions[2] if len(result.dataset_versions) > 2 else "",
+            empirical_probability_dataset_version=result.dataset_versions[3] if len(result.dataset_versions) > 3 else None,
             as_of=result.as_of,
             economy_snapshot_ids=list(result.economy_snapshot_ids),
         ),
@@ -313,11 +319,60 @@ def _action_result_to_dto(action_result, advisor_status: str | None) -> ActionAn
             if action_result.probability_model
             else None
         ),
+        probability=_probability_to_dto(action_result.probability_model),
         scenario=_scenario_to_dto(scenario),
         expected_value=_ev_to_dto(ev),
         advisor_candidate_status=advisor_status,
         warnings=list(action_result.warnings),
         missing_requirements=[_missing_to_dto(item) for item in action_result.missing_requirements],
+    )
+
+
+def _probability_to_dto(model) -> ProbabilitySummaryDto | None:
+    if model is None:
+        return None
+    return ProbabilitySummaryDto(
+        source_outcome_set_id=model.source_outcome_set_id,
+        completeness=model.probability_completeness.value,
+        total_known_probability_mass=(
+            str(model.total_known_probability_mass)
+            if model.total_known_probability_mass is not None
+            else None
+        ),
+        methodology_summary=model.methodology_summary,
+        known_outcome_count=sum(1 for item in model.outcome_probabilities if item.probability is not None),
+        outcome_count=len(model.outcome_probabilities),
+        dataset_versions=list(model.dataset_versions),
+        outcome_probabilities=[
+            OutcomeProbabilitySummaryDto(
+                outcome_id=item.outcome_id,
+                probability=str(item.probability) if item.probability is not None else None,
+                evidence=[
+                    ProbabilityEvidenceSummaryDto(
+                        evidence_id=evidence.evidence_id,
+                        probability_type=evidence.probability_type.value,
+                        outcome_id=evidence.outcome_id,
+                        probability=str(evidence.probability) if evidence.probability is not None else None,
+                        methodology=evidence.methodology,
+                        sample_size=evidence.sample_size,
+                        uncertainty_interval=(
+                            ProbabilityIntervalDto(
+                                lower=str(evidence.uncertainty_interval.lower),
+                                upper=str(evidence.uncertainty_interval.upper),
+                            )
+                            if evidence.uncertainty_interval is not None
+                            else None
+                        ),
+                        evidence_dataset_version=evidence.evidence_dataset_version,
+                        warnings=list(evidence.warnings),
+                    )
+                    for evidence in item.evidence
+                ],
+                warnings=list(item.warnings),
+            )
+            for item in model.outcome_probabilities
+        ],
+        warnings=list(model.warnings),
     )
 
 

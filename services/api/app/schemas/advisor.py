@@ -43,6 +43,7 @@ class AdvisorAnalyzeRequestDto(ApiModel):
     game_data_dataset_version: str
     crafting_dataset_version: str
     affix_capacity_dataset_version: str
+    empirical_probability_dataset_version: str | None = None
     as_of: datetime | None = None
     bankroll: EconomicValueDto | None = None
     risk_profile: str | None = None
@@ -136,6 +137,42 @@ class ExpectedValueSummaryDto(ApiModel):
     algorithm_version: str | None = None
 
 
+class ProbabilityIntervalDto(ApiModel):
+    lower: str
+    upper: str
+
+
+class ProbabilityEvidenceSummaryDto(ApiModel):
+    evidence_id: str
+    probability_type: str
+    outcome_id: str | None = None
+    probability: str | None = None
+    methodology: str | None = None
+    sample_size: int | None = None
+    uncertainty_interval: ProbabilityIntervalDto | None = None
+    evidence_dataset_version: str | None = None
+    warnings: list[str] = []
+
+
+class OutcomeProbabilitySummaryDto(ApiModel):
+    outcome_id: str
+    probability: str | None = None
+    evidence: list[ProbabilityEvidenceSummaryDto] = []
+    warnings: list[str] = []
+
+
+class ProbabilitySummaryDto(ApiModel):
+    source_outcome_set_id: str
+    completeness: str
+    total_known_probability_mass: str | None = None
+    methodology_summary: str | None = None
+    known_outcome_count: int = 0
+    outcome_count: int = 0
+    dataset_versions: list[str] = []
+    outcome_probabilities: list[OutcomeProbabilitySummaryDto] = []
+    warnings: list[str] = []
+
+
 class ActionAnalysisDto(ApiModel):
     action_id: str
     display_name: str
@@ -149,6 +186,7 @@ class ActionAnalysisDto(ApiModel):
     outcome_ids: list[str] = []
     outcome_space_completeness: str | None = None
     probability_completeness: str | None = None
+    probability: ProbabilitySummaryDto | None = None
     scenario: ScenarioSummaryDto | None = None
     expected_value: ExpectedValueSummaryDto | None = None
     advisor_candidate_status: str | None = None
@@ -186,6 +224,7 @@ class AdvisorContextDto(ApiModel):
     game_data_dataset_version: str
     crafting_dataset_version: str
     affix_capacity_dataset_version: str
+    empirical_probability_dataset_version: str | None = None
     as_of: datetime | None = None
     economy_snapshot_ids: list[str] = []
 

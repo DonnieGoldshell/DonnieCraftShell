@@ -137,6 +137,42 @@ class EmpiricalProbabilityDataset:
             seen.add(count.outcome_id)
 
 
+@dataclass(frozen=True)
+class EmpiricalProbabilityRepository:
+    datasets: tuple[EmpiricalProbabilityDataset, ...]
+    skipped_dataset_ids: tuple[str, ...] = ()
+    warnings: tuple[str, ...] = ()
+
+    @classmethod
+    def from_json_files(
+        cls,
+        paths: tuple[str | Path, ...],
+        allow_synthetic: bool = False,
+    ) -> "EmpiricalProbabilityRepository":
+        datasets: list[EmpiricalProbabilityDataset] = []
+        skipped: list[str] = []
+        warnings: list[str] = []
+        for path in paths:
+            dataset = normalize_empirical_probability_dataset(load_raw_empirical_probability_dataset(path))
+            if dataset.synthetic and not allow_synthetic:
+                skipped.append(dataset.dataset_id)
+                warnings.append(f"Skipped synthetic empirical probability dataset {dataset.dataset_id}.")
+                continue
+            datasets.append(dataset)
+        return cls(tuple(datasets), tuple(skipped), tuple(warnings))
+
+    def to_provider(
+        self,
+        readiness_policy: EmpiricalProbabilityReadinessPolicy | None = None,
+        allow_synthetic: bool = False,
+    ) -> "EmpiricalProbabilityProvider":
+        return EmpiricalProbabilityProvider(
+            self.datasets,
+            readiness_policy=readiness_policy,
+            allow_synthetic=allow_synthetic,
+        )
+
+
 def load_raw_empirical_probability_dataset(path: str | Path) -> RawEmpiricalProbabilityDataset:
     data = json.loads(Path(path).read_text(encoding="utf-8"))
     return raw_empirical_probability_dataset_from_dict(data)
@@ -223,10 +259,12 @@ class EmpiricalProbabilityProvider:
         datasets: tuple[EmpiricalProbabilityDataset, ...],
         readiness_policy: EmpiricalProbabilityReadinessPolicy | None = None,
         fallback_provider: CurrentResearchProbabilityProvider | None = None,
+        allow_synthetic: bool = False,
     ) -> None:
         self._datasets = datasets
         self._readiness_policy = readiness_policy or EmpiricalProbabilityReadinessPolicy()
         self._fallback_provider = fallback_provider or CurrentResearchProbabilityProvider()
+        self._allow_synthetic = allow_synthetic
 
     def get_probability_model(
         self,
@@ -238,6 +276,22 @@ class EmpiricalProbabilityProvider:
         dataset = self._find_dataset(item, outcome_set, context)
         if dataset is None:
             return self._fallback_provider.get_probability_model(item, outcome_set, context)
+        if dataset.synthetic and not self._allow_synthetic:
+            model = self._fallback_provider.get_probability_model(item, outcome_set, context)
+            return OutcomeProbabilityModel(
+                action_id=model.action_id,
+                source_outcome_set_id=model.source_outcome_set_id,
+                outcome_probabilities=model.outcome_probabilities,
+                probability_completeness=ProbabilityCompleteness.UNKNOWN,
+                methodology_summary="Synthetic empirical evidence was present but not enabled for this provider.",
+                dataset_versions=tuple(value for value in (*model.dataset_versions, dataset.dataset_id) if value),
+                provenance=(*model.provenance, *dataset.provenance),
+                warnings=(
+                    *model.warnings,
+                    "Synthetic empirical probability datasets require explicit test-only injection.",
+                ),
+                deterministic_operations=model.deterministic_operations,
+            )
         incompatible = _context_warnings(item, dataset, context)
         if incompatible:
             model = self._fallback_provider.get_probability_model(item, outcome_set, context)

@@ -87,6 +87,16 @@
             ],
             "title": "Outcome Space Completeness"
           },
+          "probability": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ProbabilitySummaryDto"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "probability_completeness": {
             "anyOf": [
               {
@@ -187,6 +197,17 @@
                 "type": "null"
               }
             ]
+          },
+          "empirical_probability_dataset_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Empirical Probability Dataset Version"
           },
           "game_context": {
             "anyOf": [
@@ -370,6 +391,17 @@
             },
             "title": "Economy Snapshot Ids",
             "type": "array"
+          },
+          "empirical_probability_dataset_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Empirical Probability Dataset Version"
           },
           "game_data_dataset_version": {
             "title": "Game Data Dataset Version",
@@ -1250,6 +1282,46 @@
         "title": "OutcomeManualValuationEvidenceDto",
         "type": "object"
       },
+      "OutcomeProbabilitySummaryDto": {
+        "properties": {
+          "evidence": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/ProbabilityEvidenceSummaryDto"
+            },
+            "title": "Evidence",
+            "type": "array"
+          },
+          "outcome_id": {
+            "title": "Outcome Id",
+            "type": "string"
+          },
+          "probability": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Probability"
+          },
+          "warnings": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Warnings",
+            "type": "array"
+          }
+        },
+        "required": [
+          "outcome_id"
+        ],
+        "title": "OutcomeProbabilitySummaryDto",
+        "type": "object"
+      },
       "ParseItemRequestDto": {
         "properties": {
           "game": {
@@ -1350,6 +1422,189 @@
           "detected_format"
         ],
         "title": "ParseItemResponseDto",
+        "type": "object"
+      },
+      "ProbabilityEvidenceSummaryDto": {
+        "properties": {
+          "evidence_dataset_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Evidence Dataset Version"
+          },
+          "evidence_id": {
+            "title": "Evidence Id",
+            "type": "string"
+          },
+          "methodology": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Methodology"
+          },
+          "outcome_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Outcome Id"
+          },
+          "probability": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Probability"
+          },
+          "probability_type": {
+            "title": "Probability Type",
+            "type": "string"
+          },
+          "sample_size": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sample Size"
+          },
+          "uncertainty_interval": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ProbabilityIntervalDto"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "warnings": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Warnings",
+            "type": "array"
+          }
+        },
+        "required": [
+          "evidence_id",
+          "probability_type"
+        ],
+        "title": "ProbabilityEvidenceSummaryDto",
+        "type": "object"
+      },
+      "ProbabilityIntervalDto": {
+        "properties": {
+          "lower": {
+            "title": "Lower",
+            "type": "string"
+          },
+          "upper": {
+            "title": "Upper",
+            "type": "string"
+          }
+        },
+        "required": [
+          "lower",
+          "upper"
+        ],
+        "title": "ProbabilityIntervalDto",
+        "type": "object"
+      },
+      "ProbabilitySummaryDto": {
+        "properties": {
+          "completeness": {
+            "title": "Completeness",
+            "type": "string"
+          },
+          "dataset_versions": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Dataset Versions",
+            "type": "array"
+          },
+          "known_outcome_count": {
+            "default": 0,
+            "title": "Known Outcome Count",
+            "type": "integer"
+          },
+          "methodology_summary": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Methodology Summary"
+          },
+          "outcome_count": {
+            "default": 0,
+            "title": "Outcome Count",
+            "type": "integer"
+          },
+          "outcome_probabilities": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/OutcomeProbabilitySummaryDto"
+            },
+            "title": "Outcome Probabilities",
+            "type": "array"
+          },
+          "source_outcome_set_id": {
+            "title": "Source Outcome Set Id",
+            "type": "string"
+          },
+          "total_known_probability_mass": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Total Known Probability Mass"
+          },
+          "warnings": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Warnings",
+            "type": "array"
+          }
+        },
+        "required": [
+          "source_outcome_set_id",
+          "completeness"
+        ],
+        "title": "ProbabilitySummaryDto",
         "type": "object"
       },
       "RiskAdjustedDecisionDto": {

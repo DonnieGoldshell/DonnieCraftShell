@@ -16,6 +16,10 @@ RawProbabilityObservations
 
 The provider attaches `ProbabilityEvidence` beside an existing `CraftOutcomeSet`. It does not mutate outcome data, calculate EV, value items, or rank advisor actions.
 
+Task 15B connects this provider boundary to Advisor orchestration and
+`POST /api/v1/advisor/analyze`. API callers may select an explicit configured
+empirical dataset version with `empirical_probability_dataset_version`.
+
 ## Raw Dataset Format
 
 Raw datasets live under `data/raw/probability/`.
@@ -80,6 +84,10 @@ If any requirement fails, the probability model is `PARTIAL` or `UNKNOWN`. It mu
 `data/raw/probability/synthetic_empirical_annulment_outcomes.json` is deliberately synthetic and test-only.
 
 It proves the ingestion and normalization plumbing, but it is not PoE2 gameplay evidence and must not be loaded as production probability data.
+
+Production/default dependency assembly skips synthetic empirical datasets even
+if a path is configured. Synthetic data requires explicit test-only dependency
+injection and `allow_synthetic=True`.
 
 ## Current Real Actions
 

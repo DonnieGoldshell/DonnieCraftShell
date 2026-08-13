@@ -52,6 +52,11 @@ See [ECONOMY.md](ECONOMY.md) and [ECONOMY_SOURCES.md](ECONOMY_SOURCES.md) for pr
 See [VALUATION.md](VALUATION.md) and [VALUATION_SOURCES.md](VALUATION_SOURCES.md) for comparable rare-item valuation architecture and TradeProvider boundaries.
 See [PROBABILITY_MODEL.md](PROBABILITY_MODEL.md) and [EMPIRICAL_PROBABILITY.md](EMPIRICAL_PROBABILITY.md) for probability evidence contracts, empirical observation ingestion, and the no-equal-fallback policy.
 
+Task 15B wires empirical probability providers into Advisor orchestration and
+API dependency assembly. Production/default assembly uses only explicitly
+configured offline empirical dataset paths and skips synthetic fixtures; tests
+may inject synthetic datasets explicitly.
+
 ## Item-Class Modularity
 
 Quiver logic belongs behind item-class interfaces. Future bows, rings, amulets, and armour modules should supply their own base definitions, modifier mappings, affix rules, legal action providers, and valuation features without changing the core engines.

@@ -115,6 +115,7 @@ export interface components {
             outcome_ids: string[];
             /** Outcome Space Completeness */
             outcome_space_completeness?: string | null;
+            probability?: components["schemas"]["ProbabilitySummaryDto"] | null;
             /** Probability Completeness */
             probability_completeness?: string | null;
             /**
@@ -146,6 +147,8 @@ export interface components {
             /** Crafting Dataset Version */
             crafting_dataset_version: string;
             current_valuation_evidence?: components["schemas"]["ManualValuationEvidenceDto"] | null;
+            /** Empirical Probability Dataset Version */
+            empirical_probability_dataset_version?: string | null;
             game_context?: components["schemas"]["GameContextDto"] | null;
             /** Game Data Dataset Version */
             game_data_dataset_version: string;
@@ -207,6 +210,8 @@ export interface components {
              * @default []
              */
             economy_snapshot_ids: string[];
+            /** Empirical Probability Dataset Version */
+            empirical_probability_dataset_version?: string | null;
             /** Game Data Dataset Version */
             game_data_dataset_version: string;
             /** League */
@@ -512,6 +517,23 @@ export interface components {
             /** Outcome Id */
             outcome_id: string;
         };
+        /** OutcomeProbabilitySummaryDto */
+        OutcomeProbabilitySummaryDto: {
+            /**
+             * Evidence
+             * @default []
+             */
+            evidence: components["schemas"]["ProbabilityEvidenceSummaryDto"][];
+            /** Outcome Id */
+            outcome_id: string;
+            /** Probability */
+            probability?: string | null;
+            /**
+             * Warnings
+             * @default []
+             */
+            warnings: string[];
+        };
         /** ParseItemRequestDto */
         ParseItemRequestDto: {
             /**
@@ -542,6 +564,72 @@ export interface components {
              * @default []
              */
             unparsed_sections: string[];
+            /**
+             * Warnings
+             * @default []
+             */
+            warnings: string[];
+        };
+        /** ProbabilityEvidenceSummaryDto */
+        ProbabilityEvidenceSummaryDto: {
+            /** Evidence Dataset Version */
+            evidence_dataset_version?: string | null;
+            /** Evidence Id */
+            evidence_id: string;
+            /** Methodology */
+            methodology?: string | null;
+            /** Outcome Id */
+            outcome_id?: string | null;
+            /** Probability */
+            probability?: string | null;
+            /** Probability Type */
+            probability_type: string;
+            /** Sample Size */
+            sample_size?: number | null;
+            uncertainty_interval?: components["schemas"]["ProbabilityIntervalDto"] | null;
+            /**
+             * Warnings
+             * @default []
+             */
+            warnings: string[];
+        };
+        /** ProbabilityIntervalDto */
+        ProbabilityIntervalDto: {
+            /** Lower */
+            lower: string;
+            /** Upper */
+            upper: string;
+        };
+        /** ProbabilitySummaryDto */
+        ProbabilitySummaryDto: {
+            /** Completeness */
+            completeness: string;
+            /**
+             * Dataset Versions
+             * @default []
+             */
+            dataset_versions: string[];
+            /**
+             * Known Outcome Count
+             * @default 0
+             */
+            known_outcome_count: number;
+            /** Methodology Summary */
+            methodology_summary?: string | null;
+            /**
+             * Outcome Count
+             * @default 0
+             */
+            outcome_count: number;
+            /**
+             * Outcome Probabilities
+             * @default []
+             */
+            outcome_probabilities: components["schemas"]["OutcomeProbabilitySummaryDto"][];
+            /** Source Outcome Set Id */
+            source_outcome_set_id: string;
+            /** Total Known Probability Mass */
+            total_known_probability_mass?: string | null;
             /**
              * Warnings
              * @default []

@@ -33,6 +33,7 @@ All external data must already be present in local repositories or supplied as i
 - selected game-data dataset version,
 - selected crafting-action dataset version,
 - selected affix-capacity dataset version,
+- optional selected empirical probability evidence dataset version,
 - optional game context,
 - optional current item `ValuationResult`,
 - optional mapping of `outcome_id -> ValuationResult`,
@@ -95,7 +96,16 @@ The current vertical pipeline supports Rare Quivers. Normal, Magic, Unique, and 
 
 The orchestrator never invents valuation evidence. If current valuation or outcome valuations are missing, the item can still be parsed, enriched, priced, and have outcomes enumerated, but scenario/EV/Advisor readiness reflects the missing input.
 
-The orchestrator uses the injected probability provider. The default current-research provider returns `UNKNOWN` final outcome probabilities for real actions, so real Quiver actions remain EV-unavailable until probability evidence exists.
+The orchestrator uses the injected probability provider. Probability context
+includes league, game version when supplied, crafting dataset version, modifier
+dataset version, and optional empirical evidence dataset version.
+
+The default provider path falls back to current research and returns `UNKNOWN`
+final outcome probabilities for real actions. An empirical provider may return
+`EMPIRICAL_ESTIMATE` evidence only when a compatible offline dataset is
+explicitly configured/injected and selected. Missing, partial, synthetic-disabled,
+or context-incompatible evidence is surfaced as `PROBABILITY_EVIDENCE_REQUIRED`
+and does not unlock EV readiness.
 
 ## Risk
 
