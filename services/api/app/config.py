@@ -20,6 +20,7 @@ class ApiSettings:
     default_affix_capacity_dataset_id: str
     default_affix_capacity_path: Path
     economy_snapshot_paths: tuple[Path, ...]
+    empirical_probability_dataset_paths: tuple[Path, ...]
     supported_leagues: tuple[str, ...]
     cors_allowed_origins: tuple[str, ...]
 
@@ -33,6 +34,11 @@ def get_settings() -> ApiSettings:
         ROOT / "data" / "normalized" / "economy" / "economy-snapshot-019ff11a-0000-7000-8000-000000000001" / "economy_snapshot.json",
         ROOT / "data" / "normalized" / "economy" / "economy-snapshot-019ff11a-0000-7000-8000-000000000002" / "economy_snapshot.json",
     )
+    empirical_paths = tuple(
+        Path(value.strip())
+        for value in os.getenv("DCS_EMPIRICAL_PROBABILITY_DATASET_PATHS", "").split(os.pathsep)
+        if value.strip()
+    )
     return ApiSettings(
         environment=os.getenv("DCS_ENVIRONMENT", "local-offline"),
         default_game_data_dataset_id=game_data_id,
@@ -42,6 +48,7 @@ def get_settings() -> ApiSettings:
         default_affix_capacity_dataset_id=affix_id,
         default_affix_capacity_path=ROOT / "data" / "normalized" / "crafting" / affix_id / "capacity.json",
         economy_snapshot_paths=economy_paths,
+        empirical_probability_dataset_paths=empirical_paths,
         supported_leagues=tuple(
             league.strip()
             for league in os.getenv("DCS_SUPPORTED_LEAGUES", "Runes of Aldur").split(",")

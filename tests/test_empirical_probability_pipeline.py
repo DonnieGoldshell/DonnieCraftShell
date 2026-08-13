@@ -15,6 +15,7 @@ from packages.shared.donniecraftshell_contracts.empirical_probability import (
     EMPIRICAL_PROBABILITY_METHODOLOGY_VERSION,
     EmpiricalOutcomeCount,
     EmpiricalProbabilityProvider,
+    EmpiricalProbabilityRepository,
     EmpiricalProbabilityReadinessPolicy,
     load_raw_empirical_probability_dataset,
     normalize_empirical_probability_dataset,
@@ -76,7 +77,7 @@ class EmpiricalProbabilityPipelineTests(unittest.TestCase):
 
     def test_complete_synthetic_dataset_produces_empirical_estimates(self):
         dataset = normalize_empirical_probability_dataset(load_raw_empirical_probability_dataset(SYNTHETIC_FIXTURE))
-        provider = EmpiricalProbabilityProvider((dataset,))
+        provider = EmpiricalProbabilityProvider((dataset,), allow_synthetic=True)
         item = parsed_quiver_6()
 
         model = provider.get_probability_model(
@@ -104,7 +105,7 @@ class EmpiricalProbabilityPipelineTests(unittest.TestCase):
 
     def test_empirical_probability_uses_counts_not_equal_distribution(self):
         dataset = normalize_empirical_probability_dataset(load_raw_empirical_probability_dataset(SYNTHETIC_FIXTURE))
-        model = EmpiricalProbabilityProvider((dataset,)).get_probability_model(
+        model = EmpiricalProbabilityProvider((dataset,), allow_synthetic=True).get_probability_model(
             parsed_quiver_6(),
             synthetic_outcome_set(),
             ProbabilityContext(evidence_dataset_version=dataset.dataset_id),
@@ -117,7 +118,7 @@ class EmpiricalProbabilityPipelineTests(unittest.TestCase):
         dataset = normalize_empirical_probability_dataset(load_raw_empirical_probability_dataset(SYNTHETIC_FIXTURE))
         partial = replace(dataset, unclassified_count=10, sample_size=110)
 
-        model = EmpiricalProbabilityProvider((partial,)).get_probability_model(
+        model = EmpiricalProbabilityProvider((partial,), allow_synthetic=True).get_probability_model(
             parsed_quiver_6(),
             synthetic_outcome_set(),
             ProbabilityContext(evidence_dataset_version=partial.dataset_id),
@@ -131,7 +132,7 @@ class EmpiricalProbabilityPipelineTests(unittest.TestCase):
     def test_missing_outcome_count_remains_unknown_not_zero(self):
         dataset = normalize_empirical_probability_dataset(load_raw_empirical_probability_dataset(SYNTHETIC_FIXTURE))
 
-        model = EmpiricalProbabilityProvider((dataset,)).get_probability_model(
+        model = EmpiricalProbabilityProvider((dataset,), allow_synthetic=True).get_probability_model(
             parsed_quiver_6(),
             synthetic_outcome_set(("synthetic-outcome-a", "synthetic-outcome-b", "synthetic-outcome-c")),
             ProbabilityContext(evidence_dataset_version=dataset.dataset_id),
@@ -158,6 +159,7 @@ class EmpiricalProbabilityPipelineTests(unittest.TestCase):
         model = EmpiricalProbabilityProvider(
             (small,),
             EmpiricalProbabilityReadinessPolicy(minimum_sample_size_for_complete=30),
+            allow_synthetic=True,
         ).get_probability_model(parsed_quiver_6(), synthetic_outcome_set(), ProbabilityContext(evidence_dataset_version=small.dataset_id))
 
         self.assertEqual(model.total_known_probability_mass, Decimal("1.0"))
@@ -167,7 +169,7 @@ class EmpiricalProbabilityPipelineTests(unittest.TestCase):
     def test_context_incompatible_evidence_falls_back_to_unknown(self):
         dataset = normalize_empirical_probability_dataset(load_raw_empirical_probability_dataset(SYNTHETIC_FIXTURE))
 
-        model = EmpiricalProbabilityProvider((dataset,)).get_probability_model(
+        model = EmpiricalProbabilityProvider((dataset,), allow_synthetic=True).get_probability_model(
             parsed_quiver_6(),
             synthetic_outcome_set(),
             ProbabilityContext(
@@ -180,6 +182,26 @@ class EmpiricalProbabilityPipelineTests(unittest.TestCase):
         self.assertEqual(model.probability_completeness, ProbabilityCompleteness.UNKNOWN)
         self.assertTrue(all(entry.probability is None for entry in model.outcome_probabilities))
         self.assertTrue(any("does not match" in warning for warning in model.warnings))
+
+    def test_synthetic_dataset_requires_explicit_enablement(self):
+        dataset = normalize_empirical_probability_dataset(load_raw_empirical_probability_dataset(SYNTHETIC_FIXTURE))
+
+        model = EmpiricalProbabilityProvider((dataset,)).get_probability_model(
+            parsed_quiver_6(),
+            synthetic_outcome_set(),
+            ProbabilityContext(evidence_dataset_version=dataset.dataset_id),
+        )
+
+        self.assertEqual(model.probability_completeness, ProbabilityCompleteness.UNKNOWN)
+        self.assertTrue(all(entry.probability is None for entry in model.outcome_probabilities))
+        self.assertTrue(any("Synthetic empirical probability datasets require explicit" in warning for warning in model.warnings))
+
+    def test_repository_skips_synthetic_dataset_by_default(self):
+        repository = EmpiricalProbabilityRepository.from_json_files((SYNTHETIC_FIXTURE,))
+
+        self.assertEqual(repository.datasets, ())
+        self.assertEqual(repository.skipped_dataset_ids, ("synthetic-empirical-probability-2026-08-13-test-only",))
+        self.assertTrue(repository.warnings)
 
     def test_no_dataset_leaves_real_actions_unknown(self):
         model = EmpiricalProbabilityProvider(()).get_probability_model(
@@ -198,7 +220,7 @@ class EmpiricalProbabilityPipelineTests(unittest.TestCase):
         before_item = copy.deepcopy(item)
         before_outcome_set = copy.deepcopy(outcome_set)
 
-        EmpiricalProbabilityProvider((dataset,)).get_probability_model(
+        EmpiricalProbabilityProvider((dataset,), allow_synthetic=True).get_probability_model(
             item,
             outcome_set,
             ProbabilityContext(evidence_dataset_version=dataset.dataset_id),

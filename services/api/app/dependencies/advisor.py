@@ -8,8 +8,10 @@ from packages.shared.donniecraftshell_contracts.advisor_orchestration import Cra
 from packages.shared.donniecraftshell_contracts.affix_capacity import AffixStateResolver, load_affix_capacity_dataset
 from packages.shared.donniecraftshell_contracts.crafting_actions import CraftActionEngine, load_crafting_dataset
 from packages.shared.donniecraftshell_contracts.economy_repository import EconomyRepository
+from packages.shared.donniecraftshell_contracts.empirical_probability import EmpiricalProbabilityRepository
 from packages.shared.donniecraftshell_contracts.game_data_repository import GameDataRepository
 from packages.shared.donniecraftshell_contracts.poe_show_economy import load_normalized_economy_snapshot
+from packages.shared.donniecraftshell_contracts.probability import ProbabilityProvider
 
 from services.api.app.config import ApiSettings, get_settings
 
@@ -26,6 +28,16 @@ def get_economy_repository() -> EconomyRepository:
 
 
 @lru_cache(maxsize=1)
+def get_probability_provider() -> ProbabilityProvider:
+    settings = get_cached_settings()
+    repository = EmpiricalProbabilityRepository.from_json_files(
+        settings.empirical_probability_dataset_paths,
+        allow_synthetic=False,
+    )
+    return repository.to_provider(allow_synthetic=False)
+
+
+@lru_cache(maxsize=1)
 def get_advisor_orchestrator() -> CraftAdvisorOrchestrator:
     settings = get_cached_settings()
     return CraftAdvisorOrchestrator(
@@ -33,4 +45,5 @@ def get_advisor_orchestrator() -> CraftAdvisorOrchestrator:
         affix_state_resolver=AffixStateResolver(load_affix_capacity_dataset(settings.default_affix_capacity_path)),
         craft_action_engine=CraftActionEngine(load_crafting_dataset(settings.default_crafting_path)),
         economy_repository=get_economy_repository(),
+        probability_provider=get_probability_provider(),
     )

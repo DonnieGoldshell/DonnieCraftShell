@@ -2,6 +2,7 @@ import importlib
 import importlib.util
 import os
 import unittest
+from dataclasses import replace
 from datetime import datetime, timezone
 from decimal import Decimal
 from pathlib import Path
@@ -41,6 +42,7 @@ class AdvisorApiTests(unittest.TestCase):
         app.dependency_overrides.clear()
         advisor_dependencies.get_advisor_orchestrator.cache_clear()
         advisor_dependencies.get_economy_repository.cache_clear()
+        advisor_dependencies.get_probability_provider.cache_clear()
         advisor_dependencies.get_cached_settings.cache_clear()
         self.app = app
         self.client = TestClient(app)
@@ -70,6 +72,7 @@ class AdvisorApiTests(unittest.TestCase):
         schema_names = set(openapi["components"]["schemas"])
         self.assertIn("AdvisorAnalyzeRequestDto", schema_names)
         self.assertIn("AdvisorAnalyzeResponseDto", schema_names)
+        self.assertIn("ProbabilitySummaryDto", schema_names)
 
     def test_valid_quiver_6_partial_response(self):
         response = self.client.post("/api/v1/advisor/analyze", json=base_request())
@@ -89,6 +92,11 @@ class AdvisorApiTests(unittest.TestCase):
         self.assertEqual(annulment["applicability"], "APPLICABLE")
         self.assertEqual(annulment["outcome_count"], 6)
         self.assertEqual(annulment["probability_completeness"], "UNKNOWN")
+        self.assertEqual(annulment["probability"]["completeness"], "UNKNOWN")
+        self.assertEqual(annulment["probability"]["known_outcome_count"], 0)
+        self.assertTrue(
+            all(item["probability"] is None for item in annulment["probability"]["outcome_probabilities"])
+        )
         self.assertFalse(annulment["expected_value"]["available"])
         self.assertEqual(exalted["applicability"], "NOT_APPLICABLE")
         self.assertEqual(body["decision"]["decision_type"], "NO_RECOMMENDATION")
@@ -178,6 +186,39 @@ class AdvisorApiTests(unittest.TestCase):
         cost_line = self._action(body, "dc:poe2:craft-action:exalted-orb")["material_cost"]["lines"][0]
         self.assertIsInstance(cost_line["quantity"], str)
 
+    def test_empirical_probability_dataset_version_is_serialized(self):
+        request = base_request()
+        request["empirical_probability_dataset_version"] = "synthetic-api-empirical-dataset"
+
+        response = self.client.post("/api/v1/advisor/analyze", json=request)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            response.json()["context"]["empirical_probability_dataset_version"],
+            "synthetic-api-empirical-dataset",
+        )
+
+    def test_default_dependency_assembly_skips_synthetic_empirical_fixtures(self):
+        from services.api.app.dependencies import advisor as advisor_dependencies
+
+        previous = os.environ.get("DCS_EMPIRICAL_PROBABILITY_DATASET_PATHS")
+        os.environ["DCS_EMPIRICAL_PROBABILITY_DATASET_PATHS"] = str(
+            ROOT / "data" / "raw" / "probability" / "synthetic_empirical_annulment_outcomes.json"
+        )
+        try:
+            advisor_dependencies.get_cached_settings.cache_clear()
+            advisor_dependencies.get_probability_provider.cache_clear()
+            provider = advisor_dependencies.get_probability_provider()
+        finally:
+            if previous is None:
+                os.environ.pop("DCS_EMPIRICAL_PROBABILITY_DATASET_PATHS", None)
+            else:
+                os.environ["DCS_EMPIRICAL_PROBABILITY_DATASET_PATHS"] = previous
+            advisor_dependencies.get_cached_settings.cache_clear()
+            advisor_dependencies.get_probability_provider.cache_clear()
+
+        self.assertEqual(provider._datasets, ())
+
     def test_scenario_only_action_serialized_with_synthetic_manual_valuation(self):
         initial = self.client.post("/api/v1/advisor/analyze", json=base_request()).json()
         annulment = self._action(initial, "dc:poe2:craft-action:orb-of-annulment")
@@ -221,6 +262,46 @@ class AdvisorApiTests(unittest.TestCase):
         self.assertEqual(body["risk_adjusted_decision"]["decision_type"], "CRAFT")
         self.assertTrue(annulment["expected_value"]["available"])
         self.assertEqual(annulment["expected_value"]["net_expected_value"]["amount"], "120.0000000000000000000000000")
+
+    def test_synthetic_empirical_probability_flows_through_api_response(self):
+        self._install_synthetic_empirical_dependencies()
+        initial = self.client.post("/api/v1/advisor/analyze", json=base_request()).json()
+        annulment = self._action(initial, "dc:poe2:craft-action:orb-of-annulment")
+        request = base_request()
+        request["empirical_probability_dataset_version"] = "synthetic-api-empirical-probability"
+        request["current_valuation_evidence"] = self._valuation_evidence("100")
+        request["outcome_valuation_evidence"] = [
+            {"outcome_id": outcome_id, "evidence": self._valuation_evidence("130")}
+            for outcome_id in annulment["outcome_ids"]
+        ]
+        request["bankroll"] = {"amount": "1000", "unit": "EXALTED_ECONOMIC_UNIT"}
+        request["risk_profile"] = "AGGRESSIVE"
+
+        response = self.client.post("/api/v1/advisor/analyze", json=request)
+
+        self.assertEqual(response.status_code, 200)
+        body = response.json()
+        annulment = self._action(body, "dc:poe2:craft-action:orb-of-annulment")
+        self.assertEqual(annulment["probability"]["completeness"], "COMPLETE")
+        self.assertEqual(annulment["probability"]["known_outcome_count"], annulment["outcome_count"])
+        self.assertEqual(annulment["probability"]["outcome_probabilities"][0]["evidence"][0]["probability_type"], "EMPIRICAL_ESTIMATE")
+        self.assertEqual(annulment["probability"]["outcome_probabilities"][0]["evidence"][0]["sample_size"], 60)
+        self.assertIsInstance(annulment["probability"]["outcome_probabilities"][0]["probability"], str)
+        self.assertTrue(annulment["expected_value"]["available"])
+        self.assertEqual(body["decision"]["decision_type"], "CRAFT")
+
+    def test_context_incompatible_empirical_probability_surfaces_unknown_warning(self):
+        self._install_synthetic_empirical_dependencies()
+        request = base_request()
+        request["empirical_probability_dataset_version"] = "synthetic-api-empirical-probability"
+        request["league"] = "Different League"
+
+        response = self.client.post("/api/v1/advisor/analyze", json=request)
+
+        self.assertEqual(response.status_code, 200)
+        annulment = self._action(response.json(), "dc:poe2:craft-action:orb-of-annulment")
+        self.assertEqual(annulment["probability"]["completeness"], "UNKNOWN")
+        self.assertTrue(any("does not match" in warning for warning in annulment["warnings"]))
 
     def test_unexpected_dependency_error_returns_5xx(self):
         from fastapi.testclient import TestClient
@@ -323,6 +404,118 @@ class AdvisorApiTests(unittest.TestCase):
             CraftActionEngine(load_crafting_dataset(ROOT / "data" / "normalized" / "crafting" / CRAFTING_DATASET_ID / "actions.json")),
             economy,
             probability_provider=CompleteSyntheticProbabilityProvider(),
+        )
+        self.app.dependency_overrides[get_economy_repository] = lambda: economy
+        self.app.dependency_overrides[get_advisor_orchestrator] = lambda: orchestrator
+
+    def _install_synthetic_empirical_dependencies(self):
+        from packages.shared.donniecraftshell_contracts.advisor_orchestration import CraftAdvisorOrchestrator
+        from packages.shared.donniecraftshell_contracts.affix_capacity import AffixStateResolver, load_affix_capacity_dataset
+        from packages.shared.donniecraftshell_contracts.crafting_actions import CraftActionEngine, load_crafting_dataset
+        from packages.shared.donniecraftshell_contracts.domain import DataProvenance, SourceType, VerificationStatus
+        from packages.shared.donniecraftshell_contracts.economy import (
+            EXALTED_ASSET_ID,
+            ORB_OF_ANNULMENT_ASSET_ID,
+            EconomyCategory,
+            EconomyQuote,
+            EconomySnapshot,
+            FreshnessState,
+            normalized_exalted_value,
+        )
+        from packages.shared.donniecraftshell_contracts.economy_repository import EconomyRepository
+        from packages.shared.donniecraftshell_contracts.empirical_probability import (
+            EmpiricalOutcomeCount,
+            EmpiricalProbabilityDataset,
+            EmpiricalProbabilityProvider,
+        )
+        from packages.shared.donniecraftshell_contracts.game_data_repository import GameDataRepository
+        from packages.shared.donniecraftshell_contracts.parser import parse_clipboard_item
+        from services.api.app.dependencies.advisor import get_advisor_orchestrator, get_economy_repository
+
+        class SyntheticEmpiricalProbabilityProvider:
+            def get_probability_model(self, item, outcome_set, context=None):
+                retrieved_at = datetime.fromisoformat(AS_OF)
+                dataset = EmpiricalProbabilityDataset(
+                    dataset_id="synthetic-api-empirical-probability",
+                    action_id=outcome_set.action_id,
+                    source_outcome_set_id=f"{outcome_set.source_item_analysis_id}:{outcome_set.action_id}",
+                    game="Path of Exile 2",
+                    league=LEAGUE,
+                    retrieved_at=retrieved_at,
+                    outcome_counts=tuple(
+                        EmpiricalOutcomeCount(state.outcome_id, 10)
+                        for state in outcome_set.hypothetical_states
+                    ),
+                    unclassified_count=0,
+                    sample_size=10 * len(outcome_set.hypothetical_states),
+                    provenance=(
+                        DataProvenance(
+                            source_id="synthetic-api-empirical-probability",
+                            source_type=SourceType.INTERNAL,
+                            source_uri="local://tests/synthetic-api-empirical-probability",
+                            retrieved_at=retrieved_at,
+                            league=LEAGUE,
+                            verification_status=VerificationStatus.NEEDS_VERIFICATION,
+                            notes="Synthetic test-only empirical probability evidence.",
+                        ),
+                    ),
+                    synthetic=True,
+                    item_class="Quivers",
+                    game_version="synthetic-test-version",
+                    crafting_dataset_version=CRAFTING_DATASET_ID,
+                    modifier_dataset_version=GAME_DATASET_ID,
+                    methodology="synthetic API empirical probability evidence",
+                    verification_status=VerificationStatus.NEEDS_VERIFICATION,
+                    warnings=("Synthetic API fixture; not production probability evidence.",),
+                )
+                return EmpiricalProbabilityProvider((dataset,), allow_synthetic=True).get_probability_model(
+                    item,
+                    outcome_set,
+                    context,
+                )
+
+        def deterministic_parser(raw_clipboard_text, game_context=None):
+            result = parse_clipboard_item(raw_clipboard_text, game_context)
+            if result.item is None:
+                return result
+            return replace(result, item=replace(result.item, analysis_id="synthetic-api-analysis"))
+
+        retrieved_at = datetime.fromisoformat(AS_OF)
+        quote = EconomyQuote(
+            asset_id=ORB_OF_ANNULMENT_ASSET_ID,
+            league=LEAGUE,
+            normalized_value=normalized_exalted_value("10"),
+            source_native_value=Decimal("10"),
+            native_reference_asset_id=EXALTED_ASSET_ID,
+            source="synthetic-api-economy",
+            snapshot_id="synthetic-api-economy-snapshot",
+            category=EconomyCategory.CURRENCY,
+            observed_at=retrieved_at,
+            retrieved_at=retrieved_at,
+            freshness=FreshnessState.FRESH,
+        )
+        economy = EconomyRepository(
+            (
+                EconomySnapshot(
+                    snapshot_id="synthetic-api-economy-snapshot",
+                    provider="synthetic-api-economy",
+                    game="poe2",
+                    league=LEAGUE,
+                    retrieved_at=retrieved_at,
+                    freshness=FreshnessState.FRESH,
+                    quotes=(quote,),
+                    exchange_rates=(),
+                    observed_at=retrieved_at,
+                ),
+            )
+        )
+        orchestrator = CraftAdvisorOrchestrator(
+            GameDataRepository.from_json_files((ROOT / "data" / "normalized" / GAME_DATASET_ID / "game_data.json",)),
+            AffixStateResolver(load_affix_capacity_dataset(ROOT / "data" / "normalized" / "crafting" / AFFIX_CAPACITY_DATASET_ID / "capacity.json")),
+            CraftActionEngine(load_crafting_dataset(ROOT / "data" / "normalized" / "crafting" / CRAFTING_DATASET_ID / "actions.json")),
+            economy,
+            probability_provider=SyntheticEmpiricalProbabilityProvider(),
+            parser=deterministic_parser,
         )
         self.app.dependency_overrides[get_economy_repository] = lambda: economy
         self.app.dependency_overrides[get_advisor_orchestrator] = lambda: orchestrator

@@ -43,6 +43,7 @@ Optional fields:
 - `risk_profile`
 - `current_valuation_evidence`
 - `outcome_valuation_evidence`
+- `empirical_probability_dataset_version`
 
 Money uses Decimal strings:
 
@@ -80,6 +81,20 @@ The API maps these observations through `ManualTradeProvider`, `EconomyRepositor
 
 Outcome valuation evidence is keyed by deterministic `outcome_id`.
 
+## Empirical Probability Evidence
+
+`empirical_probability_dataset_version` selects an explicitly configured
+offline empirical probability dataset. It does not cause runtime scraping or
+auto-discovery.
+
+Production/default dependency assembly skips synthetic/test-only empirical
+fixtures. Tests may inject synthetic datasets explicitly to prove transport and
+readiness behavior.
+
+When empirical evidence is absent, partial, incompatible with league/game or
+dataset context, or disabled because it is synthetic, real action probabilities
+remain `UNKNOWN` and the response includes probability missing requirements.
+
 ## Response
 
 The response includes:
@@ -90,12 +105,18 @@ The response includes:
 - enrichment summary
 - affix state
 - action summaries
+- probability summaries for each modeled action
 - raw Advisor decision
 - optional risk-adjusted decision
 - missing requirements
 - warnings and provenance
 
 Partial analysis is HTTP 200. `NO_RECOMMENDATION` is also HTTP 200.
+
+Each action probability summary includes completeness, total known probability
+mass, outcome probabilities where available, evidence type, sample size,
+uncertainty interval, evidence dataset version, and warnings. Decimal
+probability values serialize as strings.
 
 ## Error Behavior
 

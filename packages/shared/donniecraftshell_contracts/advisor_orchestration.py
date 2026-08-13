@@ -59,6 +59,7 @@ class AdvisorAnalysisRequest:
     game_data_dataset_version: str
     crafting_dataset_version: str
     affix_capacity_dataset_version: str
+    empirical_probability_dataset_version: str | None = None
     current_valuation: ValuationResult | None = None
     outcome_valuations_by_outcome_id: Mapping[str, ValuationResult] | None = None
     risk_context: AdvisorRiskContext | None = None
@@ -279,14 +280,20 @@ class CraftAdvisorOrchestrator:
             ProbabilityContext(
                 crafting_dataset_version=request.crafting_dataset_version,
                 modifier_dataset_version=request.game_data_dataset_version,
+                evidence_dataset_version=request.empirical_probability_dataset_version,
+                game_version=request.game_context.game_version if request.game_context is not None else None,
+                league=request.league,
             ),
         )
-        if probability_model.outcome_probabilities and any(probability.probability is None for probability in probability_model.outcome_probabilities):
+        if (
+            probability_model.probability_completeness.value != "COMPLETE"
+            or any(probability.probability is None for probability in probability_model.outcome_probabilities)
+        ):
             missing.append(
                 MissingAnalysisRequirement(
                     MissingRequirementKind.PROBABILITY_EVIDENCE_REQUIRED,
                     candidate.action.action_id,
-                    "Outcome probability model is UNKNOWN or incomplete.",
+                    f"Outcome probability model is {probability_model.probability_completeness.value}.",
                     "Expected Value",
                 )
             )
@@ -346,6 +353,7 @@ def _dataset_versions(request: AdvisorAnalysisRequest) -> tuple[str, ...]:
         request.game_data_dataset_version,
         request.crafting_dataset_version,
         request.affix_capacity_dataset_version,
+        *( (request.empirical_probability_dataset_version,) if request.empirical_probability_dataset_version else () ),
     )
 
 
