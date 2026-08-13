@@ -38,7 +38,7 @@ apps/web
 - **Craft Action Engine**: evaluates source-backed crafting action applicability and required materials without simulating outcomes or calculating costs.
 - **Affix Capacity Resolver**: derives open explicit prefix/suffix slots from parsed modifiers and source-backed capacity definitions.
 - **Craft Outcome Engine**: enumerates mechanically possible hypothetical item-state deltas without probability, valuation, or recommendations.
-- **Probability Evidence Layer**: future layer that may attach exact, derived, empirical, or unknown probabilities to outcome states only when provenance supports them.
+- **Probability Evidence Layer**: attaches exact, derived, empirical, or unknown probabilities to outcome states only when provenance supports them. Task 15A adds an offline empirical observation pipeline; current real actions remain `UNKNOWN` unless context-compatible evidence is explicitly supplied.
 - **Scenario Analysis Layer**: composes action candidates, outcome sets, probabilities, and valuations into descriptive readiness results without EV or ranking.
 - **Expected Value Engine**: calculates EV only from `EV_READY` scenarios with complete probability and valuation inputs; it does not rank or recommend.
 - **Advisor Decision Engine**: compares SELL NOW with EV-ready craft candidates and may return `NO_RECOMMENDATION`; scenario-only actions remain non-rankable.
@@ -50,6 +50,7 @@ apps/web
 See [DECISION_ENGINE.md](DECISION_ENGINE.md) for economic behavior.
 See [ECONOMY.md](ECONOMY.md) and [ECONOMY_SOURCES.md](ECONOMY_SOURCES.md) for provider architecture, source precedence, freshness, and normalized pricing rules.
 See [VALUATION.md](VALUATION.md) and [VALUATION_SOURCES.md](VALUATION_SOURCES.md) for comparable rare-item valuation architecture and TradeProvider boundaries.
+See [PROBABILITY_MODEL.md](PROBABILITY_MODEL.md) and [EMPIRICAL_PROBABILITY.md](EMPIRICAL_PROBABILITY.md) for probability evidence contracts, empirical observation ingestion, and the no-equal-fallback policy.
 
 ## Item-Class Modularity
 

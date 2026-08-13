@@ -146,6 +146,7 @@ class ProbabilityContext:
     modifier_dataset_version: str | None = None
     evidence_dataset_version: str | None = None
     game_version: str | None = None
+    league: str | None = None
 
 
 class ProbabilityProvider(Protocol):
