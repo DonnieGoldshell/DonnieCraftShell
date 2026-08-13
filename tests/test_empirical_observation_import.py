@@ -30,6 +30,8 @@ def observation(
     game_version: str | None = "synthetic-test-version",
     synthetic: bool = True,
     unclassified: bool = False,
+    source_type: str = "INTERNAL",
+    verification_status: str = "NEEDS_VERIFICATION",
 ) -> dict:
     return {
         "raw_record_id": raw_record_id,
@@ -43,12 +45,12 @@ def observation(
         "modifier_dataset_version": "synthetic-modifier-dataset",
         "observed_at": "2026-08-13T00:00:00+00:00",
         "source_id": "synthetic-observation-batch",
-        "source_type": "INTERNAL",
+        "source_type": source_type,
         "source_uri": "local://tests/synthetic-observations",
         "synthetic": synthetic,
         "outcome_id": outcome_id,
         "unclassified": unclassified,
-        "verification_status": "NEEDS_VERIFICATION",
+        "verification_status": verification_status,
     }
 
 
@@ -125,6 +127,62 @@ class EmpiricalObservationImportTests(unittest.TestCase):
 
         self.assertEqual(len(result.datasets), 2)
         self.assertEqual({dataset.league for dataset in result.datasets}, {"League A", "League B"})
+
+    def test_dataset_id_includes_evidence_content_not_only_context(self):
+        retrieved_at = datetime(2026, 8, 13, tzinfo=timezone.utc)
+        batch_a = load_empirical_observation_files(
+            (self._json_file([observation("record-1"), observation("record-2", "synthetic-outcome-b")]),)
+        )
+        batch_b = load_empirical_observation_files(
+            (self._json_file([observation("record-3"), observation("record-4", "synthetic-outcome-b")]),)
+        )
+        batch_a_reimport = load_empirical_observation_files(
+            (self._json_file([observation("record-2", "synthetic-outcome-b"), observation("record-1")]),)
+        )
+
+        result_a = aggregate_observations(batch_a, retrieved_at=retrieved_at, dataset_id_prefix="synthetic-import")
+        result_b = aggregate_observations(batch_b, retrieved_at=retrieved_at, dataset_id_prefix="synthetic-import")
+        result_a_reimport = aggregate_observations(batch_a_reimport, retrieved_at=retrieved_at, dataset_id_prefix="synthetic-import")
+
+        self.assertNotEqual(result_a.datasets[0].dataset_id, result_b.datasets[0].dataset_id)
+        self.assertEqual(result_a.datasets[0].dataset_id, result_a_reimport.datasets[0].dataset_id)
+
+    def test_mixed_source_type_is_partitioned_not_collapsed(self):
+        batch = load_empirical_observation_files(
+            (
+                self._json_file(
+                    [
+                        observation("record-1", source_type="INTERNAL"),
+                        observation("record-2", source_type="MANUAL_RESEARCH"),
+                    ]
+                ),
+            )
+        )
+
+        result = aggregate_observations(batch, retrieved_at=datetime(2026, 8, 13, tzinfo=timezone.utc))
+
+        self.assertEqual(len(result.datasets), 2)
+        self.assertEqual({dataset.source_type.value for dataset in result.datasets}, {"INTERNAL", "MANUAL_RESEARCH"})
+
+    def test_mixed_verification_status_is_partitioned_not_collapsed(self):
+        batch = load_empirical_observation_files(
+            (
+                self._json_file(
+                    [
+                        observation("record-1", verification_status="NEEDS_VERIFICATION"),
+                        observation("record-2", verification_status="PROVISIONAL"),
+                    ]
+                ),
+            )
+        )
+
+        result = aggregate_observations(batch, retrieved_at=datetime(2026, 8, 13, tzinfo=timezone.utc))
+
+        self.assertEqual(len(result.datasets), 2)
+        self.assertEqual(
+            {dataset.verification_status.value for dataset in result.datasets},
+            {"NEEDS_VERIFICATION", "PROVISIONAL"},
+        )
 
     def test_malformed_records_surface_validation_errors_without_corrupting_accepted_records(self):
         batch = load_empirical_observation_files(

@@ -62,10 +62,21 @@ Records are partitioned by:
 - crafting dataset version
 - modifier dataset version
 - synthetic flag
+- source type
+- verification status
 
-Different leagues, patches, actions, outcome sets, or synthetic status values are not merged silently. They produce separate aggregated datasets.
+Different leagues, patches, actions, outcome sets, synthetic status values, source types, or verification statuses are not merged silently. They produce separate aggregated datasets.
 
 Missing game/crafting/modifier version fields remain missing and generate warnings. They are not guessed.
+
+## Dataset Identity
+
+Aggregated dataset IDs are deterministic from both:
+
+- the context partition, and
+- the aggregated evidence identity.
+
+The evidence fingerprint includes sorted accepted `raw_record_id` values and their classified outcome or explicit `UNCLASSIFIED` status. Re-importing the same records in a different order yields the same dataset ID; a different accepted record set under the same context yields a different dataset ID.
 
 ## Synthetic Policy
 

@@ -80,6 +80,8 @@ Task 15C adds an offline operator workflow rather than a public HTTP endpoint:
 writes Task 15A-compatible raw empirical probability datasets. Future API
 collection endpoints must preserve the same raw record identity, provenance,
 context partitioning, unclassified handling, and no-fabrication policy.
+Aggregated dataset IDs must include both context and accepted observation
+content so independent batches cannot collide under the same context.
 
 See [API_DEVELOPMENT.md](API_DEVELOPMENT.md) for FastAPI/Pydantic version assumptions, local startup, configuration, and future OpenAPI-to-TypeScript generation.
 

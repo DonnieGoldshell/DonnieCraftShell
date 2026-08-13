@@ -150,7 +150,7 @@ def aggregate_observations(
 
     datasets = tuple(
         _dataset_from_group(records, retrieved_at, dataset_id_prefix)
-        for _, records in sorted(groups.items(), key=lambda item: _dataset_id_for_context(item[0], dataset_id_prefix))
+        for _, records in sorted(groups.items(), key=lambda item: _dataset_id_for_group(item[0], item[1], dataset_id_prefix))
     )
     return EmpiricalObservationAggregationResult(
         datasets=datasets,
@@ -243,7 +243,7 @@ def _dataset_from_group(
         for outcome_id, raw_ids in sorted(counts.items())
     ]
     payload = {
-        "dataset_id": _dataset_id_for_context(_context_key(first), dataset_id_prefix),
+        "dataset_id": _dataset_id_for_group(_context_key(first), records, dataset_id_prefix),
         "action_id": first.action_id,
         "source_outcome_set_id": first.source_outcome_set_id,
         "game": first.game,
@@ -291,11 +291,22 @@ def _context_key(observation: EmpiricalCraftingObservation) -> tuple[Any, ...]:
         observation.crafting_dataset_version,
         observation.modifier_dataset_version,
         observation.synthetic,
+        observation.source_type.value,
+        observation.verification_status.value,
     )
 
 
-def _dataset_id_for_context(context_key: tuple[Any, ...], prefix: str) -> str:
-    digest = hashlib.sha256("|".join("" if value is None else str(value) for value in context_key).encode("utf-8")).hexdigest()[:16]
+def _dataset_id_for_group(
+    context_key: tuple[Any, ...],
+    records: Iterable[EmpiricalCraftingObservation],
+    prefix: str,
+) -> str:
+    content_fingerprint = "|".join(
+        f"{record.raw_record_id}:{record.outcome_id or 'UNCLASSIFIED'}"
+        for record in sorted(records, key=lambda item: item.raw_record_id)
+    )
+    payload = "|".join("" if value is None else str(value) for value in context_key)
+    digest = hashlib.sha256(f"{payload}|{content_fingerprint}".encode("utf-8")).hexdigest()[:16]
     return f"{prefix}-{digest}"
 
 
