@@ -1,5 +1,5 @@
 import type { ActionAnalysis } from "@/api/advisor";
-import { costLabel } from "@/lib/format";
+import { costLabel, economicValueLabel } from "@/lib/format";
 import { StatusBadge } from "./StatusBadge";
 
 type Props = {
@@ -48,6 +48,7 @@ export function ActionTable({ actions }: Props) {
                 <td>
                   <span>{action.outcome_count}</span>
                   <small>{action.outcome_space_completeness ?? "Not enumerated"}</small>
+                  {action.outcome_ids.length > 0 && <small>{action.outcome_ids.length} outcome IDs exposed</small>}
                 </td>
                 <td>
                   <StatusBadge value={action.probability_completeness} />
@@ -55,9 +56,15 @@ export function ActionTable({ actions }: Props) {
                 <td>
                   <StatusBadge value={action.scenario?.readiness ?? null} />
                   {action.scenario && (
-                    <small>
-                      {action.scenario.valued_outcome_count}/{action.scenario.outcome_count} valued
-                    </small>
+                    <>
+                      <small>
+                        {action.scenario.valued_outcome_count}/{action.scenario.outcome_count} valued ·{" "}
+                        {action.scenario.valuation_completeness ?? "Unknown valuation"}
+                      </small>
+                      <small>Median: {economicValueLabel(action.scenario.median_valuated_outcome)}</small>
+                      <small>Best: {economicValueLabel(action.scenario.best_valuated_outcome)}</small>
+                      <small>Worst: {economicValueLabel(action.scenario.worst_valuated_outcome)}</small>
+                    </>
                   )}
                 </td>
                 <td>

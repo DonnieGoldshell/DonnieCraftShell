@@ -11,6 +11,17 @@ The Task 14A vertical slice provides the first Craft Advisor workbench:
 
 The frontend does not implement crafting, valuation, probability, economy, or recommendation logic. It displays the FastAPI response and keeps partial analysis, `NO_RECOMMENDATION`, and missing requirements as valid states.
 
+## Manual Valuation Evidence
+
+The workbench supports the backend ManualTradeProvider workflow by letting users enter comparable listing observations for:
+
+- the current pasted item,
+- and individual hypothetical outcome IDs after an analysis exposes them.
+
+Each observation preserves the user-entered Decimal amount string, EconomyAsset currency ID, optional listing ID, observed timestamp, item summary, and notes. Re-running analysis sends this evidence through the existing `current_valuation_evidence` and `outcome_valuation_evidence` fields on `POST /api/v1/advisor/analyze`.
+
+The browser does not normalize currency, aggregate comparables, calculate valuations, or infer sale prices. It displays user-entered evidence separately from backend-derived analysis, and scenario valuation readiness/result summaries come back from the API.
+
 ## Development
 
 Install dependencies from this directory:
