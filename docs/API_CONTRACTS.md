@@ -90,7 +90,9 @@ The endpoints map before/after clipboard observations into stable raw record
 IDs and Task 15C-compatible export records. They do not persist a database
 session, calculate probabilities, or alter Advisor readiness. Automatic
 classification must use backend-derived outcome enumeration; request-supplied
-candidate data is not trusted as evidence for `AUTOMATIC` results.
+candidate data is not trusted as evidence for `AUTOMATIC` results. Exported
+source outcome-set and dataset-version provenance must be backend-derived or
+strictly validated against configured backend datasets.
 
 See [API_DEVELOPMENT.md](API_DEVELOPMENT.md) for FastAPI/Pydantic version assumptions, local startup, configuration, and future OpenAPI-to-TypeScript generation.
 

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -55,9 +56,12 @@ def record_observation(
                 "recoverable": True,
                 "reliable_no_result": True,
             },
-        )
+    )
     _validate_item_context(request, before.item, after.item)
-    outcome_set = _trusted_outcome_set(request, before.item, orchestrator)
+    crafting_dataset_version = _trusted_crafting_dataset_version(request, orchestrator)
+    modifier_dataset_version = _trusted_modifier_dataset_version(request, orchestrator)
+    outcome_set = _trusted_outcome_set(request, before.item, orchestrator, modifier_dataset_version)
+    source_outcome_set_id = _trusted_source_outcome_set_id(outcome_set)
 
     recorder = CraftObservationRecorder()
     if request.manual_outcome_id or request.manual_reason:
@@ -72,7 +76,7 @@ def record_observation(
     recorded = recorder.record(
         ObservationDraft(
             action_id=request.action_id,
-            source_outcome_set_id=request.source_outcome_set_id,
+            source_outcome_set_id=source_outcome_set_id,
             item_class=before.item.item_class or "",
             league=request.league,
             before_item=before.item,
@@ -81,8 +85,8 @@ def record_observation(
             source_id=request.source_id,
             game=request.game,
             game_version=request.game_version,
-            crafting_dataset_version=request.crafting_dataset_version,
-            modifier_dataset_version=request.modifier_dataset_version,
+            crafting_dataset_version=crafting_dataset_version,
+            modifier_dataset_version=modifier_dataset_version,
             source_uri=request.source_uri,
             synthetic=request.synthetic,
         ),
@@ -128,7 +132,12 @@ def _validate_item_context(request: CraftObservationRecordRequestDto, before_ite
         _bad_request("before and after implicit modifiers must match for recorder evidence.")
 
 
-def _trusted_outcome_set(request: CraftObservationRecordRequestDto, before_item, orchestrator: CraftAdvisorOrchestrator):
+def _trusted_outcome_set(
+    request: CraftObservationRecordRequestDto,
+    before_item,
+    orchestrator: CraftAdvisorOrchestrator,
+    modifier_dataset_version: str,
+):
     try:
         action = next(
             action
@@ -153,8 +162,46 @@ def _trusted_outcome_set(request: CraftObservationRecordRequestDto, before_item,
         action,
         applicability,
         orchestrator.game_data_repository,
-        request.modifier_dataset_version,
+        modifier_dataset_version,
     )
+
+
+def _trusted_crafting_dataset_version(
+    request: CraftObservationRecordRequestDto,
+    orchestrator: CraftAdvisorOrchestrator,
+) -> str:
+    dataset_id = orchestrator.craft_action_engine.dataset.dataset_id
+    if request.crafting_dataset_version and request.crafting_dataset_version != dataset_id:
+        _bad_request("request crafting_dataset_version does not match backend crafting dataset.")
+    return dataset_id
+
+
+def _trusted_modifier_dataset_version(
+    request: CraftObservationRecordRequestDto,
+    orchestrator: CraftAdvisorOrchestrator,
+) -> str:
+    dataset_ids = tuple(sorted(orchestrator.game_data_repository._datasets))
+    if not dataset_ids:
+        _bad_request("backend game-data repository has no loaded modifier dataset.")
+    if request.modifier_dataset_version:
+        if request.modifier_dataset_version not in dataset_ids:
+            _bad_request("request modifier_dataset_version does not match a backend modifier dataset.")
+        return request.modifier_dataset_version
+    if len(dataset_ids) != 1:
+        _bad_request("modifier_dataset_version is required when multiple backend datasets are loaded.")
+    return dataset_ids[0]
+
+
+def _trusted_source_outcome_set_id(outcome_set) -> str:
+    payload = "|".join(
+        (
+            outcome_set.action_id,
+            outcome_set.outcome_space_completeness.value,
+            *(state.outcome_id for state in sorted(outcome_set.hypothetical_states, key=lambda item: item.outcome_id)),
+        )
+    )
+    digest = hashlib.sha256(payload.encode("utf-8")).hexdigest()[:24]
+    return f"backend-outcome-set:{outcome_set.action_id}:{digest}"
 
 
 def _bad_request(message: str) -> None:

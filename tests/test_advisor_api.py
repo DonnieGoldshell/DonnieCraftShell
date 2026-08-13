@@ -385,6 +385,72 @@ class AdvisorApiTests(unittest.TestCase):
         self.assertEqual(body["classification"]["method"], "AUTOMATIC")
         self.assertNotEqual(body["classification"]["outcome_id"], "fabricated-client-outcome-id")
 
+    def test_fabricated_source_outcome_set_id_is_not_exported_as_trusted_context(self):
+        before = fixture("quiver_6_crafted_desecrated_advanced.txt")
+        removed_raw = (
+            '{ Prefix Modifier "Entombing" (Tier: 1) — Damage, Elemental, Cold, Attack }\n'
+            "Adds 22(21-24) to 37(32-37) Cold damage to Attacks"
+        )
+        response = self.client.post(
+            "/api/v1/observations/record",
+            json={
+                "before_clipboard_text": before,
+                "after_clipboard_text": before.replace(removed_raw + "\n", ""),
+                "action_id": "dc:poe2:craft-action:orb-of-annulment",
+                "source_outcome_set_id": "fabricated-client-source-outcome-set",
+                "item_class": "Quivers",
+                "league": LEAGUE,
+                "observed_at": AS_OF,
+                "crafting_dataset_version": CRAFTING_DATASET_ID,
+                "modifier_dataset_version": GAME_DATASET_ID,
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        exported = response.json()["export_record"]
+        self.assertNotEqual(exported["source_outcome_set_id"], "fabricated-client-source-outcome-set")
+        self.assertTrue(exported["source_outcome_set_id"].startswith("backend-outcome-set:"))
+        self.assertEqual(exported["crafting_dataset_version"], CRAFTING_DATASET_ID)
+        self.assertEqual(exported["modifier_dataset_version"], GAME_DATASET_ID)
+
+    def test_wrong_crafting_dataset_version_is_rejected(self):
+        response = self.client.post(
+            "/api/v1/observations/record",
+            json={
+                "before_clipboard_text": fixture("quiver_6_crafted_desecrated_advanced.txt"),
+                "after_clipboard_text": fixture("quiver_6_crafted_desecrated_advanced.txt"),
+                "action_id": "dc:poe2:craft-action:orb-of-annulment",
+                "source_outcome_set_id": "analysis-test:dc:poe2:craft-action:orb-of-annulment",
+                "item_class": "Quivers",
+                "league": LEAGUE,
+                "observed_at": AS_OF,
+                "crafting_dataset_version": "fabricated-crafting-dataset",
+                "modifier_dataset_version": GAME_DATASET_ID,
+            },
+        )
+
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("crafting_dataset_version", response.json()["detail"]["message"])
+
+    def test_wrong_modifier_dataset_version_is_rejected(self):
+        response = self.client.post(
+            "/api/v1/observations/record",
+            json={
+                "before_clipboard_text": fixture("quiver_6_crafted_desecrated_advanced.txt"),
+                "after_clipboard_text": fixture("quiver_6_crafted_desecrated_advanced.txt"),
+                "action_id": "dc:poe2:craft-action:orb-of-annulment",
+                "source_outcome_set_id": "analysis-test:dc:poe2:craft-action:orb-of-annulment",
+                "item_class": "Quivers",
+                "league": LEAGUE,
+                "observed_at": AS_OF,
+                "crafting_dataset_version": CRAFTING_DATASET_ID,
+                "modifier_dataset_version": "fabricated-modifier-dataset",
+            },
+        )
+
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("modifier_dataset_version", response.json()["detail"]["message"])
+
     def test_observation_item_class_mismatch_is_rejected(self):
         response = self.client.post(
             "/api/v1/observations/record",

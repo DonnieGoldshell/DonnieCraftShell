@@ -42,6 +42,12 @@ rarity, base type, item level, required level, or implicits differ. This prevent
 evidence labeled as one item context from being produced by unrelated item
 states.
 
+The exported source outcome-set identity is derived from backend-generated
+outcome enumeration, not from client-supplied request fields. Crafting and
+modifier dataset versions are likewise derived from or strictly validated
+against the injected backend datasets before they are written as evidence
+provenance.
+
 ## Raw Record ID Policy
 
 Each recorded observation receives a deterministic raw record ID derived from:
