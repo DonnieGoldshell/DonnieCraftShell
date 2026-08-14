@@ -90,6 +90,11 @@ uses a dataset only when `empirical_probability_dataset_version` explicitly
 names that registered dataset, and unknown/incompatible selections remain
 UNKNOWN rather than falling back to another empirical dataset.
 
+Task 17B keeps that safety model and adds optional local JSON persistence for
+registered empirical datasets. API startup reloads valid persisted datasets and
+surfaces corrupt-entry warnings while skipping malformed evidence. No persisted
+dataset is auto-activated for Advisor analysis.
+
 ## Item-Class Modularity
 
 Quiver logic belongs behind item-class interfaces. Future bows, rings, amulets, and armour modules should supply their own base definitions, modifier mappings, affix rules, legal action providers, and valuation features without changing the core engines.

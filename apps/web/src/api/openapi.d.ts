@@ -552,6 +552,7 @@ export interface components {
         EmpiricalDatasetListResponseDto: {
             /** Datasets */
             datasets: components["schemas"]["EmpiricalDatasetSummaryDto"][];
+            persistence: components["schemas"]["EmpiricalRegistryPersistenceStatusDto"];
             /** Registry Version */
             registry_version: string;
             /**
@@ -572,6 +573,7 @@ export interface components {
             dataset?: components["schemas"]["EmpiricalDatasetSummaryDto"] | null;
             /** Dataset Id */
             dataset_id?: string | null;
+            persistence: components["schemas"]["EmpiricalRegistryPersistenceStatusDto"];
             /** Registry Version */
             registry_version: string;
             /** Status */
@@ -623,6 +625,27 @@ export interface components {
             unclassified_count: number;
             /** Verification Status */
             verification_status: string;
+            /**
+             * Warnings
+             * @default []
+             */
+            warnings: string[];
+        };
+        /** EmpiricalRegistryPersistenceStatusDto */
+        EmpiricalRegistryPersistenceStatusDto: {
+            /** Loaded Dataset Count */
+            loaded_dataset_count: number;
+            /** Persistence Enabled */
+            persistence_enabled: boolean;
+            /**
+             * Skipped Dataset Count
+             * @default 0
+             */
+            skipped_dataset_count: number;
+            /** Storage Mode */
+            storage_mode: string;
+            /** Storage Version */
+            storage_version: string;
             /**
              * Warnings
              * @default []

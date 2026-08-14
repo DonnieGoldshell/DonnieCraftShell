@@ -65,7 +65,7 @@ Implemented API endpoints:
 - `POST /api/v1/observations/empirical-datasets/register`
 - `GET /api/v1/observations/empirical-datasets`
 
-The Advisor API uses local/offline datasets and request-supplied manual valuation evidence only. It does not scrape Trade, poll economy sources, fabricate probabilities, or execute gameplay actions.
+The Advisor API uses local/offline datasets and request-supplied manual valuation evidence only. It does not scrape Trade, poll economy sources, fabricate probabilities, or execute gameplay actions. Empirical dataset registrations persist locally to `.dcs/empirical_probability_registry.json` by default; set `DCS_EMPIRICAL_REGISTRY_PATH=disabled` for in-memory registry mode.
 
 ## API Development
 

@@ -1,7 +1,9 @@
 import copy
 import importlib
 import importlib.util
+import json
 import os
+import tempfile
 import unittest
 from dataclasses import replace
 from datetime import datetime, timezone
@@ -36,6 +38,8 @@ def base_request(clipboard_text: str | None = None) -> dict:
 @unittest.skipIf(importlib.util.find_spec("fastapi") is None, "FastAPI is not installed")
 class AdvisorApiTests(unittest.TestCase):
     def setUp(self):
+        self._previous_registry_path = os.environ.get("DCS_EMPIRICAL_REGISTRY_PATH")
+        os.environ["DCS_EMPIRICAL_REGISTRY_PATH"] = "disabled"
         from fastapi.testclient import TestClient
         from services.api.app.dependencies import advisor as advisor_dependencies
         from services.api.app.main import app
@@ -51,6 +55,10 @@ class AdvisorApiTests(unittest.TestCase):
 
     def tearDown(self):
         self.app.dependency_overrides.clear()
+        if self._previous_registry_path is None:
+            os.environ.pop("DCS_EMPIRICAL_REGISTRY_PATH", None)
+        else:
+            os.environ["DCS_EMPIRICAL_REGISTRY_PATH"] = self._previous_registry_path
 
     def test_health(self):
         response = self.client.get("/health")
@@ -606,6 +614,8 @@ class AdvisorApiTests(unittest.TestCase):
         self.assertEqual(listed.status_code, 200)
         self.assertEqual(listed.json()["datasets"][0]["dataset_id"], payload["dataset_id"])
         self.assertEqual(listed.json()["datasets"][0]["league"], LEAGUE)
+        self.assertEqual(listed.json()["persistence"]["storage_mode"], "IN_MEMORY")
+        self.assertFalse(listed.json()["persistence"]["persistence_enabled"])
 
     def test_empirical_dataset_duplicate_registration_is_idempotent(self):
         self._install_registry_backed_deterministic_dependencies()
@@ -676,6 +686,73 @@ class AdvisorApiTests(unittest.TestCase):
         annulment = self._action(response.json(), "dc:poe2:craft-action:orb-of-annulment")
         self.assertEqual(annulment["probability"]["completeness"], "UNKNOWN")
         self.assertTrue(any("not-registered" in warning for warning in annulment["warnings"]))
+
+    def test_empirical_registry_persistence_reloads_through_api_dependency(self):
+        from services.api.app.dependencies import advisor as advisor_dependencies
+
+        previous = os.environ.get("DCS_EMPIRICAL_REGISTRY_PATH")
+        with tempfile.TemporaryDirectory() as directory:
+            os.environ["DCS_EMPIRICAL_REGISTRY_PATH"] = str(Path(directory) / "registry.json")
+            try:
+                self._clear_dependency_caches(advisor_dependencies)
+                payload = self._registered_empirical_dataset_payload(
+                    self.client.post("/api/v1/advisor/analyze", json=base_request()).json()
+                )
+                registered = self.client.post(
+                    "/api/v1/observations/empirical-datasets/register",
+                    json={"dataset": payload},
+                )
+                self._clear_dependency_caches(advisor_dependencies)
+                listed = self.client.get("/api/v1/observations/empirical-datasets")
+            finally:
+                if previous is None:
+                    os.environ.pop("DCS_EMPIRICAL_REGISTRY_PATH", None)
+                else:
+                    os.environ["DCS_EMPIRICAL_REGISTRY_PATH"] = previous
+                self._clear_dependency_caches(advisor_dependencies)
+
+        self.assertEqual(registered.status_code, 200)
+        self.assertEqual(registered.json()["persistence"]["storage_mode"], "FILE")
+        self.assertTrue(registered.json()["persistence"]["persistence_enabled"])
+        self.assertEqual(listed.status_code, 200)
+        self.assertEqual(listed.json()["datasets"][0]["dataset_id"], payload["dataset_id"])
+        self.assertEqual(listed.json()["persistence"]["loaded_dataset_count"], 1)
+
+    def test_empirical_registry_corrupt_persisted_dataset_status_surfaces_warning(self):
+        from services.api.app.dependencies import advisor as advisor_dependencies
+
+        previous = os.environ.get("DCS_EMPIRICAL_REGISTRY_PATH")
+        with tempfile.TemporaryDirectory() as directory:
+            storage = Path(directory) / "registry.json"
+            payload = self._registered_empirical_dataset_payload(
+                self.client.post("/api/v1/advisor/analyze", json=base_request()).json()
+            )
+            storage.write_text(
+                json.dumps(
+                    {
+                        "registry_version": "dc-empirical-dataset-registry-v1",
+                        "storage_version": "dc-empirical-dataset-registry-storage-v1",
+                        "datasets": [payload, {"dataset_id": "broken"}],
+                    }
+                ),
+                encoding="utf-8",
+            )
+            os.environ["DCS_EMPIRICAL_REGISTRY_PATH"] = str(storage)
+            try:
+                self._clear_dependency_caches(advisor_dependencies)
+                response = self.client.get("/api/v1/observations/empirical-datasets")
+            finally:
+                if previous is None:
+                    os.environ.pop("DCS_EMPIRICAL_REGISTRY_PATH", None)
+                else:
+                    os.environ["DCS_EMPIRICAL_REGISTRY_PATH"] = previous
+                self._clear_dependency_caches(advisor_dependencies)
+
+        body = response.json()
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(body["datasets"][0]["dataset_id"], payload["dataset_id"])
+        self.assertEqual(body["persistence"]["skipped_dataset_count"], 1)
+        self.assertTrue(any("broken" in warning for warning in body["warnings"]))
 
     def test_wrong_crafting_dataset_version_is_rejected(self):
         response = self.client.post(
@@ -807,6 +884,13 @@ class AdvisorApiTests(unittest.TestCase):
             ],
             "notes": "synthetic test-only valuation evidence",
         }
+
+    def _clear_dependency_caches(self, advisor_dependencies) -> None:
+        advisor_dependencies.get_advisor_orchestrator.cache_clear()
+        advisor_dependencies.get_economy_repository.cache_clear()
+        advisor_dependencies.get_probability_provider.cache_clear()
+        advisor_dependencies.get_empirical_probability_registry.cache_clear()
+        advisor_dependencies.get_cached_settings.cache_clear()
 
     def _install_synthetic_dependencies(self):
         from packages.shared.donniecraftshell_contracts.advisor_orchestration import CraftAdvisorOrchestrator

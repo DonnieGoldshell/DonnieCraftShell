@@ -12,6 +12,7 @@ from packages.shared.donniecraftshell_contracts.empirical_probability import (
     EmpiricalProbabilityDatasetRegistry,
     EmpiricalProbabilityRegistryProvider,
     EmpiricalProbabilityRepository,
+    FileBackedEmpiricalProbabilityDatasetRegistry,
 )
 from packages.shared.donniecraftshell_contracts.game_data_repository import GameDataRepository
 from packages.shared.donniecraftshell_contracts.poe_show_economy import load_normalized_economy_snapshot
@@ -38,6 +39,11 @@ def get_empirical_probability_registry() -> EmpiricalProbabilityDatasetRegistry:
         settings.empirical_probability_dataset_paths,
         allow_synthetic=False,
     )
+    if settings.empirical_registry_storage_path is not None:
+        return FileBackedEmpiricalProbabilityDatasetRegistry.from_repository(
+            repository,
+            settings.empirical_registry_storage_path,
+        )
     return EmpiricalProbabilityDatasetRegistry.from_repository(repository)
 
 
