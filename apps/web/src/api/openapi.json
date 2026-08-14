@@ -969,6 +969,239 @@
         "title": "EconomicValueDto",
         "type": "object"
       },
+      "EmpiricalDatasetListResponseDto": {
+        "properties": {
+          "datasets": {
+            "items": {
+              "$ref": "#/components/schemas/EmpiricalDatasetSummaryDto"
+            },
+            "title": "Datasets",
+            "type": "array"
+          },
+          "registry_version": {
+            "title": "Registry Version",
+            "type": "string"
+          },
+          "warnings": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Warnings",
+            "type": "array"
+          }
+        },
+        "required": [
+          "registry_version",
+          "datasets"
+        ],
+        "title": "EmpiricalDatasetListResponseDto",
+        "type": "object"
+      },
+      "EmpiricalDatasetRegisterRequestDto": {
+        "properties": {
+          "dataset": {
+            "additionalProperties": true,
+            "title": "Dataset",
+            "type": "object"
+          }
+        },
+        "required": [
+          "dataset"
+        ],
+        "title": "EmpiricalDatasetRegisterRequestDto",
+        "type": "object"
+      },
+      "EmpiricalDatasetRegisterResponseDto": {
+        "properties": {
+          "dataset": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/EmpiricalDatasetSummaryDto"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "dataset_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Dataset Id"
+          },
+          "registry_version": {
+            "title": "Registry Version",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "warnings": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Warnings",
+            "type": "array"
+          }
+        },
+        "required": [
+          "registry_version",
+          "status"
+        ],
+        "title": "EmpiricalDatasetRegisterResponseDto",
+        "type": "object"
+      },
+      "EmpiricalDatasetSummaryDto": {
+        "properties": {
+          "action_id": {
+            "title": "Action Id",
+            "type": "string"
+          },
+          "crafting_dataset_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Crafting Dataset Version"
+          },
+          "dataset_id": {
+            "title": "Dataset Id",
+            "type": "string"
+          },
+          "game": {
+            "title": "Game",
+            "type": "string"
+          },
+          "game_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Game Version"
+          },
+          "item_class": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Item Class"
+          },
+          "league": {
+            "title": "League",
+            "type": "string"
+          },
+          "methodology": {
+            "title": "Methodology",
+            "type": "string"
+          },
+          "modifier_dataset_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Modifier Dataset Version"
+          },
+          "outcome_count": {
+            "title": "Outcome Count",
+            "type": "integer"
+          },
+          "retrieved_at": {
+            "format": "date-time",
+            "title": "Retrieved At",
+            "type": "string"
+          },
+          "sample_size": {
+            "title": "Sample Size",
+            "type": "integer"
+          },
+          "source_outcome_set_id": {
+            "title": "Source Outcome Set Id",
+            "type": "string"
+          },
+          "source_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Type"
+          },
+          "source_uri": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Uri"
+          },
+          "synthetic": {
+            "title": "Synthetic",
+            "type": "boolean"
+          },
+          "unclassified_count": {
+            "title": "Unclassified Count",
+            "type": "integer"
+          },
+          "verification_status": {
+            "title": "Verification Status",
+            "type": "string"
+          },
+          "warnings": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Warnings",
+            "type": "array"
+          }
+        },
+        "required": [
+          "dataset_id",
+          "action_id",
+          "source_outcome_set_id",
+          "game",
+          "league",
+          "sample_size",
+          "unclassified_count",
+          "outcome_count",
+          "retrieved_at",
+          "synthetic",
+          "verification_status",
+          "methodology"
+        ],
+        "title": "EmpiricalDatasetSummaryDto",
+        "type": "object"
+      },
       "EnrichmentSummaryDto": {
         "properties": {
           "ambiguous_modifier_count": {
@@ -2596,6 +2829,68 @@
           }
         },
         "summary": "Build Empirical Datasets",
+        "tags": [
+          "observations"
+        ]
+      }
+    },
+    "/api/v1/observations/empirical-datasets": {
+      "get": {
+        "operationId": "list_empirical_datasets_api_v1_observations_empirical_datasets_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EmpiricalDatasetListResponseDto"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "List Empirical Datasets",
+        "tags": [
+          "observations"
+        ]
+      }
+    },
+    "/api/v1/observations/empirical-datasets/register": {
+      "post": {
+        "operationId": "register_empirical_dataset_api_v1_observations_empirical_datasets_register_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EmpiricalDatasetRegisterRequestDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EmpiricalDatasetRegisterResponseDto"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Register Empirical Dataset",
         "tags": [
           "observations"
         ]

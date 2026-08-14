@@ -1,4 +1,5 @@
 import copy
+import json
 import unittest
 from dataclasses import replace
 from decimal import Decimal
@@ -14,6 +15,8 @@ from packages.shared.donniecraftshell_contracts.crafting_actions import CraftApp
 from packages.shared.donniecraftshell_contracts.empirical_probability import (
     EMPIRICAL_PROBABILITY_METHODOLOGY_VERSION,
     EmpiricalOutcomeCount,
+    EmpiricalDatasetRegistrationStatus,
+    EmpiricalProbabilityDatasetRegistry,
     EmpiricalProbabilityProvider,
     EmpiricalProbabilityRepository,
     EmpiricalProbabilityReadinessPolicy,
@@ -102,6 +105,36 @@ class EmpiricalProbabilityPipelineTests(unittest.TestCase):
         self.assertTrue(all(entry.evidence[0].sample_size == 100 for entry in model.outcome_probabilities))
         self.assertTrue(all(entry.evidence[0].uncertainty_interval is not None for entry in model.outcome_probabilities))
         self.assertIn(dataset.dataset_id, model.dataset_versions)
+
+    def test_dataset_requires_explicit_selection_before_use(self):
+        dataset = normalize_empirical_probability_dataset(load_raw_empirical_probability_dataset(SYNTHETIC_FIXTURE))
+        provider = EmpiricalProbabilityProvider((dataset,), allow_synthetic=True)
+
+        model = provider.get_probability_model(
+            parsed_quiver_6(),
+            synthetic_outcome_set(),
+            ProbabilityContext(
+                crafting_dataset_version="synthetic-crafting-dataset",
+                modifier_dataset_version="synthetic-modifier-dataset",
+                game_version="synthetic-test-version",
+                league="Synthetic Test League",
+            ),
+        )
+
+        self.assertEqual(model.probability_completeness, ProbabilityCompleteness.UNKNOWN)
+        self.assertTrue(all(entry.probability is None for entry in model.outcome_probabilities))
+
+    def test_unknown_explicit_dataset_selection_warns_without_fallback(self):
+        dataset = normalize_empirical_probability_dataset(load_raw_empirical_probability_dataset(SYNTHETIC_FIXTURE))
+
+        model = EmpiricalProbabilityProvider((dataset,), allow_synthetic=True).get_probability_model(
+            parsed_quiver_6(),
+            synthetic_outcome_set(),
+            ProbabilityContext(evidence_dataset_version="missing-empirical-dataset"),
+        )
+
+        self.assertEqual(model.probability_completeness, ProbabilityCompleteness.UNKNOWN)
+        self.assertTrue(any("missing-empirical-dataset" in warning for warning in model.warnings))
 
     def test_empirical_probability_uses_counts_not_equal_distribution(self):
         dataset = normalize_empirical_probability_dataset(load_raw_empirical_probability_dataset(SYNTHETIC_FIXTURE))
@@ -202,6 +235,51 @@ class EmpiricalProbabilityPipelineTests(unittest.TestCase):
         self.assertEqual(repository.datasets, ())
         self.assertEqual(repository.skipped_dataset_ids, ("synthetic-empirical-probability-2026-08-13-test-only",))
         self.assertTrue(repository.warnings)
+
+    def test_registry_registers_task15a_payload_and_lists_summary(self):
+        registry = EmpiricalProbabilityDatasetRegistry()
+        payload = json.loads(SYNTHETIC_FIXTURE.read_text(encoding="utf-8"))
+
+        result = registry.register_raw_payload(payload)
+
+        self.assertEqual(result.status, EmpiricalDatasetRegistrationStatus.REGISTERED)
+        self.assertEqual(result.dataset_id, payload["dataset_id"])
+        self.assertEqual(registry.get_dataset(payload["dataset_id"]).dataset_id, payload["dataset_id"])
+        summaries = registry.list_summaries()
+        self.assertEqual(len(summaries), 1)
+        self.assertEqual(summaries[0].dataset_id, payload["dataset_id"])
+        self.assertEqual(summaries[0].sample_size, 100)
+        self.assertTrue(summaries[0].synthetic)
+
+    def test_registry_duplicate_identical_payload_is_idempotent(self):
+        registry = EmpiricalProbabilityDatasetRegistry()
+        payload = json.loads(SYNTHETIC_FIXTURE.read_text(encoding="utf-8"))
+
+        first = registry.register_raw_payload(payload)
+        second = registry.register_raw_payload(payload)
+
+        self.assertEqual(first.status, EmpiricalDatasetRegistrationStatus.REGISTERED)
+        self.assertEqual(second.status, EmpiricalDatasetRegistrationStatus.ALREADY_REGISTERED)
+        self.assertEqual(len(registry.list_summaries()), 1)
+
+    def test_registry_rejects_same_dataset_id_with_conflicting_content(self):
+        registry = EmpiricalProbabilityDatasetRegistry()
+        payload = json.loads(SYNTHETIC_FIXTURE.read_text(encoding="utf-8"))
+        conflict = copy.deepcopy(payload)
+        conflict["observations"][0]["observed_count"] = 26
+
+        registry.register_raw_payload(payload)
+        result = registry.register_raw_payload(conflict)
+
+        self.assertEqual(result.status, EmpiricalDatasetRegistrationStatus.REJECTED)
+        self.assertTrue(any("different content" in warning for warning in result.warnings))
+        self.assertEqual(registry.get_dataset(payload["dataset_id"]).sample_size, 100)
+
+    def test_registry_rejects_malformed_payload_conservatively(self):
+        result = EmpiricalProbabilityDatasetRegistry().register_raw_payload({"dataset_id": "broken"})
+
+        self.assertEqual(result.status, EmpiricalDatasetRegistrationStatus.REJECTED)
+        self.assertTrue(result.warnings)
 
     def test_no_dataset_leaves_real_actions_unknown(self):
         model = EmpiricalProbabilityProvider(()).get_probability_model(

@@ -83,6 +83,13 @@ records through Task 15C, partitions incompatible evidence contexts, and returns
 Task 15A-compatible raw empirical probability datasets. Building these datasets
 does not silently configure them for Advisor probability use.
 
+Task 17A adds [EMPIRICAL_DATASET_REGISTRY.md](EMPIRICAL_DATASET_REGISTRY.md).
+Built empirical datasets may be registered into the local running API and listed
+for operator selection. Registration is inert: Advisor probability evaluation
+uses a dataset only when `empirical_probability_dataset_version` explicitly
+names that registered dataset, and unknown/incompatible selections remain
+UNKNOWN rather than falling back to another empirical dataset.
+
 ## Item-Class Modularity
 
 Quiver logic belongs behind item-class interfaces. Future bows, rings, amulets, and armour modules should supply their own base definitions, modifier mappings, affix rules, legal action providers, and valuation features without changing the core engines.

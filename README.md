@@ -50,7 +50,7 @@ tests/             Cross-service integration and acceptance tests
 
 The repository now contains the framework-independent DonnieCraftShell domain engines for the rare Quiver vertical slice plus a FastAPI transport layer for item parsing and Advisor analysis.
 
-The first frontend vertical slice lives in `apps/web`. It is a Next.js + React + TypeScript Craft Advisor workbench that posts Quiver clipboard text and optional manual comparable listing observations to the Advisor API, then renders partial analysis, action candidates, costs, missing requirements, valuation readiness, and raw/risk-adjusted decisions without duplicating backend decision logic. It also includes a manual craft observation recorder, review panel, and curated empirical dataset build flow that export accepted Task 15C-compatible evidence and build raw empirical dataset payloads without changing probability readiness by themselves.
+The first frontend vertical slice lives in `apps/web`. It is a Next.js + React + TypeScript Craft Advisor workbench that posts Quiver clipboard text and optional manual comparable listing observations to the Advisor API, then renders partial analysis, action candidates, costs, missing requirements, valuation readiness, and raw/risk-adjusted decisions without duplicating backend decision logic. It also includes a manual craft observation recorder, review panel, curated empirical dataset build flow, and local empirical dataset registry flow. Built or registered empirical datasets do not change probability readiness unless an Advisor request explicitly selects a compatible dataset ID.
 
 Implemented API endpoints:
 
@@ -58,6 +58,12 @@ Implemented API endpoints:
 - `GET /api/v1/health`
 - `POST /api/v1/items/parse`
 - `POST /api/v1/advisor/analyze`
+- `POST /api/v1/observations/record`
+- `POST /api/v1/observations/export`
+- `POST /api/v1/observations/review`
+- `POST /api/v1/observations/build-empirical-datasets`
+- `POST /api/v1/observations/empirical-datasets/register`
+- `GET /api/v1/observations/empirical-datasets`
 
 The Advisor API uses local/offline datasets and request-supplied manual valuation evidence only. It does not scrape Trade, poll economy sources, fabricate probabilities, or execute gameplay actions.
 
