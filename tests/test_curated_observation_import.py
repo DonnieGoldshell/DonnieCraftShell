@@ -13,7 +13,7 @@ from tests.test_empirical_probability_pipeline import parsed_quiver_6, synthetic
 BUILT_AT = datetime(2026, 8, 14, 8, 0, tzinfo=timezone.utc)
 
 
-def accepted_export(*records: dict) -> dict:
+def accepted_export(*records) -> dict:
     return {
         "review_version": "dc-observation-review-v1",
         "exported_at": "2026-08-14T07:50:00+00:00",
@@ -82,6 +82,21 @@ class CuratedObservationImportTests(unittest.TestCase):
         self.assertEqual(result.dataset_count, 0)
         self.assertEqual(result.rejected_records[0].raw_record_id, "malformed-record")
         self.assertTrue(any("Malformed accepted-export records" in warning for warning in result.warnings))
+
+    def test_non_dict_entries_are_counted_and_rejected_with_index_reason(self):
+        result = build_empirical_datasets_from_curated_export(
+            accepted_export(record("valid-raw", outcome_id="outcome-a"), "not an observation object"),
+            built_at=BUILT_AT,
+        )
+
+        self.assertEqual(result.source_record_count, 2)
+        self.assertEqual(result.imported_record_count, 1)
+        self.assertEqual(result.accepted_record_count, 1)
+        self.assertEqual(result.invalid_record_count, 1)
+        self.assertEqual(result.dataset_count, 1)
+        self.assertIsNone(result.rejected_records[0].raw_record_id)
+        self.assertIn("accepted_export:2", result.rejected_records[0].reason)
+        self.assertIn("str", result.rejected_records[0].reason)
 
     def test_duplicate_raw_ids_are_not_double_counted(self):
         duplicate = record("duplicate-raw", outcome_id="outcome-a")

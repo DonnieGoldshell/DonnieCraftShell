@@ -532,6 +532,28 @@ class AdvisorApiTests(unittest.TestCase):
         self.assertEqual(body["dataset_count"], 0)
         self.assertEqual(body["rejected_records"][0]["raw_record_id"], "manual-craft-observation-build-malformed")
 
+    def test_curated_observation_build_endpoint_counts_non_dict_entries_as_invalid(self):
+        accepted = self._observation_export_record("manual-craft-observation-build-valid", "outcome-api-1")
+        response = self.client.post(
+            "/api/v1/observations/build-empirical-datasets",
+            json={
+                "accepted_export": {
+                    "observations": [accepted, "not an observation object"]
+                }
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        body = response.json()
+        self.assertEqual(body["source_record_count"], 2)
+        self.assertEqual(body["imported_record_count"], 1)
+        self.assertEqual(body["accepted_record_count"], 1)
+        self.assertEqual(body["invalid_record_count"], 1)
+        self.assertEqual(body["dataset_count"], 1)
+        self.assertIsNone(body["rejected_records"][0]["raw_record_id"])
+        self.assertIn("accepted_export:2", body["rejected_records"][0]["reason"])
+        self.assertIn("str", body["rejected_records"][0]["reason"])
+
     def test_wrong_crafting_dataset_version_is_rejected(self):
         response = self.client.post(
             "/api/v1/observations/record",

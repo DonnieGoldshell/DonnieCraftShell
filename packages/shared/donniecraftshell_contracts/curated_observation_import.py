@@ -78,6 +78,14 @@ def build_empirical_datasets_from_curated_export(
     observations = []
     rejected = []
     for index, record in enumerate(records, start=1):
+        if not isinstance(record, dict):
+            rejected.append(
+                ObservationValidationIssue(
+                    raw_record_id=None,
+                    reason=f"accepted_export:{index}: observation entry must be an object, got {type(record).__name__}",
+                )
+            )
+            continue
         try:
             observations.append(empirical_observation_from_dict(record))
         except Exception as exc:
@@ -113,8 +121,8 @@ def build_empirical_datasets_from_curated_export(
     )
 
 
-def _accepted_records(accepted_export: dict[str, Any]) -> tuple[dict[str, Any], ...]:
+def _accepted_records(accepted_export: dict[str, Any]) -> tuple[Any, ...]:
     records = accepted_export.get("observations")
     if not isinstance(records, list):
         raise ValueError("curated accepted export must contain observations as a list")
-    return tuple(dict(record) for record in records if isinstance(record, dict))
+    return tuple(records)
