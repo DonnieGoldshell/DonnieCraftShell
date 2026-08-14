@@ -83,9 +83,9 @@ Outcome valuation evidence is keyed by deterministic `outcome_id`.
 
 ## Empirical Probability Evidence
 
-`empirical_probability_dataset_version` selects an explicitly configured
-offline empirical probability dataset. It does not cause runtime scraping or
-auto-discovery.
+`empirical_probability_dataset_version` selects an explicitly registered or
+configured offline empirical probability dataset. It does not cause runtime
+scraping, auto-discovery, or fallback selection of another dataset.
 
 Production/default dependency assembly skips synthetic/test-only empirical
 fixtures. Tests may inject synthetic datasets explicitly to prove transport and
@@ -94,6 +94,19 @@ readiness behavior.
 When empirical evidence is absent, partial, incompatible with league/game or
 dataset context, or disabled because it is synthetic, real action probabilities
 remain `UNKNOWN` and the response includes probability missing requirements.
+
+## Empirical Dataset Registry
+
+Local/operator endpoints support the Task 17A lifecycle:
+
+- `POST /api/v1/observations/empirical-datasets/register`
+- `GET /api/v1/observations/empirical-datasets`
+
+The register endpoint accepts one Task 15A-compatible empirical probability
+dataset payload, such as a dataset returned by
+`POST /api/v1/observations/build-empirical-datasets`. Registration alone does
+not alter Advisor analysis. The Advisor request must explicitly name the
+registered dataset ID in `empirical_probability_dataset_version`.
 
 ## Response
 

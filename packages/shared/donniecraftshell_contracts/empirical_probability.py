@@ -7,10 +7,12 @@ space and never fabricates observations for missing outcomes.
 
 from __future__ import annotations
 
+import hashlib
 import json
 from dataclasses import dataclass
 from datetime import datetime
 from decimal import Decimal
+from enum import Enum
 from pathlib import Path
 from typing import Any
 
@@ -30,6 +32,7 @@ from .probability import (
 
 EMPIRICAL_PROBABILITY_METHODOLOGY_VERSION = "dc-empirical-probability-v1"
 EMPIRICAL_PROBABILITY_WARNING = "Empirical estimates are not official mechanical probabilities."
+EMPIRICAL_DATASET_REGISTRY_VERSION = "dc-empirical-dataset-registry-v1"
 
 
 @dataclass(frozen=True)
@@ -137,6 +140,43 @@ class EmpiricalProbabilityDataset:
             seen.add(count.outcome_id)
 
 
+class EmpiricalDatasetRegistrationStatus(str, Enum):
+    REGISTERED = "REGISTERED"
+    ALREADY_REGISTERED = "ALREADY_REGISTERED"
+    REJECTED = "REJECTED"
+
+
+@dataclass(frozen=True)
+class EmpiricalProbabilityDatasetSummary:
+    dataset_id: str
+    action_id: str
+    source_outcome_set_id: str
+    game: str
+    league: str
+    sample_size: int
+    unclassified_count: int
+    outcome_count: int
+    retrieved_at: datetime
+    synthetic: bool
+    item_class: str | None = None
+    game_version: str | None = None
+    crafting_dataset_version: str | None = None
+    modifier_dataset_version: str | None = None
+    verification_status: VerificationStatus = VerificationStatus.NEEDS_VERIFICATION
+    methodology: str = EMPIRICAL_PROBABILITY_METHODOLOGY_VERSION
+    source_uri: str | None = None
+    source_type: SourceType | None = None
+    warnings: tuple[str, ...] = ()
+
+
+@dataclass(frozen=True)
+class EmpiricalDatasetRegistrationResult:
+    status: EmpiricalDatasetRegistrationStatus
+    dataset_id: str | None
+    summary: EmpiricalProbabilityDatasetSummary | None = None
+    warnings: tuple[str, ...] = ()
+
+
 @dataclass(frozen=True)
 class EmpiricalProbabilityRepository:
     datasets: tuple[EmpiricalProbabilityDataset, ...]
@@ -171,6 +211,104 @@ class EmpiricalProbabilityRepository:
             readiness_policy=readiness_policy,
             allow_synthetic=allow_synthetic,
         )
+
+
+class EmpiricalProbabilityDatasetRegistry:
+    """In-process registry for explicitly selected empirical probability datasets.
+
+    Registration alone never activates a dataset for Advisor analysis. The
+    Advisor request must still carry the desired evidence dataset ID.
+    """
+
+    def __init__(self, datasets: tuple[EmpiricalProbabilityDataset, ...] = ()) -> None:
+        self._datasets: dict[str, EmpiricalProbabilityDataset] = {}
+        self._fingerprints: dict[str, str] = {}
+        for dataset in datasets:
+            result = self.register_dataset(dataset)
+            if result.status == EmpiricalDatasetRegistrationStatus.REJECTED:
+                raise ValueError("; ".join(result.warnings))
+
+    @classmethod
+    def from_repository(cls, repository: EmpiricalProbabilityRepository) -> "EmpiricalProbabilityDatasetRegistry":
+        return cls(repository.datasets)
+
+    def register_raw_payload(self, payload: dict[str, Any]) -> EmpiricalDatasetRegistrationResult:
+        try:
+            dataset = normalize_empirical_probability_dataset(raw_empirical_probability_dataset_from_dict(payload))
+        except Exception as exc:
+            return EmpiricalDatasetRegistrationResult(
+                status=EmpiricalDatasetRegistrationStatus.REJECTED,
+                dataset_id=None,
+                warnings=(f"Malformed empirical probability dataset payload: {exc}",),
+            )
+        return self.register_dataset(dataset)
+
+    def register_dataset(self, dataset: EmpiricalProbabilityDataset) -> EmpiricalDatasetRegistrationResult:
+        fingerprint = _dataset_fingerprint(dataset)
+        existing = self._datasets.get(dataset.dataset_id)
+        if existing is not None:
+            if self._fingerprints[dataset.dataset_id] == fingerprint:
+                return EmpiricalDatasetRegistrationResult(
+                    status=EmpiricalDatasetRegistrationStatus.ALREADY_REGISTERED,
+                    dataset_id=dataset.dataset_id,
+                    summary=_dataset_summary(existing),
+                    warnings=("Dataset ID was already registered with identical content; registration is idempotent.",),
+                )
+            return EmpiricalDatasetRegistrationResult(
+                status=EmpiricalDatasetRegistrationStatus.REJECTED,
+                dataset_id=dataset.dataset_id,
+                warnings=("Dataset ID is already registered with different content; conflicting empirical evidence was rejected.",),
+            )
+        self._datasets[dataset.dataset_id] = dataset
+        self._fingerprints[dataset.dataset_id] = fingerprint
+        return EmpiricalDatasetRegistrationResult(
+            status=EmpiricalDatasetRegistrationStatus.REGISTERED,
+            dataset_id=dataset.dataset_id,
+            summary=_dataset_summary(dataset),
+            warnings=dataset.warnings,
+        )
+
+    def get_dataset(self, dataset_id: str) -> EmpiricalProbabilityDataset | None:
+        return self._datasets.get(dataset_id)
+
+    def list_summaries(self) -> tuple[EmpiricalProbabilityDatasetSummary, ...]:
+        return tuple(_dataset_summary(self._datasets[dataset_id]) for dataset_id in sorted(self._datasets))
+
+    def to_provider(
+        self,
+        readiness_policy: EmpiricalProbabilityReadinessPolicy | None = None,
+        allow_synthetic: bool = False,
+    ) -> "EmpiricalProbabilityProvider":
+        return EmpiricalProbabilityProvider(
+            tuple(self._datasets[dataset_id] for dataset_id in sorted(self._datasets)),
+            readiness_policy=readiness_policy,
+            allow_synthetic=allow_synthetic,
+        )
+
+
+class EmpiricalProbabilityRegistryProvider:
+    """ProbabilityProvider backed by the current contents of a dataset registry."""
+
+    def __init__(
+        self,
+        registry: EmpiricalProbabilityDatasetRegistry,
+        readiness_policy: EmpiricalProbabilityReadinessPolicy | None = None,
+        allow_synthetic: bool = False,
+    ) -> None:
+        self._registry = registry
+        self._readiness_policy = readiness_policy
+        self._allow_synthetic = allow_synthetic
+
+    def get_probability_model(
+        self,
+        item: ParsedItem,
+        outcome_set: CraftOutcomeSet,
+        context: ProbabilityContext | None = None,
+    ) -> OutcomeProbabilityModel:
+        return self._registry.to_provider(
+            readiness_policy=self._readiness_policy,
+            allow_synthetic=self._allow_synthetic,
+        ).get_probability_model(item, outcome_set, context)
 
 
 def load_raw_empirical_probability_dataset(path: str | Path) -> RawEmpiricalProbabilityDataset:
@@ -275,7 +413,23 @@ class EmpiricalProbabilityProvider:
         context = context or ProbabilityContext()
         dataset = self._find_dataset(item, outcome_set, context)
         if dataset is None:
-            return self._fallback_provider.get_probability_model(item, outcome_set, context)
+            model = self._fallback_provider.get_probability_model(item, outcome_set, context)
+            if context.evidence_dataset_version:
+                return OutcomeProbabilityModel(
+                    action_id=model.action_id,
+                    source_outcome_set_id=model.source_outcome_set_id,
+                    outcome_probabilities=model.outcome_probabilities,
+                    probability_completeness=model.probability_completeness,
+                    methodology_summary=model.methodology_summary,
+                    dataset_versions=model.dataset_versions,
+                    provenance=model.provenance,
+                    warnings=(
+                        *model.warnings,
+                        f"Requested empirical probability dataset {context.evidence_dataset_version} is not registered or does not match this action/outcome set.",
+                    ),
+                    deterministic_operations=model.deterministic_operations,
+                )
+            return model
         if dataset.synthetic and not self._allow_synthetic:
             model = self._fallback_provider.get_probability_model(item, outcome_set, context)
             return OutcomeProbabilityModel(
@@ -314,6 +468,8 @@ class EmpiricalProbabilityProvider:
         outcome_set: CraftOutcomeSet,
         context: ProbabilityContext,
     ) -> EmpiricalProbabilityDataset | None:
+        if not context.evidence_dataset_version:
+            return None
         source_outcome_set_id = _outcome_set_identity(outcome_set)
         for dataset in self._datasets:
             if dataset.action_id != outcome_set.action_id:
@@ -489,6 +645,75 @@ def _context_warnings(
 
 def _outcome_set_identity(outcome_set: CraftOutcomeSet) -> str:
     return f"{outcome_set.source_item_analysis_id}:{outcome_set.action_id}"
+
+
+def _dataset_summary(dataset: EmpiricalProbabilityDataset) -> EmpiricalProbabilityDatasetSummary:
+    provenance = dataset.provenance[0] if dataset.provenance else None
+    return EmpiricalProbabilityDatasetSummary(
+        dataset_id=dataset.dataset_id,
+        action_id=dataset.action_id,
+        source_outcome_set_id=dataset.source_outcome_set_id,
+        game=dataset.game,
+        league=dataset.league,
+        sample_size=dataset.sample_size,
+        unclassified_count=dataset.unclassified_count,
+        outcome_count=len(dataset.outcome_counts),
+        retrieved_at=dataset.retrieved_at,
+        synthetic=dataset.synthetic,
+        item_class=dataset.item_class,
+        game_version=dataset.game_version,
+        crafting_dataset_version=dataset.crafting_dataset_version,
+        modifier_dataset_version=dataset.modifier_dataset_version,
+        verification_status=dataset.verification_status,
+        methodology=dataset.methodology,
+        source_uri=provenance.source_uri if provenance is not None else None,
+        source_type=provenance.source_type if provenance is not None else None,
+        warnings=dataset.warnings,
+    )
+
+
+def _dataset_fingerprint(dataset: EmpiricalProbabilityDataset) -> str:
+    payload = {
+        "dataset_id": dataset.dataset_id,
+        "action_id": dataset.action_id,
+        "source_outcome_set_id": dataset.source_outcome_set_id,
+        "game": dataset.game,
+        "league": dataset.league,
+        "retrieved_at": dataset.retrieved_at.isoformat(),
+        "outcome_counts": [
+            {
+                "outcome_id": count.outcome_id,
+                "observed_count": count.observed_count,
+                "raw_record_ids": list(count.raw_record_ids),
+                "warnings": list(count.warnings),
+            }
+            for count in sorted(dataset.outcome_counts, key=lambda item: item.outcome_id)
+        ],
+        "unclassified_count": dataset.unclassified_count,
+        "synthetic": dataset.synthetic,
+        "item_class": dataset.item_class,
+        "game_version": dataset.game_version,
+        "crafting_dataset_version": dataset.crafting_dataset_version,
+        "modifier_dataset_version": dataset.modifier_dataset_version,
+        "methodology": dataset.methodology,
+        "verification_status": dataset.verification_status.value,
+        "provenance": [
+            {
+                "source_id": item.source_id,
+                "source_type": item.source_type.value,
+                "source_uri": item.source_uri,
+                "retrieved_at": item.retrieved_at.isoformat() if item.retrieved_at else None,
+                "game_version": item.game_version,
+                "league": item.league,
+                "verification_status": item.verification_status.value,
+                "notes": item.notes,
+            }
+            for item in dataset.provenance
+        ],
+        "warnings": list(dataset.warnings),
+    }
+    encoded = json.dumps(payload, sort_keys=True, separators=(",", ":"))
+    return hashlib.sha256(encoded.encode("utf-8")).hexdigest()
 
 
 def _datetime(value: str) -> datetime:

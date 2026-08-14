@@ -12,6 +12,11 @@ from packages.shared.donniecraftshell_contracts.domain import GameContext
 from packages.shared.donniecraftshell_contracts.curated_observation_import import (
     build_empirical_datasets_from_curated_export,
 )
+from packages.shared.donniecraftshell_contracts.empirical_probability import (
+    EMPIRICAL_DATASET_REGISTRY_VERSION,
+    EmpiricalDatasetRegistrationStatus,
+    EmpiricalProbabilityDatasetRegistry,
+)
 from packages.shared.donniecraftshell_contracts.observation_recorder import (
     CraftObservationRecorder,
     OBSERVATION_RECORDER_VERSION,
@@ -25,7 +30,7 @@ from packages.shared.donniecraftshell_contracts.observation_review import (
 )
 from packages.shared.donniecraftshell_contracts.parser import parse_clipboard_item
 
-from services.api.app.dependencies.advisor import get_advisor_orchestrator
+from services.api.app.dependencies.advisor import get_advisor_orchestrator, get_empirical_probability_registry
 from services.api.app.schemas.observations import (
     CraftObservationExportRequestDto,
     CraftObservationExportResponseDto,
@@ -34,6 +39,10 @@ from services.api.app.schemas.observations import (
     CuratedObservationBuildRequestDto,
     CuratedObservationBuildResponseDto,
     CuratedObservationRejectedRecordDto,
+    EmpiricalDatasetListResponseDto,
+    EmpiricalDatasetRegisterRequestDto,
+    EmpiricalDatasetRegisterResponseDto,
+    EmpiricalDatasetSummaryDto,
     ObservationReviewRecordDto,
     ObservationReviewRequestDto,
     ObservationReviewResponseDto,
@@ -234,6 +243,43 @@ def build_empirical_datasets(request: CuratedObservationBuildRequestDto) -> Cura
     )
 
 
+@router.post("/empirical-datasets/register", response_model=EmpiricalDatasetRegisterResponseDto)
+def register_empirical_dataset(
+    request: EmpiricalDatasetRegisterRequestDto,
+    registry: EmpiricalProbabilityDatasetRegistry = Depends(get_empirical_probability_registry),
+) -> EmpiricalDatasetRegisterResponseDto:
+    result = registry.register_raw_payload(request.dataset)
+    if result.status == EmpiricalDatasetRegistrationStatus.REJECTED:
+        raise HTTPException(
+            status_code=400,
+            detail={
+                "code": "VALIDATION_ERROR",
+                "message": "Empirical probability dataset registration was rejected.",
+                "recoverable": True,
+                "reliable_no_result": True,
+                "warnings": list(result.warnings),
+            },
+        )
+    return EmpiricalDatasetRegisterResponseDto(
+        registry_version=EMPIRICAL_DATASET_REGISTRY_VERSION,
+        status=result.status.value,
+        dataset_id=result.dataset_id,
+        dataset=_dataset_summary_to_dto(result.summary),
+        warnings=list(result.warnings),
+    )
+
+
+@router.get("/empirical-datasets", response_model=EmpiricalDatasetListResponseDto)
+def list_empirical_datasets(
+    registry: EmpiricalProbabilityDatasetRegistry = Depends(get_empirical_probability_registry),
+) -> EmpiricalDatasetListResponseDto:
+    return EmpiricalDatasetListResponseDto(
+        registry_version=EMPIRICAL_DATASET_REGISTRY_VERSION,
+        datasets=[_dataset_summary_to_dto(summary) for summary in registry.list_summaries()],
+        warnings=("Registered empirical datasets remain inactive until an Advisor request explicitly selects a dataset ID.",),
+    )
+
+
 def _validate_item_context(request: CraftObservationRecordRequestDto, before_item, after_item) -> None:
     if before_item.item_class != after_item.item_class:
         _bad_request("before and after item_class must match.")
@@ -330,4 +376,30 @@ def _bad_request(message: str) -> None:
             "recoverable": True,
             "reliable_no_result": True,
         },
+    )
+
+
+def _dataset_summary_to_dto(summary) -> EmpiricalDatasetSummaryDto | None:
+    if summary is None:
+        return None
+    return EmpiricalDatasetSummaryDto(
+        dataset_id=summary.dataset_id,
+        action_id=summary.action_id,
+        source_outcome_set_id=summary.source_outcome_set_id,
+        game=summary.game,
+        league=summary.league,
+        sample_size=summary.sample_size,
+        unclassified_count=summary.unclassified_count,
+        outcome_count=summary.outcome_count,
+        retrieved_at=summary.retrieved_at,
+        synthetic=summary.synthetic,
+        item_class=summary.item_class,
+        game_version=summary.game_version,
+        crafting_dataset_version=summary.crafting_dataset_version,
+        modifier_dataset_version=summary.modifier_dataset_version,
+        verification_status=summary.verification_status.value,
+        methodology=summary.methodology,
+        source_uri=summary.source_uri,
+        source_type=summary.source_type.value if summary.source_type is not None else None,
+        warnings=list(summary.warnings),
     )

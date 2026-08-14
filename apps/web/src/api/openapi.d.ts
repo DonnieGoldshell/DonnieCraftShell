@@ -72,6 +72,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/observations/empirical-datasets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Empirical Datasets */
+        get: operations["list_empirical_datasets_api_v1_observations_empirical_datasets_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/observations/empirical-datasets/register": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Register Empirical Dataset */
+        post: operations["register_empirical_dataset_api_v1_observations_empirical_datasets_register_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/observations/export": {
         parameters: {
             query?: never;
@@ -513,6 +547,87 @@ export interface components {
              * @default EXALTED_ECONOMIC_UNIT
              */
             unit: string;
+        };
+        /** EmpiricalDatasetListResponseDto */
+        EmpiricalDatasetListResponseDto: {
+            /** Datasets */
+            datasets: components["schemas"]["EmpiricalDatasetSummaryDto"][];
+            /** Registry Version */
+            registry_version: string;
+            /**
+             * Warnings
+             * @default []
+             */
+            warnings: string[];
+        };
+        /** EmpiricalDatasetRegisterRequestDto */
+        EmpiricalDatasetRegisterRequestDto: {
+            /** Dataset */
+            dataset: {
+                [key: string]: unknown;
+            };
+        };
+        /** EmpiricalDatasetRegisterResponseDto */
+        EmpiricalDatasetRegisterResponseDto: {
+            dataset?: components["schemas"]["EmpiricalDatasetSummaryDto"] | null;
+            /** Dataset Id */
+            dataset_id?: string | null;
+            /** Registry Version */
+            registry_version: string;
+            /** Status */
+            status: string;
+            /**
+             * Warnings
+             * @default []
+             */
+            warnings: string[];
+        };
+        /** EmpiricalDatasetSummaryDto */
+        EmpiricalDatasetSummaryDto: {
+            /** Action Id */
+            action_id: string;
+            /** Crafting Dataset Version */
+            crafting_dataset_version?: string | null;
+            /** Dataset Id */
+            dataset_id: string;
+            /** Game */
+            game: string;
+            /** Game Version */
+            game_version?: string | null;
+            /** Item Class */
+            item_class?: string | null;
+            /** League */
+            league: string;
+            /** Methodology */
+            methodology: string;
+            /** Modifier Dataset Version */
+            modifier_dataset_version?: string | null;
+            /** Outcome Count */
+            outcome_count: number;
+            /**
+             * Retrieved At
+             * Format: date-time
+             */
+            retrieved_at: string;
+            /** Sample Size */
+            sample_size: number;
+            /** Source Outcome Set Id */
+            source_outcome_set_id: string;
+            /** Source Type */
+            source_type?: string | null;
+            /** Source Uri */
+            source_uri?: string | null;
+            /** Synthetic */
+            synthetic: boolean;
+            /** Unclassified Count */
+            unclassified_count: number;
+            /** Verification Status */
+            verification_status: string;
+            /**
+             * Warnings
+             * @default []
+             */
+            warnings: string[];
         };
         /** EnrichmentSummaryDto */
         EnrichmentSummaryDto: {
@@ -1149,6 +1264,59 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["CuratedObservationBuildResponseDto"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_empirical_datasets_api_v1_observations_empirical_datasets_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EmpiricalDatasetListResponseDto"];
+                };
+            };
+        };
+    };
+    register_empirical_dataset_api_v1_observations_empirical_datasets_register_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EmpiricalDatasetRegisterRequestDto"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EmpiricalDatasetRegisterResponseDto"];
                 };
             };
             /** @description Validation Error */

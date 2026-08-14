@@ -59,7 +59,14 @@ Future action-candidate DTOs may include material costs, but they must keep `app
 
 Future probability DTOs should expose `OutcomeProbabilityModel` from [PROBABILITY_MODEL.md](PROBABILITY_MODEL.md). Unknown probability must serialize as `null`, not `0`. Responses must preserve probability completeness, total known probability mass, evidence provenance, dataset versions, deterministic operation evidence, and warnings. The endpoint must not normalize partial/unknown probabilities or divide unknown mass equally.
 
-Advisor probability transport may include an explicit `empirical_probability_dataset_version` selector. This selects among configured offline empirical datasets only; it must not trigger network access or synthetic fixture auto-loading. Action responses expose probability evidence summaries including `EMPIRICAL_ESTIMATE` type, sample size, uncertainty intervals, evidence dataset version, and warnings when available.
+Advisor probability transport may include an explicit `empirical_probability_dataset_version` selector. This selects among registered/configured offline empirical datasets only; it must not trigger network access, synthetic fixture auto-loading, or automatic fallback to another dataset. Action responses expose probability evidence summaries including `EMPIRICAL_ESTIMATE` type, sample size, uncertainty intervals, evidence dataset version, and warnings when available.
+
+Task 17A adds local/operator empirical dataset registry endpoints:
+
+- `POST /api/v1/observations/empirical-datasets/register`
+- `GET /api/v1/observations/empirical-datasets`
+
+These endpoints accept/list Task 15A-compatible empirical probability dataset payloads produced by the curated observation build workflow. Registration is not activation; Advisor analysis uses a registered dataset only when the request names its dataset ID.
 
 Future valuation DTOs should expose the contracts from [VALUATION_MODEL.md](VALUATION_MODEL.md) and [VALUATION_AGGREGATION.md](VALUATION_AGGREGATION.md). Requests should accept a current or hypothetical valuation subject plus comparable strategy and modifier-role inputs. Comparable endpoints should return query definitions, manual workflow instructions, listing observations, normalized comparable evidence where available, readiness, economy conversion snapshots, provenance, and warnings. Aggregation responses must label estimates as `LISTING_DERIVED`, expose used/excluded comparable IDs, preserve policy ID and strategy composition, and allow `INSUFFICIENT_DATA` without fabricating an estimate.
 

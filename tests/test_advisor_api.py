@@ -1,3 +1,4 @@
+import copy
 import importlib
 import importlib.util
 import os
@@ -43,6 +44,7 @@ class AdvisorApiTests(unittest.TestCase):
         advisor_dependencies.get_advisor_orchestrator.cache_clear()
         advisor_dependencies.get_economy_repository.cache_clear()
         advisor_dependencies.get_probability_provider.cache_clear()
+        advisor_dependencies.get_empirical_probability_registry.cache_clear()
         advisor_dependencies.get_cached_settings.cache_clear()
         self.app = app
         self.client = TestClient(app)
@@ -77,10 +79,15 @@ class AdvisorApiTests(unittest.TestCase):
         self.assertIn("CraftObservationRecordRequestDto", schema_names)
         self.assertIn("/api/v1/observations/review", openapi["paths"])
         self.assertIn("/api/v1/observations/build-empirical-datasets", openapi["paths"])
+        self.assertIn("/api/v1/observations/empirical-datasets", openapi["paths"])
+        self.assertIn("/api/v1/observations/empirical-datasets/register", openapi["paths"])
         self.assertIn("ObservationReviewRequestDto", schema_names)
         self.assertIn("ObservationReviewResponseDto", schema_names)
         self.assertIn("CuratedObservationBuildRequestDto", schema_names)
         self.assertIn("CuratedObservationBuildResponseDto", schema_names)
+        self.assertIn("EmpiricalDatasetRegisterRequestDto", schema_names)
+        self.assertIn("EmpiricalDatasetRegisterResponseDto", schema_names)
+        self.assertIn("EmpiricalDatasetListResponseDto", schema_names)
 
     def test_valid_quiver_6_partial_response(self):
         response = self.client.post("/api/v1/advisor/analyze", json=base_request())
@@ -216,7 +223,8 @@ class AdvisorApiTests(unittest.TestCase):
         try:
             advisor_dependencies.get_cached_settings.cache_clear()
             advisor_dependencies.get_probability_provider.cache_clear()
-            provider = advisor_dependencies.get_probability_provider()
+            advisor_dependencies.get_empirical_probability_registry.cache_clear()
+            registry = advisor_dependencies.get_empirical_probability_registry()
         finally:
             if previous is None:
                 os.environ.pop("DCS_EMPIRICAL_PROBABILITY_DATASET_PATHS", None)
@@ -224,8 +232,9 @@ class AdvisorApiTests(unittest.TestCase):
                 os.environ["DCS_EMPIRICAL_PROBABILITY_DATASET_PATHS"] = previous
             advisor_dependencies.get_cached_settings.cache_clear()
             advisor_dependencies.get_probability_provider.cache_clear()
+            advisor_dependencies.get_empirical_probability_registry.cache_clear()
 
-        self.assertEqual(provider._datasets, ())
+        self.assertEqual(registry.list_summaries(), ())
 
     def test_scenario_only_action_serialized_with_synthetic_manual_valuation(self):
         initial = self.client.post("/api/v1/advisor/analyze", json=base_request()).json()
@@ -513,6 +522,32 @@ class AdvisorApiTests(unittest.TestCase):
         self.assertEqual(body["datasets"][0]["unclassified_count"], 1)
         self.assertTrue(any("does not activate probability evidence" in warning for warning in body["warnings"]))
 
+    def test_task16c_build_payload_registers_and_retains_context(self):
+        accepted = self._observation_export_record("manual-craft-observation-register-accepted", "outcome-api-1")
+        build = self.client.post(
+            "/api/v1/observations/build-empirical-datasets",
+            json={
+                "accepted_export": {
+                    "review_version": "dc-observation-review-v1",
+                    "observations": [accepted],
+                },
+                "dataset_id_prefix": "api-register-build-test",
+            },
+        ).json()
+
+        response = self.client.post(
+            "/api/v1/observations/empirical-datasets/register",
+            json={"dataset": build["datasets"][0]},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        body = response.json()
+        self.assertEqual(body["status"], "REGISTERED")
+        self.assertEqual(body["dataset_id"], build["dataset_ids"][0])
+        self.assertEqual(body["dataset"]["league"], LEAGUE)
+        self.assertEqual(body["dataset"]["action_id"], accepted["action_id"])
+        self.assertEqual(body["dataset"]["source_outcome_set_id"], accepted["source_outcome_set_id"])
+
     def test_curated_observation_build_endpoint_rejects_malformed_observations(self):
         response = self.client.post(
             "/api/v1/observations/build-empirical-datasets",
@@ -553,6 +588,94 @@ class AdvisorApiTests(unittest.TestCase):
         self.assertIsNone(body["rejected_records"][0]["raw_record_id"])
         self.assertIn("accepted_export:2", body["rejected_records"][0]["reason"])
         self.assertIn("str", body["rejected_records"][0]["reason"])
+
+    def test_empirical_dataset_register_and_list_endpoint(self):
+        self._install_registry_backed_deterministic_dependencies()
+        initial = self.client.post("/api/v1/advisor/analyze", json=base_request()).json()
+        payload = self._registered_empirical_dataset_payload(initial)
+
+        response = self.client.post(
+            "/api/v1/observations/empirical-datasets/register",
+            json={"dataset": payload},
+        )
+        listed = self.client.get("/api/v1/observations/empirical-datasets")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["status"], "REGISTERED")
+        self.assertEqual(response.json()["dataset_id"], payload["dataset_id"])
+        self.assertEqual(listed.status_code, 200)
+        self.assertEqual(listed.json()["datasets"][0]["dataset_id"], payload["dataset_id"])
+        self.assertEqual(listed.json()["datasets"][0]["league"], LEAGUE)
+
+    def test_empirical_dataset_duplicate_registration_is_idempotent(self):
+        self._install_registry_backed_deterministic_dependencies()
+        payload = self._registered_empirical_dataset_payload(
+            self.client.post("/api/v1/advisor/analyze", json=base_request()).json()
+        )
+
+        first = self.client.post("/api/v1/observations/empirical-datasets/register", json={"dataset": payload})
+        second = self.client.post("/api/v1/observations/empirical-datasets/register", json={"dataset": payload})
+
+        self.assertEqual(first.status_code, 200)
+        self.assertEqual(second.status_code, 200)
+        self.assertEqual(second.json()["status"], "ALREADY_REGISTERED")
+
+    def test_empirical_dataset_conflicting_duplicate_registration_is_rejected(self):
+        self._install_registry_backed_deterministic_dependencies()
+        payload = self._registered_empirical_dataset_payload(
+            self.client.post("/api/v1/advisor/analyze", json=base_request()).json()
+        )
+        conflict = copy.deepcopy(payload)
+        conflict["observations"][0]["observed_count"] = 11
+
+        self.client.post("/api/v1/observations/empirical-datasets/register", json={"dataset": payload})
+        response = self.client.post("/api/v1/observations/empirical-datasets/register", json={"dataset": conflict})
+
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json()["detail"]["code"], "VALIDATION_ERROR")
+        self.assertTrue(any("different content" in warning for warning in response.json()["detail"]["warnings"]))
+
+    def test_registered_dataset_does_not_auto_activate_without_explicit_selection(self):
+        self._install_registry_backed_deterministic_dependencies()
+        initial = self.client.post("/api/v1/advisor/analyze", json=base_request()).json()
+        payload = self._registered_empirical_dataset_payload(initial)
+        self.client.post("/api/v1/observations/empirical-datasets/register", json={"dataset": payload})
+
+        response = self.client.post("/api/v1/advisor/analyze", json=base_request())
+
+        self.assertEqual(response.status_code, 200)
+        annulment = self._action(response.json(), "dc:poe2:craft-action:orb-of-annulment")
+        self.assertEqual(annulment["probability"]["completeness"], "UNKNOWN")
+        self.assertEqual(annulment["probability"]["known_outcome_count"], 0)
+
+    def test_explicit_registered_dataset_selection_reaches_empirical_readiness_path(self):
+        self._install_registry_backed_deterministic_dependencies()
+        initial = self.client.post("/api/v1/advisor/analyze", json=base_request()).json()
+        payload = self._registered_empirical_dataset_payload(initial)
+        self.client.post("/api/v1/observations/empirical-datasets/register", json={"dataset": payload})
+        request = base_request()
+        request["empirical_probability_dataset_version"] = payload["dataset_id"]
+
+        response = self.client.post("/api/v1/advisor/analyze", json=request)
+
+        self.assertEqual(response.status_code, 200)
+        annulment = self._action(response.json(), "dc:poe2:craft-action:orb-of-annulment")
+        self.assertEqual(annulment["probability"]["completeness"], "COMPLETE")
+        self.assertEqual(annulment["probability"]["known_outcome_count"], annulment["outcome_count"])
+        self.assertEqual(annulment["probability"]["outcome_probabilities"][0]["evidence"][0]["probability_type"], "EMPIRICAL_ESTIMATE")
+        self.assertEqual(annulment["probability"]["outcome_probabilities"][0]["evidence"][0]["evidence_dataset_version"], payload["dataset_id"])
+
+    def test_unknown_empirical_dataset_selection_surfaces_warning_not_fallback(self):
+        self._install_registry_backed_deterministic_dependencies()
+        request = base_request()
+        request["empirical_probability_dataset_version"] = "not-registered"
+
+        response = self.client.post("/api/v1/advisor/analyze", json=request)
+
+        self.assertEqual(response.status_code, 200)
+        annulment = self._action(response.json(), "dc:poe2:craft-action:orb-of-annulment")
+        self.assertEqual(annulment["probability"]["completeness"], "UNKNOWN")
+        self.assertTrue(any("not-registered" in warning for warning in annulment["warnings"]))
 
     def test_wrong_crafting_dataset_version_is_rejected(self):
         response = self.client.post(
@@ -872,8 +995,76 @@ class AdvisorApiTests(unittest.TestCase):
         self.app.dependency_overrides[get_economy_repository] = lambda: economy
         self.app.dependency_overrides[get_advisor_orchestrator] = lambda: orchestrator
 
+    def _install_registry_backed_deterministic_dependencies(self):
+        from packages.shared.donniecraftshell_contracts.advisor_orchestration import CraftAdvisorOrchestrator
+        from packages.shared.donniecraftshell_contracts.affix_capacity import AffixStateResolver, load_affix_capacity_dataset
+        from packages.shared.donniecraftshell_contracts.crafting_actions import CraftActionEngine, load_crafting_dataset
+        from packages.shared.donniecraftshell_contracts.economy_repository import EconomyRepository
+        from packages.shared.donniecraftshell_contracts.empirical_probability import (
+            EmpiricalProbabilityDatasetRegistry,
+            EmpiricalProbabilityRegistryProvider,
+        )
+        from packages.shared.donniecraftshell_contracts.game_data_repository import GameDataRepository
+        from packages.shared.donniecraftshell_contracts.parser import parse_clipboard_item
+        from services.api.app.dependencies.advisor import (
+            get_advisor_orchestrator,
+            get_economy_repository,
+            get_empirical_probability_registry,
+        )
+
+        def deterministic_parser(raw_clipboard_text, game_context=None):
+            result = parse_clipboard_item(raw_clipboard_text, game_context)
+            if result.item is None:
+                return result
+            return replace(result, item=replace(result.item, analysis_id="registry-api-analysis"))
+
+        registry = EmpiricalProbabilityDatasetRegistry()
+        economy = EconomyRepository(())
+        orchestrator = CraftAdvisorOrchestrator(
+            GameDataRepository.from_json_files((ROOT / "data" / "normalized" / GAME_DATASET_ID / "game_data.json",)),
+            AffixStateResolver(load_affix_capacity_dataset(ROOT / "data" / "normalized" / "crafting" / AFFIX_CAPACITY_DATASET_ID / "capacity.json")),
+            CraftActionEngine(load_crafting_dataset(ROOT / "data" / "normalized" / "crafting" / CRAFTING_DATASET_ID / "actions.json")),
+            economy,
+            probability_provider=EmpiricalProbabilityRegistryProvider(registry),
+            parser=deterministic_parser,
+        )
+        self.app.dependency_overrides[get_empirical_probability_registry] = lambda: registry
+        self.app.dependency_overrides[get_economy_repository] = lambda: economy
+        self.app.dependency_overrides[get_advisor_orchestrator] = lambda: orchestrator
+
     def _action(self, body: dict, action_id: str) -> dict:
         return next(action for action in body["actions"] if action["action_id"] == action_id)
+
+    def _registered_empirical_dataset_payload(self, analysis_body: dict) -> dict:
+        annulment = self._action(analysis_body, "dc:poe2:craft-action:orb-of-annulment")
+        return {
+            "dataset_id": "api-registered-empirical-probability",
+            "action_id": annulment["action_id"],
+            "source_outcome_set_id": annulment["probability"]["source_outcome_set_id"],
+            "game": "Path of Exile 2",
+            "league": LEAGUE,
+            "item_class": "Quivers",
+            "game_version": None,
+            "crafting_dataset_version": CRAFTING_DATASET_ID,
+            "modifier_dataset_version": GAME_DATASET_ID,
+            "retrieved_at": AS_OF,
+            "source_uri": "local://tests/api-registered-empirical-probability",
+            "source_type": "MANUAL_RESEARCH",
+            "synthetic": False,
+            "verification_status": "NEEDS_VERIFICATION",
+            "methodology": "synthetic unit-test manual observations for registry plumbing",
+            "notes": "Test-only non-synthetic-shaped payload; not real PoE2 probability evidence.",
+            "warnings": ["Test fixture validates explicit registry selection only."],
+            "unclassified_count": 0,
+            "observations": [
+                {
+                    "outcome_id": outcome_id,
+                    "observed_count": 10,
+                    "raw_record_ids": [f"registry-test-record-{index}"],
+                }
+                for index, outcome_id in enumerate(annulment["outcome_ids"])
+            ],
+        }
 
     def _observation_export_record(self, raw_record_id: str, outcome_id: str) -> dict:
         return {

@@ -66,6 +66,11 @@ Unclassified observations remain unclassified and retain Task 15C/15A denominato
 
 The web workbench can submit the accepted export from Observation Review and display build counts, warnings, and generated dataset IDs. This is a local/operator workflow; it does not persist datasets to a production repository or silently select them for Advisor analysis.
 
+Task 17A adds an in-memory local registry step after build. The operator may
+register a built dataset through `POST /api/v1/observations/empirical-datasets/register`
+and then explicitly select its dataset ID in `POST /api/v1/advisor/analyze`.
+Registration alone still does not activate probability evidence.
+
 ## Probability Boundary
 
 Dataset creation alone is not probability readiness. A future Advisor request must explicitly select a configured/imported empirical probability dataset, and Task 15A/15B readiness gates must still validate context compatibility, sample size, completeness, and synthetic-data policy.

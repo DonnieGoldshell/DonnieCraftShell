@@ -26,6 +26,11 @@ validates JSON/CSV observation batches, deduplicates raw record IDs, partitions
 incompatible contexts, and writes the raw empirical probability dataset shape
 consumed here.
 
+Task 17A adds the explicit local dataset registry documented in
+[EMPIRICAL_DATASET_REGISTRY.md](EMPIRICAL_DATASET_REGISTRY.md). Built datasets
+can be registered for the running application, but they remain inactive until an
+Advisor request explicitly names `empirical_probability_dataset_version`.
+
 ## Raw Dataset Format
 
 Raw datasets live under `data/raw/probability/`.
@@ -93,7 +98,8 @@ It proves the ingestion and normalization plumbing, but it is not PoE2 gameplay 
 
 Production/default dependency assembly skips synthetic empirical datasets even
 if a path is configured. Synthetic data requires explicit test-only dependency
-injection and `allow_synthetic=True`.
+injection and `allow_synthetic=True`. Registry selection does not override that
+guard.
 
 ## Current Real Actions
 

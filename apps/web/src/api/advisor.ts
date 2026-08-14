@@ -21,6 +21,9 @@ export type ObservationReviewRequest = components["schemas"]["ObservationReviewR
 export type ObservationReviewResponse = components["schemas"]["ObservationReviewResponseDto"];
 export type CuratedObservationBuildRequest = components["schemas"]["CuratedObservationBuildRequestDto"];
 export type CuratedObservationBuildResponse = components["schemas"]["CuratedObservationBuildResponseDto"];
+export type EmpiricalDatasetRegisterRequest = components["schemas"]["EmpiricalDatasetRegisterRequestDto"];
+export type EmpiricalDatasetRegisterResponse = components["schemas"]["EmpiricalDatasetRegisterResponseDto"];
+export type EmpiricalDatasetListResponse = components["schemas"]["EmpiricalDatasetListResponseDto"];
 
 export const EXALTED_ASSET_ID = "dc:poe2:economy-asset:currency:exalted-orb";
 export const DIVINE_ASSET_ID = "dc:poe2:economy-asset:currency:divine-orb";
@@ -150,4 +153,39 @@ export async function buildCuratedObservationDatasets(
   }
 
   return response.json() as Promise<CuratedObservationBuildResponse>;
+}
+
+export async function registerEmpiricalDataset(
+  request: EmpiricalDatasetRegisterRequest
+): Promise<EmpiricalDatasetRegisterResponse> {
+  const response = await fetch(`${API_BASE_URL}/api/v1/observations/empirical-datasets/register`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(request)
+  });
+
+  if (!response.ok) {
+    let message = `Empirical dataset registry API returned ${response.status}`;
+    try {
+      const payload = await response.json();
+      message = payload?.detail?.message ?? payload?.detail ?? message;
+    } catch {
+      // Keep the status-based message.
+    }
+    throw new Error(message);
+  }
+
+  return response.json() as Promise<EmpiricalDatasetRegisterResponse>;
+}
+
+export async function listEmpiricalDatasets(): Promise<EmpiricalDatasetListResponse> {
+  const response = await fetch(`${API_BASE_URL}/api/v1/observations/empirical-datasets`);
+
+  if (!response.ok) {
+    throw new Error(`Empirical dataset list API returned ${response.status}`);
+  }
+
+  return response.json() as Promise<EmpiricalDatasetListResponse>;
 }

@@ -122,3 +122,43 @@ class CuratedObservationBuildResponseDto(ApiModel):
     datasets: list[dict]
     rejected_records: list[CuratedObservationRejectedRecordDto] = []
     warnings: list[str] = []
+
+
+class EmpiricalDatasetSummaryDto(ApiModel):
+    dataset_id: str
+    action_id: str
+    source_outcome_set_id: str
+    game: str
+    league: str
+    sample_size: int
+    unclassified_count: int
+    outcome_count: int
+    retrieved_at: datetime
+    synthetic: bool
+    item_class: str | None = None
+    game_version: str | None = None
+    crafting_dataset_version: str | None = None
+    modifier_dataset_version: str | None = None
+    verification_status: str
+    methodology: str
+    source_uri: str | None = None
+    source_type: str | None = None
+    warnings: list[str] = []
+
+
+class EmpiricalDatasetRegisterRequestDto(ApiModel):
+    dataset: dict
+
+
+class EmpiricalDatasetRegisterResponseDto(ApiModel):
+    registry_version: str
+    status: str
+    dataset_id: str | None = None
+    dataset: EmpiricalDatasetSummaryDto | None = None
+    warnings: list[str] = []
+
+
+class EmpiricalDatasetListResponseDto(ApiModel):
+    registry_version: str
+    datasets: list[EmpiricalDatasetSummaryDto]
+    warnings: list[str] = []

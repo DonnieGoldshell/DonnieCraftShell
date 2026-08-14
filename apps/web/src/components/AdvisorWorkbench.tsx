@@ -32,6 +32,7 @@ export function AdvisorWorkbench() {
   const [gameDataDataset, setGameDataDataset] = useState(DEFAULT_GAME_DATA_DATASET);
   const [craftingDataset, setCraftingDataset] = useState(DEFAULT_CRAFTING_DATASET);
   const [affixDataset, setAffixDataset] = useState(DEFAULT_AFFIX_CAPACITY_DATASET);
+  const [empiricalDataset, setEmpiricalDataset] = useState("");
   const [currentObservations, setCurrentObservations] = useState<ManualListingObservation[]>([]);
   const [outcomeObservations, setOutcomeObservations] = useState<Record<string, ManualListingObservation[]>>({});
   const [analysis, setAnalysis] = useState<AdvisorAnalyzeResponse | null>(null);
@@ -49,6 +50,7 @@ export function AdvisorWorkbench() {
         game_data_dataset_version: gameDataDataset,
         crafting_dataset_version: craftingDataset,
         affix_capacity_dataset_version: affixDataset,
+        empirical_probability_dataset_version: empiricalDataset.trim() || null,
         current_valuation_evidence: buildManualEvidence(currentObservations),
         outcome_valuation_evidence: buildOutcomeEvidence(outcomeObservations)
       };
@@ -94,6 +96,14 @@ export function AdvisorWorkbench() {
             <label>
               Affix capacity
               <input value={affixDataset} onChange={(event) => setAffixDataset(event.target.value)} />
+            </label>
+            <label>
+              Empirical evidence dataset
+              <input
+                value={empiricalDataset}
+                onChange={(event) => setEmpiricalDataset(event.target.value)}
+                placeholder="optional explicit dataset ID"
+              />
             </label>
           </div>
           <button type="submit" disabled={loading || !clipboardText.trim()}>

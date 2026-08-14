@@ -107,6 +107,12 @@ explicitly configured/injected and selected. Missing, partial, synthetic-disable
 or context-incompatible evidence is surfaced as `PROBABILITY_EVIDENCE_REQUIRED`
 and does not unlock EV readiness.
 
+Task 17A inserts an empirical dataset registry between curated dataset builds
+and Advisor selection. Registering a dataset only loads it into the running
+application; the request must still set `empirical_probability_dataset_version`.
+If no dataset ID is supplied, registered evidence is ignored and current real
+actions keep their UNKNOWN probability models.
+
 ## Risk
 
 Risk adjustment is optional. When a request supplies `AdvisorRiskContext`, the orchestrator runs the risk policy engine after the raw Advisor decision. Raw economic decision and risk-adjusted decision remain separate.

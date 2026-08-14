@@ -279,6 +279,24 @@ describe("AdvisorWorkbench", () => {
     expect(body.outcome_valuation_evidence).toEqual([]);
   });
 
+  it("sends an explicit empirical dataset ID only when the operator supplies one", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => quiverResponse
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    const user = userEvent.setup();
+
+    render(<AdvisorWorkbench />);
+    await user.type(screen.getByLabelText(/clipboard item text/i), "Item Class: Quivers\nRarity: Rare");
+    await user.type(screen.getByLabelText(/empirical evidence dataset/i), "api-registered-empirical-probability");
+    await user.click(screen.getByRole("button", { name: /analyze quiver/i }));
+
+    await screen.findByText("Primed Quiver");
+    const body = JSON.parse(fetchMock.mock.calls[0][1].body as string);
+    expect(body.empirical_probability_dataset_version).toBe("api-registered-empirical-probability");
+  });
+
   it("adds outcome manual comparable observations and re-runs analysis with outcome IDs", async () => {
     const fetchMock = vi
       .fn()
@@ -522,6 +540,54 @@ describe("AdvisorWorkbench", () => {
           rejected_records: [],
           warnings: ["Dataset build does not activate probability evidence or make Advisor EV-ready by itself."]
         })
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          registry_version: "dc-empirical-dataset-registry-v1",
+          status: "REGISTERED",
+          dataset_id: "empirical-probability-browser-test",
+          dataset: {
+            dataset_id: "empirical-probability-browser-test",
+            action_id: "dc:poe2:craft-action:orb-of-annulment",
+            source_outcome_set_id: "manual-recorder:dc:poe2:craft-action:orb-of-annulment",
+            game: "Path of Exile 2",
+            league: DEFAULT_LEAGUE,
+            sample_size: 1,
+            unclassified_count: 0,
+            outcome_count: 1,
+            retrieved_at: "2026-08-13T10:04:00Z",
+            synthetic: false,
+            verification_status: "NEEDS_VERIFICATION",
+            methodology: "browser test",
+            warnings: []
+          },
+          warnings: []
+        })
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          registry_version: "dc-empirical-dataset-registry-v1",
+          datasets: [
+            {
+              dataset_id: "empirical-probability-browser-test",
+              action_id: "dc:poe2:craft-action:orb-of-annulment",
+              source_outcome_set_id: "manual-recorder:dc:poe2:craft-action:orb-of-annulment",
+              game: "Path of Exile 2",
+              league: DEFAULT_LEAGUE,
+              sample_size: 1,
+              unclassified_count: 0,
+              outcome_count: 1,
+              retrieved_at: "2026-08-13T10:04:00Z",
+              synthetic: false,
+              verification_status: "NEEDS_VERIFICATION",
+              methodology: "browser test",
+              warnings: []
+            }
+          ],
+          warnings: ["Registered empirical datasets remain inactive until explicitly selected."]
+        })
       });
     vi.stubGlobal("fetch", fetchMock);
     const user = userEvent.setup();
@@ -592,5 +658,12 @@ describe("AdvisorWorkbench", () => {
         classification_method: "MANUAL"
       })
     ]);
+
+    await user.click(screen.getByRole("button", { name: /register first dataset/i }));
+    expect(await screen.findByText(/REGISTERED: empirical-probability-browser-test/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/paste this id into empirical evidence dataset/i).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/sample 1/i).length).toBeGreaterThan(0);
+    expect(fetchMock.mock.calls[6][0]).toContain("/api/v1/observations/empirical-datasets/register");
+    expect(fetchMock.mock.calls[7][0]).toContain("/api/v1/observations/empirical-datasets");
   });
 });

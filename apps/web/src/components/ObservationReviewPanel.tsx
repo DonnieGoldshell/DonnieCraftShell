@@ -1,8 +1,12 @@
 import { useState } from "react";
 import {
   buildCuratedObservationDatasets,
+  listEmpiricalDatasets,
+  registerEmpiricalDataset,
   reviewCraftObservations,
   type CuratedObservationBuildResponse,
+  type EmpiricalDatasetListResponse,
+  type EmpiricalDatasetRegisterResponse,
   type ObservationReviewDecision,
   type ObservationReviewResponse
 } from "@/api/advisor";
@@ -17,6 +21,8 @@ export function ObservationReviewPanel() {
   const [manifestJson, setManifestJson] = useState("");
   const [buildResult, setBuildResult] = useState<CuratedObservationBuildResponse | null>(null);
   const [datasetJson, setDatasetJson] = useState("");
+  const [registryResult, setRegistryResult] = useState<EmpiricalDatasetRegisterResponse | null>(null);
+  const [registeredDatasets, setRegisteredDatasets] = useState<EmpiricalDatasetListResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -26,6 +32,8 @@ export function ObservationReviewPanel() {
     setManifestJson("");
     setBuildResult(null);
     setDatasetJson("");
+    setRegistryResult(null);
+    setRegisteredDatasets(null);
     try {
       const payload = JSON.parse(batchText);
       setBusy(true);
@@ -62,6 +70,8 @@ export function ObservationReviewPanel() {
       setManifestJson(JSON.stringify(response.review_manifest, null, 2));
       setBuildResult(null);
       setDatasetJson("");
+      setRegistryResult(null);
+      setRegisteredDatasets(null);
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Unable to export accepted observations.");
     } finally {
@@ -81,8 +91,36 @@ export function ObservationReviewPanel() {
       });
       setBuildResult(response);
       setDatasetJson(JSON.stringify(response.datasets, null, 2));
+      setRegistryResult(null);
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Unable to build empirical datasets.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function registerFirstDataset() {
+    if (!buildResult?.datasets.length) return;
+    setError(null);
+    try {
+      setBusy(true);
+      const response = await registerEmpiricalDataset({ dataset: buildResult.datasets[0] });
+      setRegistryResult(response);
+      setRegisteredDatasets(await listEmpiricalDatasets());
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Unable to register empirical dataset.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function refreshRegisteredDatasets() {
+    setError(null);
+    try {
+      setBusy(true);
+      setRegisteredDatasets(await listEmpiricalDatasets());
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Unable to list empirical datasets.");
     } finally {
       setBusy(false);
     }
@@ -204,6 +242,36 @@ export function ObservationReviewPanel() {
                 ))}
               </ul>
               {buildResult.warnings.length > 0 && <p className="muted">{buildResult.warnings.join(" ")}</p>}
+              <button
+                className="secondary-button"
+                type="button"
+                onClick={registerFirstDataset}
+                disabled={busy || buildResult.datasets.length === 0}
+              >
+                Register First Dataset
+              </button>
+              <button className="secondary-button" type="button" onClick={refreshRegisteredDatasets} disabled={busy}>
+                List Registered Evidence
+              </button>
+              {registryResult && (
+                <p className="muted">
+                  {registryResult.status}: {registryResult.dataset_id}. Paste this ID into Empirical evidence dataset
+                  before running Advisor analysis.
+                </p>
+              )}
+              {registeredDatasets && (
+                <ul className="evidence-list">
+                  {registeredDatasets.datasets.map((dataset) => (
+                    <li key={dataset.dataset_id}>
+                      <strong>{shortId(dataset.dataset_id)}</strong>
+                      <small>
+                        {dataset.synthetic ? "SYNTHETIC - " : ""}
+                        {dataset.league} - sample {dataset.sample_size} - {dataset.dataset_id}
+                      </small>
+                    </li>
+                  ))}
+                </ul>
+              )}
               <label className="wide-field">
                 Built empirical datasets
                 <textarea readOnly value={datasetJson} rows={8} />
