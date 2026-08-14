@@ -1,10 +1,12 @@
 import { useState } from "react";
 import {
   buildCuratedObservationDatasets,
+  exportObservationWorkspaceBackup,
   exportObservationWorkspaceAccepted,
   listEmpiricalDatasets,
   listObservationWorkspace,
   registerEmpiricalDataset,
+  restoreObservationWorkspaceBackup,
   reviewCraftObservations,
   reviewObservationWorkspace,
   type CuratedObservationBuildResponse,
@@ -25,6 +27,10 @@ export function ObservationReviewPanel() {
   const [decisions, setDecisions] = useState<DecisionState>({});
   const [acceptedJson, setAcceptedJson] = useState("");
   const [manifestJson, setManifestJson] = useState("");
+  const [backupJson, setBackupJson] = useState("");
+  const [restoreText, setRestoreText] = useState("");
+  const [restoreMode, setRestoreMode] = useState("MERGE");
+  const [restoreSummary, setRestoreSummary] = useState("");
   const [buildResult, setBuildResult] = useState<CuratedObservationBuildResponse | null>(null);
   const [datasetJson, setDatasetJson] = useState("");
   const [registryResult, setRegistryResult] = useState<EmpiricalDatasetRegisterResponse | null>(null);
@@ -124,6 +130,67 @@ export function ObservationReviewPanel() {
     }
   }
 
+  async function exportBackup() {
+    setError(null);
+    setRestoreSummary("");
+    try {
+      setBusy(true);
+      const response = await exportObservationWorkspaceBackup();
+      setBackupJson(JSON.stringify(response.backup, null, 2));
+      setRestoreText(JSON.stringify(response.backup, null, 2));
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Unable to export workspace backup.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function restoreBackup() {
+    setError(null);
+    setRestoreSummary("");
+    try {
+      const backup = JSON.parse(restoreText);
+      if (
+        restoreMode === "REPLACE" &&
+        !window.confirm("Replace the current local observation workspace with this validated backup?")
+      ) {
+        return;
+      }
+      setBusy(true);
+      const response = await restoreObservationWorkspaceBackup({ backup, mode: restoreMode });
+      setWorkspace({
+        workspace_version: response.workspace_version,
+        entries: response.entries,
+        persistence: response.persistence,
+        warnings: response.warnings
+      });
+      setRestoreSummary(
+        `${response.restore.status}: ${response.restore.records_imported} records imported, ${response.restore.records_already_present} already present, ${response.restore.records_conflicting} conflicting, ${response.restore.decisions_imported} decisions imported.`
+      );
+      if (response.restore.status === "RESTORED") {
+        setWorkspaceLoaded(true);
+        setBatchText(JSON.stringify({ observations: response.entries.map((entry) => entry.record) }, null, 2));
+        const reviewResponse = await reviewCraftObservations({
+          observations: response.entries.map((entry) => entry.record),
+          decisions: response.entries.map((entry) => entry.decision)
+        });
+        setReview(reviewResponse);
+        setDecisions(
+          Object.fromEntries(
+            response.entries.map((entry) => [
+              entry.raw_record_id,
+              { status: entry.decision.status, note: entry.decision.note ?? "" }
+            ])
+          )
+        );
+      }
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Unable to restore workspace backup.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function buildDatasets() {
     if (!acceptedJson) return;
     setError(null);
@@ -192,6 +259,41 @@ export function ObservationReviewPanel() {
           {workspace.persistence.skipped_entry_count ? ` - ${workspace.persistence.skipped_entry_count} skipped` : ""}
         </p>
       )}
+      <div className="backup-controls">
+        <button className="secondary-button" type="button" onClick={exportBackup} disabled={busy}>
+          {busy ? "Working..." : "Export Workspace Backup"}
+        </button>
+        <label>
+          Restore mode
+          <select value={restoreMode} onChange={(event) => setRestoreMode(event.target.value)}>
+            <option value="MERGE">Merge</option>
+            <option value="REPLACE">Replace</option>
+          </select>
+        </label>
+      </div>
+      <p className="muted">
+        Backups copy raw workspace evidence and review decisions only. Replace validates the whole backup before changing
+        local evidence.
+      </p>
+      {backupJson && (
+        <label className="wide-field">
+          Workspace backup JSON
+          <textarea readOnly value={backupJson} rows={6} />
+        </label>
+      )}
+      <label className="wide-field">
+        Restore backup JSON
+        <textarea
+          value={restoreText}
+          onChange={(event) => setRestoreText(event.target.value)}
+          rows={6}
+          placeholder="Paste a workspace backup JSON envelope"
+        />
+      </label>
+      <button className="secondary-button" type="button" onClick={restoreBackup} disabled={busy || !restoreText.trim()}>
+        Restore Workspace Backup
+      </button>
+      {restoreSummary && <p className="muted">{restoreSummary}</p>}
       <label className="wide-field">
         Recorder export JSON
         <textarea

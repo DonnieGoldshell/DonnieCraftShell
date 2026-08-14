@@ -833,4 +833,145 @@ describe("AdvisorWorkbench", () => {
     );
     expect(fetchMock.mock.calls[1][0]).toContain("/api/v1/observations/workspace");
   });
+
+  it("exports and restores a persisted observation workspace backup", async () => {
+    const workspaceEntry = {
+      raw_record_id: "manual-craft-observation-backup",
+      record: {
+        raw_record_id: "manual-craft-observation-backup",
+        outcome_id: "outcome-1",
+        unclassified: false,
+        classification_method: "MANUAL"
+      },
+      decision: {
+        raw_record_id: "manual-craft-observation-backup",
+        status: "ACCEPTED",
+        reviewed_at: "2026-08-13T10:03:00Z",
+        note: "backup reviewed",
+        reviewer_id: "browser-observation-review-session"
+      },
+      summary: {
+        raw_record_id: "manual-craft-observation-backup",
+        review_status: "ACCEPTED",
+        outcome_id: "outcome-1",
+        unclassified: false,
+        synthetic: false,
+        classification_method: "MANUAL",
+        note: "backup reviewed",
+        warnings: []
+      }
+    };
+    const backup = {
+      workspace_version: "dc-observation-workspace-v1",
+      storage_version: "dc-observation-workspace-storage-v1",
+      records: [workspaceEntry.record],
+      decisions: [workspaceEntry.decision]
+    };
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => quiverResponse
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          workspace_version: "dc-observation-workspace-v1",
+          backup,
+          persistence: {
+            storage_version: "dc-observation-workspace-storage-v1",
+            storage_mode: "FILE",
+            persistence_enabled: true,
+            loaded_record_count: 1,
+            loaded_decision_count: 1,
+            skipped_entry_count: 0,
+            warnings: []
+          },
+          warnings: []
+        })
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          workspace_version: "dc-observation-workspace-v1",
+          restore: {
+            status: "RESTORED",
+            mode: "MERGE",
+            records_received: 1,
+            records_imported: 1,
+            records_already_present: 0,
+            records_conflicting: 0,
+            records_invalid: 0,
+            decisions_received: 1,
+            decisions_imported: 1,
+            decisions_invalid: 0,
+            resulting_record_count: 1,
+            resulting_decision_count: 1,
+            warnings: []
+          },
+          entries: [workspaceEntry],
+          persistence: {
+            storage_version: "dc-observation-workspace-storage-v1",
+            storage_mode: "FILE",
+            persistence_enabled: true,
+            loaded_record_count: 1,
+            loaded_decision_count: 1,
+            skipped_entry_count: 0,
+            warnings: []
+          },
+          warnings: []
+        })
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          review_version: "dc-observation-review-v1",
+          records: [
+            {
+              raw_record_id: "manual-craft-observation-backup",
+              status: "ACCEPTED",
+              duplicate: false,
+              valid_for_import: true,
+              exported: true,
+              classification_method: "MANUAL",
+              outcome_id: "outcome-1",
+              unclassified: false,
+              synthetic: false,
+              action_id: "dc:poe2:craft-action:orb-of-annulment",
+              source_outcome_set_id: "manual-recorder:dc:poe2:craft-action:orb-of-annulment",
+              warnings: []
+            }
+          ],
+          accepted_export: {
+            review_version: "dc-observation-review-v1",
+            observations: [workspaceEntry.record],
+            warnings: []
+          },
+          review_manifest: {
+            review_version: "dc-observation-review-v1",
+            records: []
+          },
+          warnings: []
+        })
+      });
+    vi.stubGlobal("fetch", fetchMock);
+    const user = userEvent.setup();
+
+    render(<AdvisorWorkbench />);
+    await user.type(screen.getByLabelText(/clipboard item text/i), "Item Class: Quivers\nRarity: Rare");
+    await user.click(screen.getByRole("button", { name: /analyze quiver/i }));
+    await screen.findByText("Observation Review");
+
+    await user.click(screen.getByRole("button", { name: /export workspace backup/i }));
+    const backupTextarea = (await screen.findByLabelText(/workspace backup json/i)) as HTMLTextAreaElement;
+    expect(backupTextarea.value).toContain("manual-craft-observation-backup");
+
+    await user.click(screen.getByRole("button", { name: /restore workspace backup/i }));
+
+    expect(await screen.findByText(/RESTORED: 1 records imported/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/manual-cra.*backup/i).length).toBeGreaterThan(0);
+    expect(fetchMock.mock.calls[1][0]).toContain("/api/v1/observations/workspace/backup");
+    expect(fetchMock.mock.calls[2][0]).toContain("/api/v1/observations/workspace/restore");
+    expect(JSON.parse(fetchMock.mock.calls[2][1].body as string)).toEqual({ backup, mode: "MERGE" });
+  });
 });

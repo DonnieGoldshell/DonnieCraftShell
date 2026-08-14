@@ -102,6 +102,11 @@ class AdvisorApiTests(unittest.TestCase):
         self.assertIn("EmpiricalDatasetRegisterRequestDto", schema_names)
         self.assertIn("EmpiricalDatasetRegisterResponseDto", schema_names)
         self.assertIn("EmpiricalDatasetListResponseDto", schema_names)
+        self.assertIn("/api/v1/observations/workspace/backup", openapi["paths"])
+        self.assertIn("/api/v1/observations/workspace/restore", openapi["paths"])
+        self.assertIn("ObservationWorkspaceBackupResponseDto", schema_names)
+        self.assertIn("ObservationWorkspaceRestoreRequestDto", schema_names)
+        self.assertIn("ObservationWorkspaceRestoreResponseDto", schema_names)
 
     def test_valid_quiver_6_partial_response(self):
         response = self.client.post("/api/v1/advisor/analyze", json=base_request())
@@ -906,6 +911,122 @@ class AdvisorApiTests(unittest.TestCase):
         self.assertTrue(any("persistence failed" in warning for warning in saved.json()["detail"]["warnings"]))
         self.assertEqual(listed.status_code, 200)
         self.assertEqual(listed.json()["entries"], [])
+
+    def test_observation_workspace_backup_and_restore_round_trip_over_api(self):
+        from services.api.app.dependencies import advisor as advisor_dependencies
+
+        previous = os.environ.get("DCS_OBSERVATION_WORKSPACE_PATH")
+        with tempfile.TemporaryDirectory() as directory:
+            first_storage = Path(directory) / "first-workspace.json"
+            second_storage = Path(directory) / "second-workspace.json"
+            record = {
+                "raw_record_id": "manual-craft-observation-api-backup",
+                "action_id": "dc:poe2:craft-action:orb-of-annulment",
+                "source_outcome_set_id": "api-workspace-outcome-set",
+                "item_class": "Quivers",
+                "league": LEAGUE,
+                "game": "Path of Exile 2",
+                "observed_at": AS_OF,
+                "source_id": "api-workspace-test",
+                "source_type": "MANUAL_RESEARCH",
+                "outcome_id": "outcome-1",
+                "unclassified": False,
+                "synthetic": False,
+                "verification_status": "NEEDS_VERIFICATION",
+                "classification_method": "MANUAL",
+                "crafting_dataset_version": CRAFTING_DATASET_ID,
+                "modifier_dataset_version": GAME_DATASET_ID,
+            }
+            try:
+                os.environ["DCS_OBSERVATION_WORKSPACE_PATH"] = str(first_storage)
+                self._clear_dependency_caches(advisor_dependencies)
+                saved = self.client.post("/api/v1/observations/workspace/records", json={"record": record})
+                reviewed = self.client.post(
+                    "/api/v1/observations/workspace/reviews",
+                    json={"decisions": [{"raw_record_id": record["raw_record_id"], "status": "ACCEPTED"}]},
+                )
+                backup = self.client.get("/api/v1/observations/workspace/backup")
+
+                os.environ["DCS_OBSERVATION_WORKSPACE_PATH"] = str(second_storage)
+                self._clear_dependency_caches(advisor_dependencies)
+                restored = self.client.post(
+                    "/api/v1/observations/workspace/restore",
+                    json={"mode": "MERGE", "backup": backup.json()["backup"]},
+                )
+                listed = self.client.get("/api/v1/observations/workspace")
+                registered = self.client.get("/api/v1/observations/empirical-datasets")
+            finally:
+                if previous is None:
+                    os.environ.pop("DCS_OBSERVATION_WORKSPACE_PATH", None)
+                else:
+                    os.environ["DCS_OBSERVATION_WORKSPACE_PATH"] = previous
+                self._clear_dependency_caches(advisor_dependencies)
+
+        self.assertEqual(saved.status_code, 200)
+        self.assertEqual(reviewed.status_code, 200)
+        self.assertEqual(backup.status_code, 200)
+        self.assertEqual(backup.json()["backup"]["workspace_version"], "dc-observation-workspace-v1")
+        self.assertEqual(restored.status_code, 200)
+        self.assertEqual(restored.json()["restore"]["status"], "RESTORED")
+        self.assertEqual(restored.json()["restore"]["records_imported"], 1)
+        self.assertEqual(restored.json()["restore"]["decisions_imported"], 1)
+        self.assertEqual(listed.json()["entries"][0]["raw_record_id"], record["raw_record_id"])
+        self.assertEqual(listed.json()["entries"][0]["summary"]["review_status"], "ACCEPTED")
+        self.assertEqual(registered.json()["datasets"], [])
+
+    def test_observation_workspace_rejected_restore_preserves_api_workspace(self):
+        from services.api.app.dependencies import advisor as advisor_dependencies
+
+        previous = os.environ.get("DCS_OBSERVATION_WORKSPACE_PATH")
+        with tempfile.TemporaryDirectory() as directory:
+            storage = Path(directory) / "workspace.json"
+            original = {
+                "raw_record_id": "manual-craft-observation-api-restore-original",
+                "action_id": "dc:poe2:craft-action:orb-of-annulment",
+                "source_outcome_set_id": "api-workspace-outcome-set",
+                "item_class": "Quivers",
+                "league": LEAGUE,
+                "game": "Path of Exile 2",
+                "observed_at": AS_OF,
+                "source_id": "api-workspace-test",
+                "source_type": "MANUAL_RESEARCH",
+                "outcome_id": "outcome-1",
+                "unclassified": False,
+                "synthetic": False,
+                "verification_status": "NEEDS_VERIFICATION",
+                "classification_method": "MANUAL",
+                "crafting_dataset_version": CRAFTING_DATASET_ID,
+                "modifier_dataset_version": GAME_DATASET_ID,
+            }
+            invalid_backup = {
+                "workspace_version": "future-workspace-version",
+                "storage_version": "dc-observation-workspace-storage-v1",
+                "records": [{"raw_record_id": "replacement"}],
+                "decisions": [],
+            }
+            try:
+                os.environ["DCS_OBSERVATION_WORKSPACE_PATH"] = str(storage)
+                self._clear_dependency_caches(advisor_dependencies)
+                self.client.post("/api/v1/observations/workspace/records", json={"record": original})
+                before = storage.read_text(encoding="utf-8")
+                restored = self.client.post(
+                    "/api/v1/observations/workspace/restore",
+                    json={"mode": "REPLACE", "backup": invalid_backup},
+                )
+                after = storage.read_text(encoding="utf-8")
+                listed = self.client.get("/api/v1/observations/workspace")
+            finally:
+                if previous is None:
+                    os.environ.pop("DCS_OBSERVATION_WORKSPACE_PATH", None)
+                else:
+                    os.environ["DCS_OBSERVATION_WORKSPACE_PATH"] = previous
+                self._clear_dependency_caches(advisor_dependencies)
+
+        self.assertEqual(restored.status_code, 200)
+        self.assertEqual(restored.json()["restore"]["status"], "REJECTED")
+        self.assertTrue(any("workspace_version" in warning for warning in restored.json()["warnings"]))
+        self.assertEqual(after, before)
+        self.assertEqual(listed.json()["entries"][0]["raw_record_id"], original["raw_record_id"])
 
     def test_observation_workspace_incompatible_version_surfaces_warning(self):
         from packages.shared.donniecraftshell_contracts.observation_workspace import OBSERVATION_WORKSPACE_STORAGE_VERSION
