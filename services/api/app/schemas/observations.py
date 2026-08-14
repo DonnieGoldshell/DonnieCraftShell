@@ -171,6 +171,42 @@ class ObservationWorkspaceAcceptedExportResponseDto(ApiModel):
     warnings: list[str] = []
 
 
+class ObservationWorkspaceBackupResponseDto(ApiModel):
+    workspace_version: str
+    backup: dict
+    persistence: ObservationWorkspacePersistenceStatusDto
+    warnings: list[str] = []
+
+
+class ObservationWorkspaceRestoreRequestDto(ApiModel):
+    backup: dict
+    mode: str = "MERGE"
+
+
+class ObservationWorkspaceRestoreSummaryDto(ApiModel):
+    status: str
+    mode: str
+    records_received: int
+    records_imported: int
+    records_already_present: int
+    records_conflicting: int
+    records_invalid: int
+    decisions_received: int
+    decisions_imported: int
+    decisions_invalid: int
+    resulting_record_count: int
+    resulting_decision_count: int
+    warnings: list[str] = []
+
+
+class ObservationWorkspaceRestoreResponseDto(ApiModel):
+    workspace_version: str
+    restore: ObservationWorkspaceRestoreSummaryDto
+    entries: list[ObservationWorkspaceEntryDto]
+    persistence: ObservationWorkspacePersistenceStatusDto
+    warnings: list[str] = []
+
+
 class CuratedObservationBuildRequestDto(ApiModel):
     accepted_export: dict
     dataset_id_prefix: str = "empirical-probability"

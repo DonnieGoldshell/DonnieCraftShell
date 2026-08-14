@@ -59,10 +59,14 @@ from services.api.app.schemas.observations import (
     ObservationClassificationDto,
     ObservationReviewDecisionDto,
     ObservationWorkspaceAcceptedExportResponseDto,
+    ObservationWorkspaceBackupResponseDto,
     ObservationWorkspaceEntryDto,
     ObservationWorkspaceListResponseDto,
     ObservationWorkspacePersistenceStatusDto,
     ObservationWorkspaceRecordSummaryDto,
+    ObservationWorkspaceRestoreRequestDto,
+    ObservationWorkspaceRestoreResponseDto,
+    ObservationWorkspaceRestoreSummaryDto,
     ObservationWorkspaceReviewRequestDto,
     ObservationWorkspaceReviewResponseDto,
     ObservationWorkspaceSaveRequestDto,
@@ -306,6 +310,36 @@ def workspace_accepted_export(
         accepted_export=review.accepted_export,
         persistence=_workspace_persistence_to_dto(workspace.persistence_status()),
         warnings=list(review.warnings),
+    )
+
+
+@router.get("/workspace/backup", response_model=ObservationWorkspaceBackupResponseDto)
+def backup_workspace(
+    workspace: ObservationWorkspaceRepository = Depends(get_observation_workspace),
+) -> ObservationWorkspaceBackupResponseDto:
+    return ObservationWorkspaceBackupResponseDto(
+        workspace_version=OBSERVATION_WORKSPACE_VERSION,
+        backup=workspace.export_backup(),
+        persistence=_workspace_persistence_to_dto(workspace.persistence_status()),
+        warnings=(
+            "Workspace backups are raw local evidence snapshots; restoring one does not activate probability evidence.",
+            *workspace.persistence_status().warnings,
+        ),
+    )
+
+
+@router.post("/workspace/restore", response_model=ObservationWorkspaceRestoreResponseDto)
+def restore_workspace(
+    request: ObservationWorkspaceRestoreRequestDto,
+    workspace: ObservationWorkspaceRepository = Depends(get_observation_workspace),
+) -> ObservationWorkspaceRestoreResponseDto:
+    result = workspace.restore_backup(request.backup, request.mode)
+    return ObservationWorkspaceRestoreResponseDto(
+        workspace_version=OBSERVATION_WORKSPACE_VERSION,
+        restore=_workspace_restore_to_dto(result),
+        entries=[_workspace_entry_to_dto(entry) for entry in workspace.list_entries()],
+        persistence=_workspace_persistence_to_dto(workspace.persistence_status()),
+        warnings=list(result.warnings),
     )
 
 
@@ -591,6 +625,24 @@ def _workspace_persistence_to_dto(status) -> ObservationWorkspacePersistenceStat
         loaded_decision_count=status.loaded_decision_count,
         skipped_entry_count=status.skipped_entry_count,
         warnings=list(status.warnings),
+    )
+
+
+def _workspace_restore_to_dto(result) -> ObservationWorkspaceRestoreSummaryDto:
+    return ObservationWorkspaceRestoreSummaryDto(
+        status=result.status.value,
+        mode=result.mode.value,
+        records_received=result.records_received,
+        records_imported=result.records_imported,
+        records_already_present=result.records_already_present,
+        records_conflicting=result.records_conflicting,
+        records_invalid=result.records_invalid,
+        decisions_received=result.decisions_received,
+        decisions_imported=result.decisions_imported,
+        decisions_invalid=result.decisions_invalid,
+        resulting_record_count=result.resulting_record_count,
+        resulting_decision_count=result.resulting_decision_count,
+        warnings=list(result.warnings),
     )
 
 

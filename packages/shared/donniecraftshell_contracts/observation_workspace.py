@@ -33,6 +33,16 @@ class ObservationWorkspaceSaveStatus(str, Enum):
     REJECTED = "REJECTED"
 
 
+class ObservationWorkspaceRestoreMode(str, Enum):
+    MERGE = "MERGE"
+    REPLACE = "REPLACE"
+
+
+class ObservationWorkspaceRestoreStatus(str, Enum):
+    RESTORED = "RESTORED"
+    REJECTED = "REJECTED"
+
+
 @dataclass(frozen=True)
 class ObservationWorkspacePersistenceStatus:
     storage_version: str
@@ -74,6 +84,23 @@ class ObservationWorkspaceSaveResult:
     status: ObservationWorkspaceSaveStatus
     raw_record_id: str | None = None
     entry: ObservationWorkspaceEntry | None = None
+    warnings: tuple[str, ...] = ()
+
+
+@dataclass(frozen=True)
+class ObservationWorkspaceRestoreResult:
+    status: ObservationWorkspaceRestoreStatus
+    mode: ObservationWorkspaceRestoreMode
+    records_received: int = 0
+    records_imported: int = 0
+    records_already_present: int = 0
+    records_conflicting: int = 0
+    records_invalid: int = 0
+    decisions_received: int = 0
+    decisions_imported: int = 0
+    decisions_invalid: int = 0
+    resulting_record_count: int = 0
+    resulting_decision_count: int = 0
     warnings: tuple[str, ...] = ()
 
 
@@ -168,6 +195,108 @@ class ObservationWorkspaceRepository:
             tuple(entry.decision for entry in self.list_entries()),
         )
 
+    def export_backup(self) -> dict[str, Any]:
+        return _workspace_envelope(self._records, self._decisions)
+
+    def restore_backup(
+        self,
+        backup: dict[str, Any],
+        mode: ObservationWorkspaceRestoreMode = ObservationWorkspaceRestoreMode.MERGE,
+    ) -> ObservationWorkspaceRestoreResult:
+        try:
+            parsed_mode = ObservationWorkspaceRestoreMode(mode)
+        except ValueError:
+            return ObservationWorkspaceRestoreResult(
+                status=ObservationWorkspaceRestoreStatus.REJECTED,
+                mode=ObservationWorkspaceRestoreMode.MERGE,
+                resulting_record_count=len(self._records),
+                resulting_decision_count=len(self._decisions),
+                warnings=(f"Unsupported observation workspace restore mode: {mode}.",),
+            )
+        validated = _validate_backup(backup)
+        if validated.warnings:
+            return ObservationWorkspaceRestoreResult(
+                status=ObservationWorkspaceRestoreStatus.REJECTED,
+                mode=parsed_mode,
+                records_received=validated.records_received,
+                records_invalid=validated.records_invalid,
+                decisions_received=validated.decisions_received,
+                decisions_invalid=validated.decisions_invalid,
+                resulting_record_count=len(self._records),
+                resulting_decision_count=len(self._decisions),
+                warnings=validated.warnings,
+            )
+
+        target_records: dict[str, dict[str, Any]]
+        target_fingerprints: dict[str, str]
+        target_decisions: dict[str, ObservationReviewDecision]
+        records_imported = 0
+        records_already_present = 0
+        records_conflicting = 0
+        warnings: list[str] = []
+
+        if parsed_mode == ObservationWorkspaceRestoreMode.REPLACE:
+            target_records = {}
+            target_fingerprints = {}
+            target_decisions = {}
+        else:
+            target_records = deepcopy(self._records)
+            target_fingerprints = dict(self._fingerprints)
+            target_decisions = dict(self._decisions)
+
+        for raw_record_id, record in validated.records.items():
+            fingerprint = _record_fingerprint(record)
+            existing = target_records.get(raw_record_id)
+            if existing is None:
+                target_records[raw_record_id] = deepcopy(record)
+                target_fingerprints[raw_record_id] = fingerprint
+                records_imported += 1
+                continue
+            if target_fingerprints[raw_record_id] == fingerprint:
+                records_already_present += 1
+                continue
+            records_conflicting += 1
+            warnings.append(f"Conflicting observation content for raw_record_id {raw_record_id} was rejected.")
+
+        if records_conflicting:
+            return ObservationWorkspaceRestoreResult(
+                status=ObservationWorkspaceRestoreStatus.REJECTED,
+                mode=parsed_mode,
+                records_received=validated.records_received,
+                records_imported=0,
+                records_already_present=records_already_present,
+                records_conflicting=records_conflicting,
+                decisions_received=validated.decisions_received,
+                resulting_record_count=len(self._records),
+                resulting_decision_count=len(self._decisions),
+                warnings=tuple(warnings),
+            )
+
+        for raw_record_id in target_records:
+            target_decisions.setdefault(raw_record_id, ObservationReviewDecision(raw_record_id=raw_record_id))
+
+        decisions_imported = 0
+        for raw_record_id, decision in validated.decisions.items():
+            target_decisions[raw_record_id] = decision
+            decisions_imported += 1
+
+        self._records = target_records
+        self._fingerprints = target_fingerprints
+        self._decisions = target_decisions
+        return ObservationWorkspaceRestoreResult(
+            status=ObservationWorkspaceRestoreStatus.RESTORED,
+            mode=parsed_mode,
+            records_received=validated.records_received,
+            records_imported=records_imported,
+            records_already_present=records_already_present,
+            records_conflicting=0,
+            decisions_received=validated.decisions_received,
+            decisions_imported=decisions_imported,
+            resulting_record_count=len(self._records),
+            resulting_decision_count=len(self._decisions),
+            warnings=tuple(warnings),
+        )
+
     def persistence_status(self) -> ObservationWorkspacePersistenceStatus:
         return ObservationWorkspacePersistenceStatus(
             storage_version=OBSERVATION_WORKSPACE_STORAGE_VERSION,
@@ -217,6 +346,35 @@ class FileBackedObservationWorkspaceRepository(ObservationWorkspaceRepository):
                     raw_record_id=decision.raw_record_id,
                     entry=self.get_entry(decision.raw_record_id),
                     warnings=(f"Observation workspace persistence failed; review decision was not saved: {exc}",),
+                )
+        return result
+
+    def restore_backup(
+        self,
+        backup: dict[str, Any],
+        mode: ObservationWorkspaceRestoreMode = ObservationWorkspaceRestoreMode.MERGE,
+    ) -> ObservationWorkspaceRestoreResult:
+        before = self._snapshot_state()
+        result = super().restore_backup(backup, mode)
+        if result.status == ObservationWorkspaceRestoreStatus.RESTORED and not self._loading:
+            try:
+                self._persist()
+            except Exception as exc:
+                self._restore_state(before)
+                return ObservationWorkspaceRestoreResult(
+                    status=ObservationWorkspaceRestoreStatus.REJECTED,
+                    mode=result.mode,
+                    records_received=result.records_received,
+                    records_imported=0,
+                    records_already_present=result.records_already_present,
+                    records_conflicting=result.records_conflicting,
+                    records_invalid=result.records_invalid,
+                    decisions_received=result.decisions_received,
+                    decisions_imported=0,
+                    decisions_invalid=result.decisions_invalid,
+                    resulting_record_count=len(self._records),
+                    resulting_decision_count=len(self._decisions),
+                    warnings=(f"Observation workspace persistence failed; backup restore was not saved: {exc}",),
                 )
         return result
 
@@ -297,16 +455,7 @@ class FileBackedObservationWorkspaceRepository(ObservationWorkspaceRepository):
 
     def _persist(self) -> None:
         self._storage_path.parent.mkdir(parents=True, exist_ok=True)
-        payload = {
-            "workspace_version": OBSERVATION_WORKSPACE_VERSION,
-            "storage_version": OBSERVATION_WORKSPACE_STORAGE_VERSION,
-            "records": [self._records[raw_record_id] for raw_record_id in sorted(self._records)],
-            "decisions": [
-                _decision_to_dict(self._decisions[raw_record_id])
-                for raw_record_id in sorted(self._decisions)
-                if raw_record_id in self._records
-            ],
-        }
+        payload = _workspace_envelope(self._records, self._decisions)
         encoded = json.dumps(payload, indent=2, sort_keys=True)
         temporary_path = self._storage_path.with_name(f"{self._storage_path.name}.tmp")
         temporary_path.write_text(encoded, encoding="utf-8")
@@ -341,6 +490,110 @@ def _record_fingerprint(record: dict[str, Any]) -> str:
 
 def _json_payload_copy(payload: dict[str, Any]) -> dict[str, Any]:
     return json.loads(json.dumps(payload, sort_keys=True))
+
+
+@dataclass(frozen=True)
+class _ValidatedBackup:
+    records: dict[str, dict[str, Any]]
+    decisions: dict[str, ObservationReviewDecision]
+    records_received: int
+    records_invalid: int
+    decisions_received: int
+    decisions_invalid: int
+    warnings: tuple[str, ...]
+
+
+def _workspace_envelope(
+    records: dict[str, dict[str, Any]],
+    decisions: dict[str, ObservationReviewDecision],
+) -> dict[str, Any]:
+    return {
+        "workspace_version": OBSERVATION_WORKSPACE_VERSION,
+        "storage_version": OBSERVATION_WORKSPACE_STORAGE_VERSION,
+        "records": [deepcopy(records[raw_record_id]) for raw_record_id in sorted(records)],
+        "decisions": [
+            _decision_to_dict(decisions[raw_record_id])
+            for raw_record_id in sorted(decisions)
+            if raw_record_id in records
+        ],
+    }
+
+
+def _validate_backup(backup: dict[str, Any]) -> _ValidatedBackup:
+    warnings: list[str] = []
+    if not isinstance(backup, dict):
+        return _ValidatedBackup({}, {}, 0, 0, 0, 0, ("Observation workspace backup root must be an object.",))
+    if backup.get("workspace_version") != OBSERVATION_WORKSPACE_VERSION:
+        warnings.append("Observation workspace backup workspace_version is missing or incompatible.")
+    if backup.get("storage_version") != OBSERVATION_WORKSPACE_STORAGE_VERSION:
+        warnings.append("Observation workspace backup storage_version is missing or incompatible.")
+    records_payload = backup.get("records", ())
+    decisions_payload = backup.get("decisions", ())
+    if not isinstance(records_payload, list):
+        warnings.append("Observation workspace backup records must be a list.")
+        records_payload = []
+    if not isinstance(decisions_payload, list):
+        warnings.append("Observation workspace backup decisions must be a list.")
+        decisions_payload = []
+
+    records: dict[str, dict[str, Any]] = {}
+    fingerprints: dict[str, str] = {}
+    records_invalid = 0
+    for index, record in enumerate(records_payload, start=1):
+        if not isinstance(record, dict):
+            records_invalid += 1
+            warnings.append(f"Backup observation record #{index} is not an object.")
+            continue
+        try:
+            copied = _json_payload_copy(record)
+            raw_record_id = _raw_record_id(copied)
+            fingerprint = _record_fingerprint(copied)
+        except Exception as exc:
+            records_invalid += 1
+            warnings.append(f"Backup observation record #{index} is invalid: {exc}.")
+            continue
+        if raw_record_id in records:
+            records_invalid += 1
+            if fingerprints[raw_record_id] == fingerprint:
+                warnings.append(f"Duplicate backup observation record {raw_record_id} was rejected.")
+            else:
+                warnings.append(f"Conflicting duplicate backup observation record {raw_record_id} was rejected.")
+            continue
+        records[raw_record_id] = copied
+        fingerprints[raw_record_id] = fingerprint
+
+    decisions: dict[str, ObservationReviewDecision] = {}
+    decisions_invalid = 0
+    for index, decision in enumerate(decisions_payload, start=1):
+        if not isinstance(decision, dict):
+            decisions_invalid += 1
+            warnings.append(f"Backup review decision #{index} is not an object.")
+            continue
+        try:
+            raw_record_id = str(decision["raw_record_id"])
+            if raw_record_id not in records:
+                raise ValueError(f"review decision references absent raw_record_id {raw_record_id}")
+            if raw_record_id in decisions:
+                raise ValueError(f"duplicate review decision for raw_record_id {raw_record_id}")
+            decisions[raw_record_id] = ObservationReviewDecision(
+                raw_record_id=raw_record_id,
+                status=ObservationReviewStatus(decision.get("status", "PENDING")),
+                reviewed_at=_datetime_or_none(decision.get("reviewed_at")),
+                note=decision.get("note"),
+                reviewer_id=decision.get("reviewer_id"),
+            )
+        except Exception as exc:
+            decisions_invalid += 1
+            warnings.append(f"Backup review decision #{index} is invalid: {exc}.")
+    return _ValidatedBackup(
+        records=records,
+        decisions=decisions,
+        records_received=len(records_payload),
+        records_invalid=records_invalid,
+        decisions_received=len(decisions_payload),
+        decisions_invalid=decisions_invalid,
+        warnings=tuple(warnings),
+    )
 
 
 def _summary(record: dict[str, Any], decision: ObservationReviewDecision) -> ObservationWorkspaceRecordSummary:

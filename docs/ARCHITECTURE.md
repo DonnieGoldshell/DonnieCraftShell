@@ -103,6 +103,12 @@ aggregation. Review metadata remains separate from raw evidence, conflicting
 skipped without startup rewrites, and only accepted records flow into Task 16C
 dataset builds.
 
+Task 18B extends the same workspace boundary with backup/export and
+restore/import. Backups use the supported versioned workspace envelope, API
+restore never accepts arbitrary filesystem paths, `MERGE` and `REPLACE` modes
+validate conservatively before mutation, and persistence failures roll back the
+restore rather than leaving memory ahead of durable evidence.
+
 ## Item-Class Modularity
 
 Quiver logic belongs behind item-class interfaces. Future bows, rings, amulets, and armour modules should supply their own base definitions, modifier mappings, affix rules, legal action providers, and valuation features without changing the core engines.

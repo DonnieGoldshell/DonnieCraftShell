@@ -12,6 +12,8 @@ from packages.shared.donniecraftshell_contracts.observation_workspace import (
     OBSERVATION_WORKSPACE_VERSION,
     FileBackedObservationWorkspaceRepository,
     ObservationWorkspaceRepository,
+    ObservationWorkspaceRestoreMode,
+    ObservationWorkspaceRestoreStatus,
     ObservationWorkspaceSaveStatus,
 )
 from tests.test_observation_recorder import OBSERVED_AT, ObservationRecorderTests
@@ -136,6 +138,150 @@ class ObservationWorkspaceTests(unittest.TestCase):
 
             reloaded = FileBackedObservationWorkspaceRepository(path)
             self.assertEqual(reloaded.get_entry(record["raw_record_id"]).decision, before_entry.decision)
+
+    def test_backup_round_trips_into_empty_workspace_with_decisions_preserved(self):
+        source = ObservationWorkspaceRepository()
+        record = recorded_export_record("backup-round-trip")
+        source.save_record(record)
+        source.save_decision(
+            ObservationReviewDecision(
+                raw_record_id=record["raw_record_id"],
+                status=ObservationReviewStatus.ACCEPTED,
+                reviewed_at=datetime(2026, 8, 14, 12, 0, tzinfo=timezone.utc),
+                note="backup accepted",
+                reviewer_id="unit-test-reviewer",
+            )
+        )
+
+        target = ObservationWorkspaceRepository()
+        result = target.restore_backup(source.export_backup(), ObservationWorkspaceRestoreMode.MERGE)
+        entry = target.get_entry(record["raw_record_id"])
+
+        self.assertEqual(result.status, ObservationWorkspaceRestoreStatus.RESTORED)
+        self.assertEqual(result.records_received, 1)
+        self.assertEqual(result.records_imported, 1)
+        self.assertEqual(result.decisions_imported, 1)
+        self.assertEqual(entry.record, record)
+        self.assertEqual(entry.decision.status, ObservationReviewStatus.ACCEPTED)
+        self.assertEqual(entry.decision.note, "backup accepted")
+
+    def test_merge_backup_is_idempotent_for_identical_evidence(self):
+        workspace = ObservationWorkspaceRepository()
+        record = recorded_export_record("merge-idempotent")
+        workspace.save_record(record)
+        backup = workspace.export_backup()
+
+        result = workspace.restore_backup(backup, ObservationWorkspaceRestoreMode.MERGE)
+
+        self.assertEqual(result.status, ObservationWorkspaceRestoreStatus.RESTORED)
+        self.assertEqual(result.records_imported, 0)
+        self.assertEqual(result.records_already_present, 1)
+        self.assertEqual(len(workspace.list_entries()), 1)
+
+    def test_merge_backup_rejects_conflicting_record_without_overwrite(self):
+        workspace = ObservationWorkspaceRepository()
+        original = recorded_export_record("merge-conflict")
+        workspace.save_record(original)
+        backup = workspace.export_backup()
+        backup["records"][0]["outcome_id"] = "different-outcome"
+
+        result = workspace.restore_backup(backup, ObservationWorkspaceRestoreMode.MERGE)
+
+        self.assertEqual(result.status, ObservationWorkspaceRestoreStatus.REJECTED)
+        self.assertEqual(result.records_conflicting, 1)
+        self.assertEqual(workspace.get_entry(original["raw_record_id"]).record, original)
+
+    def test_replace_backup_validates_before_destroying_current_workspace(self):
+        workspace = ObservationWorkspaceRepository()
+        original = recorded_export_record("replace-original")
+        workspace.save_record(original)
+        backup = {
+            "workspace_version": OBSERVATION_WORKSPACE_VERSION,
+            "storage_version": OBSERVATION_WORKSPACE_STORAGE_VERSION,
+            "records": [{"raw_record_id": ""}],
+            "decisions": [],
+        }
+
+        result = workspace.restore_backup(backup, ObservationWorkspaceRestoreMode.REPLACE)
+
+        self.assertEqual(result.status, ObservationWorkspaceRestoreStatus.REJECTED)
+        self.assertEqual(result.records_invalid, 1)
+        self.assertEqual(workspace.get_entry(original["raw_record_id"]).record, original)
+
+    def test_replace_backup_replaces_live_workspace_after_full_validation(self):
+        workspace = ObservationWorkspaceRepository()
+        original = recorded_export_record("replace-original")
+        replacement = recorded_export_record("replace-new")
+        workspace.save_record(original)
+        backup = {
+            "workspace_version": OBSERVATION_WORKSPACE_VERSION,
+            "storage_version": OBSERVATION_WORKSPACE_STORAGE_VERSION,
+            "records": [replacement],
+            "decisions": [{"raw_record_id": replacement["raw_record_id"], "status": "REJECTED", "note": "restored"}],
+        }
+
+        result = workspace.restore_backup(backup, ObservationWorkspaceRestoreMode.REPLACE)
+
+        self.assertEqual(result.status, ObservationWorkspaceRestoreStatus.RESTORED)
+        self.assertIsNone(workspace.get_entry(original["raw_record_id"]))
+        self.assertEqual(workspace.get_entry(replacement["raw_record_id"]).record, replacement)
+        self.assertEqual(workspace.get_entry(replacement["raw_record_id"]).decision.status, ObservationReviewStatus.REJECTED)
+
+    def test_backup_with_incompatible_versions_is_rejected(self):
+        workspace = ObservationWorkspaceRepository()
+        record = recorded_export_record("version-guard")
+        workspace.save_record(record)
+        backup = workspace.export_backup()
+        backup["storage_version"] = "future-storage-version"
+
+        result = workspace.restore_backup(backup, ObservationWorkspaceRestoreMode.MERGE)
+
+        self.assertEqual(result.status, ObservationWorkspaceRestoreStatus.REJECTED)
+        self.assertTrue(any("storage_version" in warning for warning in result.warnings))
+        self.assertEqual(len(workspace.list_entries()), 1)
+
+    def test_backup_decision_referencing_absent_record_is_rejected(self):
+        workspace = ObservationWorkspaceRepository()
+        backup = {
+            "workspace_version": OBSERVATION_WORKSPACE_VERSION,
+            "storage_version": OBSERVATION_WORKSPACE_STORAGE_VERSION,
+            "records": [],
+            "decisions": [{"raw_record_id": "absent", "status": "ACCEPTED"}],
+        }
+
+        result = workspace.restore_backup(backup, ObservationWorkspaceRestoreMode.MERGE)
+
+        self.assertEqual(result.status, ObservationWorkspaceRestoreStatus.REJECTED)
+        self.assertEqual(result.decisions_invalid, 1)
+        self.assertEqual(workspace.list_entries(), ())
+
+    def test_restore_persistence_failure_rolls_back_memory_and_preserves_file(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "workspace.json"
+            original = recorded_export_record("restore-original")
+            restored = recorded_export_record("restore-new")
+            workspace = FileBackedObservationWorkspaceRepository(path)
+            workspace.save_record(original)
+            before_file = path.read_text(encoding="utf-8")
+            backup = {
+                "workspace_version": OBSERVATION_WORKSPACE_VERSION,
+                "storage_version": OBSERVATION_WORKSPACE_STORAGE_VERSION,
+                "records": [restored],
+                "decisions": [],
+            }
+
+            def fail_persist() -> None:
+                raise OSError("synthetic disk failure")
+
+            workspace._persist = fail_persist
+
+            result = workspace.restore_backup(backup, ObservationWorkspaceRestoreMode.REPLACE)
+
+            self.assertEqual(result.status, ObservationWorkspaceRestoreStatus.REJECTED)
+            self.assertTrue(any("persistence failed" in warning for warning in result.warnings))
+            self.assertIsNotNone(workspace.get_entry(original["raw_record_id"]))
+            self.assertIsNone(workspace.get_entry(restored["raw_record_id"]))
+            self.assertEqual(path.read_text(encoding="utf-8"), before_file)
 
     def test_pending_and_rejected_records_are_excluded_from_accepted_export_and_dataset_build(self):
         workspace = ObservationWorkspaceRepository()
