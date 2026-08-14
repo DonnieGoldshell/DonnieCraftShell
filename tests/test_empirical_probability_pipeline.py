@@ -1,5 +1,6 @@
 import copy
 import json
+import tempfile
 import unittest
 from dataclasses import replace
 from decimal import Decimal
@@ -13,6 +14,8 @@ from packages.shared.donniecraftshell_contracts.craft_outcomes import (
 )
 from packages.shared.donniecraftshell_contracts.crafting_actions import CraftApplicabilityStatus
 from packages.shared.donniecraftshell_contracts.empirical_probability import (
+    EMPIRICAL_DATASET_REGISTRY_STORAGE_VERSION,
+    EMPIRICAL_DATASET_REGISTRY_VERSION,
     EMPIRICAL_PROBABILITY_METHODOLOGY_VERSION,
     EmpiricalOutcomeCount,
     EmpiricalDatasetRegistrationStatus,
@@ -20,6 +23,7 @@ from packages.shared.donniecraftshell_contracts.empirical_probability import (
     EmpiricalProbabilityProvider,
     EmpiricalProbabilityRepository,
     EmpiricalProbabilityReadinessPolicy,
+    FileBackedEmpiricalProbabilityDatasetRegistry,
     load_raw_empirical_probability_dataset,
     normalize_empirical_probability_dataset,
 )
@@ -281,6 +285,201 @@ class EmpiricalProbabilityPipelineTests(unittest.TestCase):
         self.assertEqual(result.status, EmpiricalDatasetRegistrationStatus.REJECTED)
         self.assertTrue(result.warnings)
 
+    def test_file_backed_registry_reloads_registered_dataset(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "registry.json"
+            payload = non_synthetic_payload("persisted-dataset")
+            first = FileBackedEmpiricalProbabilityDatasetRegistry(path)
+
+            result = first.register_raw_payload(payload)
+            reloaded = FileBackedEmpiricalProbabilityDatasetRegistry(path)
+
+            self.assertEqual(result.status, EmpiricalDatasetRegistrationStatus.REGISTERED)
+            self.assertEqual(reloaded.get_dataset("persisted-dataset").dataset_id, "persisted-dataset")
+            self.assertEqual(reloaded.get_dataset("persisted-dataset").league, "Synthetic Test League")
+            self.assertEqual(reloaded.persistence_status().loaded_dataset_count, 1)
+            self.assertTrue(reloaded.persistence_status().persistence_enabled)
+
+    def test_file_backed_registry_duplicate_is_idempotent_after_reload(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "registry.json"
+            payload = non_synthetic_payload("idempotent-dataset")
+            FileBackedEmpiricalProbabilityDatasetRegistry(path).register_raw_payload(payload)
+            reloaded = FileBackedEmpiricalProbabilityDatasetRegistry(path)
+
+            result = reloaded.register_raw_payload(payload)
+
+            self.assertEqual(result.status, EmpiricalDatasetRegistrationStatus.ALREADY_REGISTERED)
+            self.assertEqual(len(reloaded.list_summaries()), 1)
+
+    def test_file_backed_registry_rejects_conflict_after_reload(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "registry.json"
+            payload = non_synthetic_payload("conflict-dataset")
+            conflict = copy.deepcopy(payload)
+            conflict["observations"][0]["observed_count"] = 26
+            FileBackedEmpiricalProbabilityDatasetRegistry(path).register_raw_payload(payload)
+            reloaded = FileBackedEmpiricalProbabilityDatasetRegistry(path)
+
+            result = reloaded.register_raw_payload(conflict)
+
+            self.assertEqual(result.status, EmpiricalDatasetRegistrationStatus.REJECTED)
+            self.assertTrue(any("different content" in warning for warning in result.warnings))
+            self.assertEqual(reloaded.get_dataset("conflict-dataset").sample_size, 100)
+
+    def test_corrupt_persisted_entries_are_skipped_with_warnings(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "registry.json"
+            valid = non_synthetic_payload("valid-after-corrupt")
+            path.write_text(
+                json.dumps(
+                    {
+                        "registry_version": EMPIRICAL_DATASET_REGISTRY_VERSION,
+                        "storage_version": EMPIRICAL_DATASET_REGISTRY_STORAGE_VERSION,
+                        "datasets": [valid, {"dataset_id": "broken"}, "not an object"],
+                    }
+                ),
+                encoding="utf-8",
+            )
+
+            registry = FileBackedEmpiricalProbabilityDatasetRegistry(path)
+
+            self.assertIsNotNone(registry.get_dataset("valid-after-corrupt"))
+            self.assertEqual(registry.persistence_status().skipped_dataset_count, 2)
+            self.assertTrue(any("broken" in warning or "not an object" in warning for warning in registry.persistence_status().warnings))
+
+    def test_incompatible_registry_version_skips_persisted_datasets_without_rewrite(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "registry.json"
+            valid = non_synthetic_payload("wrong-registry-version")
+            path.write_text(
+                json.dumps(
+                    {
+                        "registry_version": "future-registry-version",
+                        "storage_version": EMPIRICAL_DATASET_REGISTRY_STORAGE_VERSION,
+                        "datasets": [valid],
+                    },
+                    sort_keys=True,
+                ),
+                encoding="utf-8",
+            )
+            before = path.read_text(encoding="utf-8")
+
+            registry = FileBackedEmpiricalProbabilityDatasetRegistry(path)
+
+            self.assertIsNone(registry.get_dataset("wrong-registry-version"))
+            self.assertEqual(registry.persistence_status().skipped_dataset_count, 1)
+            self.assertTrue(any("registry_version" in warning for warning in registry.persistence_status().warnings))
+            self.assertEqual(path.read_text(encoding="utf-8"), before)
+
+    def test_missing_storage_version_skips_persisted_datasets_without_rewrite(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "registry.json"
+            valid = non_synthetic_payload("missing-storage-version")
+            path.write_text(
+                json.dumps(
+                    {
+                        "registry_version": EMPIRICAL_DATASET_REGISTRY_VERSION,
+                        "datasets": [valid],
+                    },
+                    sort_keys=True,
+                ),
+                encoding="utf-8",
+            )
+            before = path.read_text(encoding="utf-8")
+
+            registry = FileBackedEmpiricalProbabilityDatasetRegistry(path)
+
+            self.assertIsNone(registry.get_dataset("missing-storage-version"))
+            self.assertEqual(registry.persistence_status().skipped_dataset_count, 1)
+            self.assertTrue(any("storage_version" in warning for warning in registry.persistence_status().warnings))
+            self.assertEqual(path.read_text(encoding="utf-8"), before)
+
+    def test_rejected_registration_does_not_alter_persistence_file(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "registry.json"
+            registry = FileBackedEmpiricalProbabilityDatasetRegistry(path)
+            payload = non_synthetic_payload("stable-file")
+            registry.register_raw_payload(payload)
+            before = path.read_text(encoding="utf-8")
+            conflict = copy.deepcopy(payload)
+            conflict["observations"][0]["observed_count"] = 26
+
+            result = registry.register_raw_payload(conflict)
+
+            self.assertEqual(result.status, EmpiricalDatasetRegistrationStatus.REJECTED)
+            self.assertEqual(path.read_text(encoding="utf-8"), before)
+
+    def test_persistence_write_is_deterministic_and_preserves_previous_datasets(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "registry.json"
+            registry = FileBackedEmpiricalProbabilityDatasetRegistry(path)
+            registry.register_raw_payload(non_synthetic_payload("dataset-b"))
+            registry.register_raw_payload(non_synthetic_payload("dataset-a"))
+            first = path.read_text(encoding="utf-8")
+            reloaded = FileBackedEmpiricalProbabilityDatasetRegistry(path)
+            second = path.read_text(encoding="utf-8")
+
+            self.assertEqual(first, second)
+            self.assertEqual([summary.dataset_id for summary in reloaded.list_summaries()], ["dataset-a", "dataset-b"])
+
+    def test_persisted_dataset_reload_does_not_auto_activate_probability(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "registry.json"
+            payload = non_synthetic_payload("inert-persisted-dataset")
+            FileBackedEmpiricalProbabilityDatasetRegistry(path).register_raw_payload(payload)
+            provider = FileBackedEmpiricalProbabilityDatasetRegistry(path).to_provider()
+
+            model = provider.get_probability_model(
+                parsed_quiver_6(),
+                synthetic_outcome_set(),
+                ProbabilityContext(
+                    crafting_dataset_version="synthetic-crafting-dataset",
+                    modifier_dataset_version="synthetic-modifier-dataset",
+                    league="Synthetic Test League",
+                ),
+            )
+
+            self.assertEqual(model.probability_completeness, ProbabilityCompleteness.UNKNOWN)
+            self.assertTrue(all(entry.probability is None for entry in model.outcome_probabilities))
+
+    def test_explicit_selection_after_reload_reaches_empirical_path(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "registry.json"
+            payload = non_synthetic_payload("selected-after-reload")
+            FileBackedEmpiricalProbabilityDatasetRegistry(path).register_raw_payload(payload)
+            provider = FileBackedEmpiricalProbabilityDatasetRegistry(path).to_provider()
+
+            model = provider.get_probability_model(
+                parsed_quiver_6(),
+                synthetic_outcome_set(),
+                ProbabilityContext(
+                    evidence_dataset_version="selected-after-reload",
+                    crafting_dataset_version="synthetic-crafting-dataset",
+                    modifier_dataset_version="synthetic-modifier-dataset",
+                    game_version="synthetic-test-version",
+                    league="Synthetic Test League",
+                ),
+            )
+
+            self.assertEqual(model.probability_completeness, ProbabilityCompleteness.COMPLETE)
+            self.assertEqual(model.total_known_probability_mass, Decimal("1.00"))
+
+    def test_persisted_synthetic_dataset_still_requires_synthetic_enablement(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "registry.json"
+            payload = json.loads(SYNTHETIC_FIXTURE.read_text(encoding="utf-8"))
+            FileBackedEmpiricalProbabilityDatasetRegistry(path).register_raw_payload(payload)
+
+            model = FileBackedEmpiricalProbabilityDatasetRegistry(path).to_provider().get_probability_model(
+                parsed_quiver_6(),
+                synthetic_outcome_set(),
+                ProbabilityContext(evidence_dataset_version=payload["dataset_id"]),
+            )
+
+            self.assertEqual(model.probability_completeness, ProbabilityCompleteness.UNKNOWN)
+            self.assertTrue(any("Synthetic empirical probability datasets require explicit" in warning for warning in model.warnings))
+
     def test_no_dataset_leaves_real_actions_unknown(self):
         model = EmpiricalProbabilityProvider(()).get_probability_model(
             parsed_quiver_6(),
@@ -306,6 +505,16 @@ class EmpiricalProbabilityPipelineTests(unittest.TestCase):
 
         self.assertEqual(item, before_item)
         self.assertEqual(outcome_set, before_outcome_set)
+
+def non_synthetic_payload(dataset_id: str) -> dict:
+    payload = json.loads(SYNTHETIC_FIXTURE.read_text(encoding="utf-8"))
+    payload["dataset_id"] = dataset_id
+    payload["synthetic"] = False
+    payload["source_type"] = "MANUAL_RESEARCH"
+    payload["source_uri"] = f"local://tests/{dataset_id}"
+    payload["warnings"] = ["Test-only non-synthetic-shaped persistence fixture."]
+    payload["notes"] = "Test-only payload; not real PoE2 probability evidence."
+    return payload
 
 
 if __name__ == "__main__":

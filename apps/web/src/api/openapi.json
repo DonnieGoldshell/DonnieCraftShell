@@ -978,6 +978,9 @@
             "title": "Datasets",
             "type": "array"
           },
+          "persistence": {
+            "$ref": "#/components/schemas/EmpiricalRegistryPersistenceStatusDto"
+          },
           "registry_version": {
             "title": "Registry Version",
             "type": "string"
@@ -993,7 +996,8 @@
         },
         "required": [
           "registry_version",
-          "datasets"
+          "datasets",
+          "persistence"
         ],
         "title": "EmpiricalDatasetListResponseDto",
         "type": "object"
@@ -1035,6 +1039,9 @@
             ],
             "title": "Dataset Id"
           },
+          "persistence": {
+            "$ref": "#/components/schemas/EmpiricalRegistryPersistenceStatusDto"
+          },
           "registry_version": {
             "title": "Registry Version",
             "type": "string"
@@ -1054,7 +1061,8 @@
         },
         "required": [
           "registry_version",
-          "status"
+          "status",
+          "persistence"
         ],
         "title": "EmpiricalDatasetRegisterResponseDto",
         "type": "object"
@@ -1200,6 +1208,47 @@
           "methodology"
         ],
         "title": "EmpiricalDatasetSummaryDto",
+        "type": "object"
+      },
+      "EmpiricalRegistryPersistenceStatusDto": {
+        "properties": {
+          "loaded_dataset_count": {
+            "title": "Loaded Dataset Count",
+            "type": "integer"
+          },
+          "persistence_enabled": {
+            "title": "Persistence Enabled",
+            "type": "boolean"
+          },
+          "skipped_dataset_count": {
+            "default": 0,
+            "title": "Skipped Dataset Count",
+            "type": "integer"
+          },
+          "storage_mode": {
+            "title": "Storage Mode",
+            "type": "string"
+          },
+          "storage_version": {
+            "title": "Storage Version",
+            "type": "string"
+          },
+          "warnings": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Warnings",
+            "type": "array"
+          }
+        },
+        "required": [
+          "storage_version",
+          "storage_mode",
+          "persistence_enabled",
+          "loaded_dataset_count"
+        ],
+        "title": "EmpiricalRegistryPersistenceStatusDto",
         "type": "object"
       },
       "EnrichmentSummaryDto": {

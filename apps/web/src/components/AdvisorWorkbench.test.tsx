@@ -547,6 +547,14 @@ describe("AdvisorWorkbench", () => {
           registry_version: "dc-empirical-dataset-registry-v1",
           status: "REGISTERED",
           dataset_id: "empirical-probability-browser-test",
+          persistence: {
+            storage_version: "dc-empirical-dataset-registry-storage-v1",
+            storage_mode: "FILE",
+            persistence_enabled: true,
+            loaded_dataset_count: 1,
+            skipped_dataset_count: 0,
+            warnings: []
+          },
           dataset: {
             dataset_id: "empirical-probability-browser-test",
             action_id: "dc:poe2:craft-action:orb-of-annulment",
@@ -569,6 +577,14 @@ describe("AdvisorWorkbench", () => {
         ok: true,
         json: async () => ({
           registry_version: "dc-empirical-dataset-registry-v1",
+          persistence: {
+            storage_version: "dc-empirical-dataset-registry-storage-v1",
+            storage_mode: "FILE",
+            persistence_enabled: true,
+            loaded_dataset_count: 1,
+            skipped_dataset_count: 0,
+            warnings: []
+          },
           datasets: [
             {
               dataset_id: "empirical-probability-browser-test",
@@ -662,6 +678,7 @@ describe("AdvisorWorkbench", () => {
     await user.click(screen.getByRole("button", { name: /register first dataset/i }));
     expect(await screen.findByText(/REGISTERED: empirical-probability-browser-test/i)).toBeInTheDocument();
     expect(screen.getAllByText(/paste this id into empirical evidence dataset/i).length).toBeGreaterThan(0);
+    expect(screen.getByText(/registry persistence: FILE active - 1 loaded/i)).toBeInTheDocument();
     expect(screen.getAllByText(/sample 1/i).length).toBeGreaterThan(0);
     expect(fetchMock.mock.calls[6][0]).toContain("/api/v1/observations/empirical-datasets/register");
     expect(fetchMock.mock.calls[7][0]).toContain("/api/v1/observations/empirical-datasets");

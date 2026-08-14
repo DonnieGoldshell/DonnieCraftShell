@@ -43,6 +43,7 @@ from services.api.app.schemas.observations import (
     EmpiricalDatasetRegisterRequestDto,
     EmpiricalDatasetRegisterResponseDto,
     EmpiricalDatasetSummaryDto,
+    EmpiricalRegistryPersistenceStatusDto,
     ObservationReviewRecordDto,
     ObservationReviewRequestDto,
     ObservationReviewResponseDto,
@@ -265,6 +266,7 @@ def register_empirical_dataset(
         status=result.status.value,
         dataset_id=result.dataset_id,
         dataset=_dataset_summary_to_dto(result.summary),
+        persistence=_persistence_status_to_dto(registry.persistence_status()),
         warnings=list(result.warnings),
     )
 
@@ -276,7 +278,11 @@ def list_empirical_datasets(
     return EmpiricalDatasetListResponseDto(
         registry_version=EMPIRICAL_DATASET_REGISTRY_VERSION,
         datasets=[_dataset_summary_to_dto(summary) for summary in registry.list_summaries()],
-        warnings=("Registered empirical datasets remain inactive until an Advisor request explicitly selects a dataset ID.",),
+        persistence=_persistence_status_to_dto(registry.persistence_status()),
+        warnings=(
+            "Registered empirical datasets remain inactive until an Advisor request explicitly selects a dataset ID.",
+            *registry.persistence_status().warnings,
+        ),
     )
 
 
@@ -402,4 +408,15 @@ def _dataset_summary_to_dto(summary) -> EmpiricalDatasetSummaryDto | None:
         source_uri=summary.source_uri,
         source_type=summary.source_type.value if summary.source_type is not None else None,
         warnings=list(summary.warnings),
+    )
+
+
+def _persistence_status_to_dto(status) -> EmpiricalRegistryPersistenceStatusDto:
+    return EmpiricalRegistryPersistenceStatusDto(
+        storage_version=status.storage_version,
+        storage_mode=status.storage_mode,
+        persistence_enabled=status.persistence_enabled,
+        loaded_dataset_count=status.loaded_dataset_count,
+        skipped_dataset_count=status.skipped_dataset_count,
+        warnings=list(status.warnings),
     )

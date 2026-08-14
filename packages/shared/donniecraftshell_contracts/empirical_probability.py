@@ -33,6 +33,7 @@ from .probability import (
 EMPIRICAL_PROBABILITY_METHODOLOGY_VERSION = "dc-empirical-probability-v1"
 EMPIRICAL_PROBABILITY_WARNING = "Empirical estimates are not official mechanical probabilities."
 EMPIRICAL_DATASET_REGISTRY_VERSION = "dc-empirical-dataset-registry-v1"
+EMPIRICAL_DATASET_REGISTRY_STORAGE_VERSION = "dc-empirical-dataset-registry-storage-v1"
 
 
 @dataclass(frozen=True)
@@ -178,6 +179,16 @@ class EmpiricalDatasetRegistrationResult:
 
 
 @dataclass(frozen=True)
+class EmpiricalRegistryPersistenceStatus:
+    storage_version: str
+    storage_mode: str
+    persistence_enabled: bool
+    loaded_dataset_count: int
+    skipped_dataset_count: int = 0
+    warnings: tuple[str, ...] = ()
+
+
+@dataclass(frozen=True)
 class EmpiricalProbabilityRepository:
     datasets: tuple[EmpiricalProbabilityDataset, ...]
     skipped_dataset_ids: tuple[str, ...] = ()
@@ -223,6 +234,7 @@ class EmpiricalProbabilityDatasetRegistry:
     def __init__(self, datasets: tuple[EmpiricalProbabilityDataset, ...] = ()) -> None:
         self._datasets: dict[str, EmpiricalProbabilityDataset] = {}
         self._fingerprints: dict[str, str] = {}
+        self._registration_payloads: dict[str, dict[str, Any]] = {}
         for dataset in datasets:
             result = self.register_dataset(dataset)
             if result.status == EmpiricalDatasetRegistrationStatus.REJECTED:
@@ -241,9 +253,13 @@ class EmpiricalProbabilityDatasetRegistry:
                 dataset_id=None,
                 warnings=(f"Malformed empirical probability dataset payload: {exc}",),
             )
-        return self.register_dataset(dataset)
+        return self.register_dataset(dataset, raw_payload=payload)
 
-    def register_dataset(self, dataset: EmpiricalProbabilityDataset) -> EmpiricalDatasetRegistrationResult:
+    def register_dataset(
+        self,
+        dataset: EmpiricalProbabilityDataset,
+        raw_payload: dict[str, Any] | None = None,
+    ) -> EmpiricalDatasetRegistrationResult:
         fingerprint = _dataset_fingerprint(dataset)
         existing = self._datasets.get(dataset.dataset_id)
         if existing is not None:
@@ -261,6 +277,9 @@ class EmpiricalProbabilityDatasetRegistry:
             )
         self._datasets[dataset.dataset_id] = dataset
         self._fingerprints[dataset.dataset_id] = fingerprint
+        self._registration_payloads[dataset.dataset_id] = _json_payload_copy(
+            raw_payload or empirical_probability_dataset_to_raw_dict(dataset)
+        )
         return EmpiricalDatasetRegistrationResult(
             status=EmpiricalDatasetRegistrationStatus.REGISTERED,
             dataset_id=dataset.dataset_id,
@@ -274,6 +293,15 @@ class EmpiricalProbabilityDatasetRegistry:
     def list_summaries(self) -> tuple[EmpiricalProbabilityDatasetSummary, ...]:
         return tuple(_dataset_summary(self._datasets[dataset_id]) for dataset_id in sorted(self._datasets))
 
+    def persistence_status(self) -> EmpiricalRegistryPersistenceStatus:
+        return EmpiricalRegistryPersistenceStatus(
+            storage_version=EMPIRICAL_DATASET_REGISTRY_STORAGE_VERSION,
+            storage_mode="IN_MEMORY",
+            persistence_enabled=False,
+            loaded_dataset_count=len(self._datasets),
+            warnings=("Registry persistence is disabled; datasets exist only for this process.",),
+        )
+
     def to_provider(
         self,
         readiness_policy: EmpiricalProbabilityReadinessPolicy | None = None,
@@ -284,6 +312,132 @@ class EmpiricalProbabilityDatasetRegistry:
             readiness_policy=readiness_policy,
             allow_synthetic=allow_synthetic,
         )
+
+
+class FileBackedEmpiricalProbabilityDatasetRegistry(EmpiricalProbabilityDatasetRegistry):
+    """Local JSON-backed registry for single-user/operator workflows."""
+
+    def __init__(
+        self,
+        storage_path: str | Path,
+        datasets: tuple[EmpiricalProbabilityDataset, ...] = (),
+    ) -> None:
+        self._storage_path = Path(storage_path)
+        self._load_warnings: list[str] = []
+        self._skipped_dataset_count = 0
+        super().__init__()
+        for dataset, payload in self._load_persisted_datasets():
+            result = super().register_dataset(dataset, raw_payload=payload)
+            if result.status == EmpiricalDatasetRegistrationStatus.REJECTED:
+                self._skipped_dataset_count += 1
+                self._load_warnings.extend(result.warnings)
+        for dataset in datasets:
+            result = super().register_dataset(dataset)
+            if result.status == EmpiricalDatasetRegistrationStatus.REJECTED:
+                self._load_warnings.extend(result.warnings)
+
+    @classmethod
+    def from_repository(
+        cls,
+        repository: EmpiricalProbabilityRepository,
+        storage_path: str | Path,
+    ) -> "FileBackedEmpiricalProbabilityDatasetRegistry":
+        return cls(storage_path, repository.datasets)
+
+    def register_dataset(
+        self,
+        dataset: EmpiricalProbabilityDataset,
+        raw_payload: dict[str, Any] | None = None,
+    ) -> EmpiricalDatasetRegistrationResult:
+        before_payloads = dict(self._registration_payloads)
+        result = super().register_dataset(dataset, raw_payload=raw_payload)
+        if result.status == EmpiricalDatasetRegistrationStatus.REGISTERED:
+            try:
+                self._persist()
+            except Exception as exc:
+                self._datasets.pop(dataset.dataset_id, None)
+                self._fingerprints.pop(dataset.dataset_id, None)
+                self._registration_payloads = before_payloads
+                return EmpiricalDatasetRegistrationResult(
+                    status=EmpiricalDatasetRegistrationStatus.REJECTED,
+                    dataset_id=dataset.dataset_id,
+                    warnings=(f"Empirical registry persistence failed; dataset was not registered: {exc}",),
+                )
+        return result
+
+    def persistence_status(self) -> EmpiricalRegistryPersistenceStatus:
+        return EmpiricalRegistryPersistenceStatus(
+            storage_version=EMPIRICAL_DATASET_REGISTRY_STORAGE_VERSION,
+            storage_mode="FILE",
+            persistence_enabled=True,
+            loaded_dataset_count=len(self._datasets),
+            skipped_dataset_count=self._skipped_dataset_count,
+            warnings=tuple(self._load_warnings),
+        )
+
+    def _load_persisted_datasets(self) -> tuple[tuple[EmpiricalProbabilityDataset, dict[str, Any]], ...]:
+        if not self._storage_path.exists():
+            return ()
+        try:
+            payload = json.loads(self._storage_path.read_text(encoding="utf-8"))
+        except Exception as exc:
+            self._skipped_dataset_count += 1
+            self._load_warnings.append(f"Empirical registry storage could not be read and was skipped: {exc}")
+            return ()
+        if not isinstance(payload, dict):
+            self._skipped_dataset_count += 1
+            self._load_warnings.append("Empirical registry storage root must be an object; persisted datasets were skipped.")
+            return ()
+        registry_version = payload.get("registry_version")
+        if registry_version != EMPIRICAL_DATASET_REGISTRY_VERSION:
+            self._skipped_dataset_count += 1
+            self._load_warnings.append(
+                "Empirical registry storage registry_version is missing or incompatible; "
+                "persisted datasets were skipped."
+            )
+            return ()
+        storage_version = payload.get("storage_version")
+        if storage_version != EMPIRICAL_DATASET_REGISTRY_STORAGE_VERSION:
+            self._skipped_dataset_count += 1
+            self._load_warnings.append(
+                "Empirical registry storage storage_version is missing or incompatible; "
+                "persisted datasets were skipped."
+            )
+            return ()
+        records = payload.get("datasets", ())
+        if not isinstance(records, list):
+            self._skipped_dataset_count += 1
+            self._load_warnings.append("Empirical registry storage datasets must be a list; persisted datasets were skipped.")
+            return ()
+        datasets: list[tuple[EmpiricalProbabilityDataset, dict[str, Any]]] = []
+        for index, record in enumerate(records, start=1):
+            if not isinstance(record, dict):
+                self._skipped_dataset_count += 1
+                self._load_warnings.append(f"Persisted empirical dataset #{index} is not an object and was skipped.")
+                continue
+            try:
+                raw = raw_empirical_probability_dataset_from_dict(record)
+                datasets.append((normalize_empirical_probability_dataset(raw), record))
+            except Exception as exc:
+                self._skipped_dataset_count += 1
+                dataset_id = record.get("dataset_id", f"#{index}")
+                self._load_warnings.append(f"Persisted empirical dataset {dataset_id} was skipped: {exc}")
+        return tuple(datasets)
+
+    def _persist(self) -> None:
+        self._storage_path.parent.mkdir(parents=True, exist_ok=True)
+        payload = {
+            "registry_version": EMPIRICAL_DATASET_REGISTRY_VERSION,
+            "storage_version": EMPIRICAL_DATASET_REGISTRY_STORAGE_VERSION,
+            "datasets": [
+                self._registration_payloads[dataset_id]
+                for dataset_id in sorted(self._registration_payloads)
+            ],
+        }
+        encoded = json.dumps(payload, indent=2, sort_keys=True)
+        temporary_path = self._storage_path.with_name(f"{self._storage_path.name}.tmp")
+        temporary_path.write_text(encoded, encoding="utf-8")
+        temporary_path.replace(self._storage_path)
 
 
 class EmpiricalProbabilityRegistryProvider:
@@ -314,6 +468,39 @@ class EmpiricalProbabilityRegistryProvider:
 def load_raw_empirical_probability_dataset(path: str | Path) -> RawEmpiricalProbabilityDataset:
     data = json.loads(Path(path).read_text(encoding="utf-8"))
     return raw_empirical_probability_dataset_from_dict(data)
+
+
+def empirical_probability_dataset_to_raw_dict(dataset: EmpiricalProbabilityDataset) -> dict[str, Any]:
+    provenance = dataset.provenance[0] if dataset.provenance else None
+    return {
+        "dataset_id": dataset.dataset_id,
+        "action_id": dataset.action_id,
+        "source_outcome_set_id": dataset.source_outcome_set_id,
+        "game": dataset.game,
+        "league": dataset.league,
+        "item_class": dataset.item_class,
+        "game_version": dataset.game_version,
+        "crafting_dataset_version": dataset.crafting_dataset_version,
+        "modifier_dataset_version": dataset.modifier_dataset_version,
+        "retrieved_at": dataset.retrieved_at.isoformat(),
+        "source_uri": provenance.source_uri if provenance is not None else None,
+        "source_type": provenance.source_type.value if provenance is not None else SourceType.MANUAL_RESEARCH.value,
+        "synthetic": dataset.synthetic,
+        "verification_status": dataset.verification_status.value,
+        "methodology": dataset.methodology,
+        "notes": provenance.notes if provenance is not None else None,
+        "warnings": list(dataset.warnings),
+        "unclassified_count": dataset.unclassified_count,
+        "observations": [
+            {
+                "outcome_id": observation.outcome_id,
+                "observed_count": observation.observed_count,
+                "raw_record_ids": list(observation.raw_record_ids),
+                "warnings": list(observation.warnings),
+            }
+            for observation in dataset.outcome_counts
+        ],
+    }
 
 
 def raw_empirical_probability_dataset_from_dict(data: dict[str, Any]) -> RawEmpiricalProbabilityDataset:
@@ -714,6 +901,10 @@ def _dataset_fingerprint(dataset: EmpiricalProbabilityDataset) -> str:
     }
     encoded = json.dumps(payload, sort_keys=True, separators=(",", ":"))
     return hashlib.sha256(encoded.encode("utf-8")).hexdigest()
+
+
+def _json_payload_copy(payload: dict[str, Any]) -> dict[str, Any]:
+    return json.loads(json.dumps(payload, sort_keys=True))
 
 
 def _datetime(value: str) -> datetime:

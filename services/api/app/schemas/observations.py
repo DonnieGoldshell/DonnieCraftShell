@@ -150,15 +150,26 @@ class EmpiricalDatasetRegisterRequestDto(ApiModel):
     dataset: dict
 
 
+class EmpiricalRegistryPersistenceStatusDto(ApiModel):
+    storage_version: str
+    storage_mode: str
+    persistence_enabled: bool
+    loaded_dataset_count: int
+    skipped_dataset_count: int = 0
+    warnings: list[str] = []
+
+
 class EmpiricalDatasetRegisterResponseDto(ApiModel):
     registry_version: str
     status: str
     dataset_id: str | None = None
     dataset: EmpiricalDatasetSummaryDto | None = None
+    persistence: EmpiricalRegistryPersistenceStatusDto
     warnings: list[str] = []
 
 
 class EmpiricalDatasetListResponseDto(ApiModel):
     registry_version: str
     datasets: list[EmpiricalDatasetSummaryDto]
+    persistence: EmpiricalRegistryPersistenceStatusDto
     warnings: list[str] = []

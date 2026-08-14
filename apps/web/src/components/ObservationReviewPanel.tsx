@@ -260,17 +260,27 @@ export function ObservationReviewPanel() {
                 </p>
               )}
               {registeredDatasets && (
-                <ul className="evidence-list">
-                  {registeredDatasets.datasets.map((dataset) => (
-                    <li key={dataset.dataset_id}>
-                      <strong>{shortId(dataset.dataset_id)}</strong>
-                      <small>
-                        {dataset.synthetic ? "SYNTHETIC - " : ""}
-                        {dataset.league} - sample {dataset.sample_size} - {dataset.dataset_id}
-                      </small>
-                    </li>
-                  ))}
-                </ul>
+                <>
+                  <p className="muted">
+                    Registry persistence: {registeredDatasets.persistence.storage_mode}
+                    {registeredDatasets.persistence.persistence_enabled ? " active" : " disabled"} -{" "}
+                    {registeredDatasets.persistence.loaded_dataset_count} loaded
+                    {registeredDatasets.persistence.skipped_dataset_count
+                      ? ` - ${registeredDatasets.persistence.skipped_dataset_count} skipped`
+                      : ""}
+                  </p>
+                  <ul className="evidence-list">
+                    {registeredDatasets.datasets.map((dataset) => (
+                      <li key={dataset.dataset_id}>
+                        <strong>{shortId(dataset.dataset_id)}</strong>
+                        <small>
+                          {dataset.synthetic ? "SYNTHETIC - " : ""}
+                          {dataset.league} - sample {dataset.sample_size} - {dataset.dataset_id}
+                        </small>
+                      </li>
+                    ))}
+                  </ul>
+                </>
               )}
               <label className="wide-field">
                 Built empirical datasets

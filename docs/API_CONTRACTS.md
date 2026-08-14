@@ -68,6 +68,8 @@ Task 17A adds local/operator empirical dataset registry endpoints:
 
 These endpoints accept/list Task 15A-compatible empirical probability dataset payloads produced by the curated observation build workflow. Registration is not activation; Advisor analysis uses a registered dataset only when the request names its dataset ID.
 
+Task 17B adds local JSON persistence behind the same registry endpoints. Register/list responses include persistence status (`FILE` vs `IN_MEMORY`, enabled flag, loaded count, skipped corrupt entry count, and warnings) without exposing arbitrary filesystem contents.
+
 Future valuation DTOs should expose the contracts from [VALUATION_MODEL.md](VALUATION_MODEL.md) and [VALUATION_AGGREGATION.md](VALUATION_AGGREGATION.md). Requests should accept a current or hypothetical valuation subject plus comparable strategy and modifier-role inputs. Comparable endpoints should return query definitions, manual workflow instructions, listing observations, normalized comparable evidence where available, readiness, economy conversion snapshots, provenance, and warnings. Aggregation responses must label estimates as `LISTING_DERIVED`, expose used/excluded comparable IDs, preserve policy ID and strategy composition, and allow `INSUFFICIENT_DATA` without fabricating an estimate.
 
 Future scenario DTOs should expose [SCENARIO_ANALYSIS.md](SCENARIO_ANALYSIS.md) and [DECISION_READINESS.md](DECISION_READINESS.md) concepts. Responses must include decision readiness, outcome valuation coverage, probability completeness, EV readiness, descriptive scenario statistics, warnings, and evidence references. They must not include EV, ranking, recommendation, or probability-weighted statistics until future Advisor/EV contracts explicitly allow them.
