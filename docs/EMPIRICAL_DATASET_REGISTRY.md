@@ -82,6 +82,10 @@ interrupted write corrupts the whole registry.
 On startup, the API loads configured static empirical dataset paths and the
 local registry file when persistence is enabled. Malformed or corrupt persisted
 entries are skipped with explicit warnings while valid entries continue loading.
+The registry envelope is versioned separately from each dataset payload. If
+`registry_version` or `storage_version` is missing or differs from the current
+DonnieCraftShell constants, all persisted entries in that file are skipped
+conservatively and the file is not rewritten during startup.
 
 If the registry file itself cannot be read, persisted entries are skipped and
 the API still starts with warnings. The operator can inspect registry status

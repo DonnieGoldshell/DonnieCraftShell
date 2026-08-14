@@ -14,6 +14,8 @@ from packages.shared.donniecraftshell_contracts.craft_outcomes import (
 )
 from packages.shared.donniecraftshell_contracts.crafting_actions import CraftApplicabilityStatus
 from packages.shared.donniecraftshell_contracts.empirical_probability import (
+    EMPIRICAL_DATASET_REGISTRY_STORAGE_VERSION,
+    EMPIRICAL_DATASET_REGISTRY_VERSION,
     EMPIRICAL_PROBABILITY_METHODOLOGY_VERSION,
     EmpiricalOutcomeCount,
     EmpiricalDatasetRegistrationStatus,
@@ -332,8 +334,8 @@ class EmpiricalProbabilityPipelineTests(unittest.TestCase):
             path.write_text(
                 json.dumps(
                     {
-                        "registry_version": "dc-empirical-dataset-registry-v1",
-                        "storage_version": "dc-empirical-dataset-registry-storage-v1",
+                        "registry_version": EMPIRICAL_DATASET_REGISTRY_VERSION,
+                        "storage_version": EMPIRICAL_DATASET_REGISTRY_STORAGE_VERSION,
                         "datasets": [valid, {"dataset_id": "broken"}, "not an object"],
                     }
                 ),
@@ -345,6 +347,53 @@ class EmpiricalProbabilityPipelineTests(unittest.TestCase):
             self.assertIsNotNone(registry.get_dataset("valid-after-corrupt"))
             self.assertEqual(registry.persistence_status().skipped_dataset_count, 2)
             self.assertTrue(any("broken" in warning or "not an object" in warning for warning in registry.persistence_status().warnings))
+
+    def test_incompatible_registry_version_skips_persisted_datasets_without_rewrite(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "registry.json"
+            valid = non_synthetic_payload("wrong-registry-version")
+            path.write_text(
+                json.dumps(
+                    {
+                        "registry_version": "future-registry-version",
+                        "storage_version": EMPIRICAL_DATASET_REGISTRY_STORAGE_VERSION,
+                        "datasets": [valid],
+                    },
+                    sort_keys=True,
+                ),
+                encoding="utf-8",
+            )
+            before = path.read_text(encoding="utf-8")
+
+            registry = FileBackedEmpiricalProbabilityDatasetRegistry(path)
+
+            self.assertIsNone(registry.get_dataset("wrong-registry-version"))
+            self.assertEqual(registry.persistence_status().skipped_dataset_count, 1)
+            self.assertTrue(any("registry_version" in warning for warning in registry.persistence_status().warnings))
+            self.assertEqual(path.read_text(encoding="utf-8"), before)
+
+    def test_missing_storage_version_skips_persisted_datasets_without_rewrite(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "registry.json"
+            valid = non_synthetic_payload("missing-storage-version")
+            path.write_text(
+                json.dumps(
+                    {
+                        "registry_version": EMPIRICAL_DATASET_REGISTRY_VERSION,
+                        "datasets": [valid],
+                    },
+                    sort_keys=True,
+                ),
+                encoding="utf-8",
+            )
+            before = path.read_text(encoding="utf-8")
+
+            registry = FileBackedEmpiricalProbabilityDatasetRegistry(path)
+
+            self.assertIsNone(registry.get_dataset("missing-storage-version"))
+            self.assertEqual(registry.persistence_status().skipped_dataset_count, 1)
+            self.assertTrue(any("storage_version" in warning for warning in registry.persistence_status().warnings))
+            self.assertEqual(path.read_text(encoding="utf-8"), before)
 
     def test_rejected_registration_does_not_alter_persistence_file(self):
         with tempfile.TemporaryDirectory() as directory:

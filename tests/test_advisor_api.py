@@ -754,6 +754,46 @@ class AdvisorApiTests(unittest.TestCase):
         self.assertEqual(body["persistence"]["skipped_dataset_count"], 1)
         self.assertTrue(any("broken" in warning for warning in body["warnings"]))
 
+    def test_empirical_registry_incompatible_storage_version_status_surfaces_warning(self):
+        from packages.shared.donniecraftshell_contracts.empirical_probability import EMPIRICAL_DATASET_REGISTRY_VERSION
+        from services.api.app.dependencies import advisor as advisor_dependencies
+
+        previous = os.environ.get("DCS_EMPIRICAL_REGISTRY_PATH")
+        with tempfile.TemporaryDirectory() as directory:
+            storage = Path(directory) / "registry.json"
+            payload = self._registered_empirical_dataset_payload(
+                self.client.post("/api/v1/advisor/analyze", json=base_request()).json()
+            )
+            storage.write_text(
+                json.dumps(
+                    {
+                        "registry_version": EMPIRICAL_DATASET_REGISTRY_VERSION,
+                        "storage_version": "future-storage-version",
+                        "datasets": [payload],
+                    }
+                ),
+                encoding="utf-8",
+            )
+            before = storage.read_text(encoding="utf-8")
+            os.environ["DCS_EMPIRICAL_REGISTRY_PATH"] = str(storage)
+            try:
+                self._clear_dependency_caches(advisor_dependencies)
+                response = self.client.get("/api/v1/observations/empirical-datasets")
+                after = storage.read_text(encoding="utf-8")
+            finally:
+                if previous is None:
+                    os.environ.pop("DCS_EMPIRICAL_REGISTRY_PATH", None)
+                else:
+                    os.environ["DCS_EMPIRICAL_REGISTRY_PATH"] = previous
+                self._clear_dependency_caches(advisor_dependencies)
+
+        body = response.json()
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(body["datasets"], [])
+        self.assertEqual(body["persistence"]["skipped_dataset_count"], 1)
+        self.assertTrue(any("storage_version" in warning for warning in body["warnings"]))
+        self.assertEqual(after, before)
+
     def test_wrong_crafting_dataset_version_is_rejected(self):
         response = self.client.post(
             "/api/v1/observations/record",

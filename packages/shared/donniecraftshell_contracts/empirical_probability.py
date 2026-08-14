@@ -388,6 +388,22 @@ class FileBackedEmpiricalProbabilityDatasetRegistry(EmpiricalProbabilityDatasetR
             self._skipped_dataset_count += 1
             self._load_warnings.append("Empirical registry storage root must be an object; persisted datasets were skipped.")
             return ()
+        registry_version = payload.get("registry_version")
+        if registry_version != EMPIRICAL_DATASET_REGISTRY_VERSION:
+            self._skipped_dataset_count += 1
+            self._load_warnings.append(
+                "Empirical registry storage registry_version is missing or incompatible; "
+                "persisted datasets were skipped."
+            )
+            return ()
+        storage_version = payload.get("storage_version")
+        if storage_version != EMPIRICAL_DATASET_REGISTRY_STORAGE_VERSION:
+            self._skipped_dataset_count += 1
+            self._load_warnings.append(
+                "Empirical registry storage storage_version is missing or incompatible; "
+                "persisted datasets were skipped."
+            )
+            return ()
         records = payload.get("datasets", ())
         if not isinstance(records, list):
             self._skipped_dataset_count += 1
