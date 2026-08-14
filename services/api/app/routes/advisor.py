@@ -8,8 +8,17 @@ from packages.shared.donniecraftshell_contracts.advisor_orchestration import Cra
 from packages.shared.donniecraftshell_contracts.economy_repository import EconomyRepository
 
 from services.api.app.dependencies.advisor import get_advisor_orchestrator, get_economy_repository
-from services.api.app.mappers.advisor import advisor_request_to_domain, advisor_result_to_dto
-from services.api.app.schemas.advisor import AdvisorAnalyzeRequestDto, AdvisorAnalyzeResponseDto
+from services.api.app.mappers.advisor import (
+    advisor_request_to_domain,
+    advisor_result_to_dto,
+    manual_valuation_preview_to_dto,
+)
+from services.api.app.schemas.advisor import (
+    AdvisorAnalyzeRequestDto,
+    AdvisorAnalyzeResponseDto,
+    ManualValuationPreviewRequestDto,
+    ManualValuationPreviewResponseDto,
+)
 
 
 router = APIRouter(prefix="/api/v1/advisor", tags=["advisor"])
@@ -37,6 +46,25 @@ def analyze_advisor(
         return advisor_result_to_dto(result)
     except HTTPException:
         raise
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=400,
+            detail={
+                "code": "VALIDATION_ERROR",
+                "message": str(exc),
+                "recoverable": True,
+                "reliable_no_result": True,
+            },
+        ) from exc
+
+
+@router.post("/manual-valuation/preview", response_model=ManualValuationPreviewResponseDto)
+def preview_manual_valuation(
+    request: ManualValuationPreviewRequestDto,
+    economy_repository: EconomyRepository = Depends(get_economy_repository),
+) -> ManualValuationPreviewResponseDto:
+    try:
+        return manual_valuation_preview_to_dto(request, economy_repository)
     except ValueError as exc:
         raise HTTPException(
             status_code=400,

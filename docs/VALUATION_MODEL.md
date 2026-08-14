@@ -48,6 +48,22 @@ Manual listing observations preserve original amount and currency. The provider 
 
 If conversion is missing, normalized value remains unavailable. Missing conversion is never zero.
 
+## Advisor API Preview
+
+The Advisor API exposes a thin manual-evidence preview endpoint for the web
+workflow:
+
+```text
+POST /api/v1/advisor/manual-valuation/preview
+```
+
+This endpoint is transport glue over the same valuation contracts. It builds a
+manual `ComparableQuery`, converts `ManualListingObservation` rows through
+`ManualTradeProvider`, creates a `ComparableEvidenceSet`, and runs
+`ValuationAggregator`. Current-item evidence and hypothetical-outcome evidence
+remain separate by subject ID; outcome evidence must carry the deterministic
+`outcome_id`.
+
 ## Listing Evidence
 
 `ComparableResult` represents listing/observation evidence, not completed sale evidence. A listing price must not be treated as realized sale value.

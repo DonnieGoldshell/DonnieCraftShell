@@ -115,6 +115,7 @@ export function AdvisorWorkbench() {
         <section className="results-column">
           <ManualValuationPanel
             actions={analysis?.actions ?? []}
+            league={league}
             currentObservations={currentObservations}
             outcomeObservations={outcomeObservations}
             onAddCurrentObservation={(observation) =>
@@ -124,6 +125,28 @@ export function AdvisorWorkbench() {
               setOutcomeObservations((groups) => ({
                 ...groups,
                 [outcomeId]: [...(groups[outcomeId] ?? []), observation]
+              }))
+            }
+            onUpdateCurrentObservation={(index, observation) =>
+              setCurrentObservations((observations) =>
+                observations.map((existing, existingIndex) => (existingIndex === index ? observation : existing))
+              )
+            }
+            onUpdateOutcomeObservation={(outcomeId, index, observation) =>
+              setOutcomeObservations((groups) => ({
+                ...groups,
+                [outcomeId]: (groups[outcomeId] ?? []).map((existing, existingIndex) =>
+                  existingIndex === index ? observation : existing
+                )
+              }))
+            }
+            onRemoveCurrentObservation={(index) =>
+              setCurrentObservations((observations) => observations.filter((_, existingIndex) => existingIndex !== index))
+            }
+            onRemoveOutcomeObservation={(outcomeId, index) =>
+              setOutcomeObservations((groups) => ({
+                ...groups,
+                [outcomeId]: (groups[outcomeId] ?? []).filter((_, existingIndex) => existingIndex !== index)
               }))
             }
             onClearCurrentObservations={() => setCurrentObservations([])}

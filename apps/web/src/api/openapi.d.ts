@@ -21,6 +21,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/advisor/manual-valuation/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Preview Manual Valuation */
+        post: operations["preview_manual_valuation_api_v1_advisor_manual_valuation_preview_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/health": {
         parameters: {
             query?: never;
@@ -481,6 +498,32 @@ export interface components {
              */
             reliable_no_result: boolean;
         };
+        /** ComparableResultPreviewDto */
+        ComparableResultPreviewDto: {
+            /** Comparable Id */
+            comparable_id: string;
+            /** Economy Freshness */
+            economy_freshness: string;
+            /** Economy Snapshot Id */
+            economy_snapshot_id?: string | null;
+            /** External Listing Id */
+            external_listing_id?: string | null;
+            /** Listing Currency Asset Id */
+            listing_currency_asset_id: string;
+            /** Listing Price */
+            listing_price: string;
+            normalized_value?: components["schemas"]["EconomicValueDto"] | null;
+            /**
+             * Observed At
+             * Format: date-time
+             */
+            observed_at: string;
+            /**
+             * Warnings
+             * @default []
+             */
+            warnings: string[];
+        };
         /** CraftObservationExportRequestDto */
         CraftObservationExportRequestDto: {
             /** Observations */
@@ -911,6 +954,75 @@ export interface components {
              * @default STRICT
              */
             strategy: string;
+        };
+        /** ManualValuationPreviewRequestDto */
+        ManualValuationPreviewRequestDto: {
+            /** As Of */
+            as_of?: string | null;
+            evidence: components["schemas"]["ManualValuationEvidenceDto"];
+            /** League */
+            league: string;
+            /** Outcome Id */
+            outcome_id?: string | null;
+            /**
+             * Subject Id
+             * @default current
+             */
+            subject_id: string;
+            /**
+             * Subject Type
+             * @default CURRENT_ITEM
+             */
+            subject_type: string;
+        };
+        /** ManualValuationPreviewResponseDto */
+        ManualValuationPreviewResponseDto: {
+            /**
+             * Comparable Results
+             * @default []
+             */
+            comparable_results: components["schemas"]["ComparableResultPreviewDto"][];
+            confidence?: components["schemas"]["ValuationConfidenceDto"] | null;
+            /**
+             * Duplicate Listing Ids
+             * @default []
+             */
+            duplicate_listing_ids: string[];
+            /**
+             * Economy Snapshot Ids
+             * @default []
+             */
+            economy_snapshot_ids: string[];
+            /** Estimate Type */
+            estimate_type: string;
+            estimated_value?: components["schemas"]["EconomicValueDto"] | null;
+            /** Evidence Set Id */
+            evidence_set_id: string;
+            /** Liquidity */
+            liquidity: string;
+            /** Observation Count */
+            observation_count: number;
+            /** Outcome Id */
+            outcome_id?: string | null;
+            plausible_high?: components["schemas"]["EconomicValueDto"] | null;
+            plausible_low?: components["schemas"]["EconomicValueDto"] | null;
+            /** Readiness */
+            readiness: string;
+            /** Strategy */
+            strategy: string;
+            /** Subject Id */
+            subject_id: string;
+            /** Subject Type */
+            subject_type: string;
+            /** Unusable Observation Count */
+            unusable_observation_count: number;
+            /** Usable Observation Count */
+            usable_observation_count: number;
+            /**
+             * Warnings
+             * @default []
+             */
+            warnings: string[];
         };
         /** MaterialCostDto */
         MaterialCostDto: {
@@ -1490,6 +1602,16 @@ export interface components {
             /** Error Type */
             type: string;
         };
+        /** ValuationConfidenceDto */
+        ValuationConfidenceDto: {
+            /** Level */
+            level: string;
+            /**
+             * Reasons
+             * @default []
+             */
+            reasons: string[];
+        };
     };
     responses: never;
     parameters: never;
@@ -1519,6 +1641,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AdvisorAnalyzeResponseDto"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    preview_manual_valuation_api_v1_advisor_manual_valuation_preview_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ManualValuationPreviewRequestDto"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManualValuationPreviewResponseDto"];
                 };
             };
             /** @description Validation Error */

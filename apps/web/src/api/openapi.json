@@ -594,6 +594,80 @@
         "title": "ApiErrorDto",
         "type": "object"
       },
+      "ComparableResultPreviewDto": {
+        "properties": {
+          "comparable_id": {
+            "title": "Comparable Id",
+            "type": "string"
+          },
+          "economy_freshness": {
+            "title": "Economy Freshness",
+            "type": "string"
+          },
+          "economy_snapshot_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Economy Snapshot Id"
+          },
+          "external_listing_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "External Listing Id"
+          },
+          "listing_currency_asset_id": {
+            "title": "Listing Currency Asset Id",
+            "type": "string"
+          },
+          "listing_price": {
+            "title": "Listing Price",
+            "type": "string"
+          },
+          "normalized_value": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/EconomicValueDto"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "observed_at": {
+            "format": "date-time",
+            "title": "Observed At",
+            "type": "string"
+          },
+          "warnings": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Warnings",
+            "type": "array"
+          }
+        },
+        "required": [
+          "comparable_id",
+          "listing_price",
+          "listing_currency_asset_id",
+          "economy_freshness",
+          "observed_at"
+        ],
+        "title": "ComparableResultPreviewDto",
+        "type": "object"
+      },
       "CraftObservationExportRequestDto": {
         "properties": {
           "observations": {
@@ -1714,6 +1788,197 @@
           }
         },
         "title": "ManualValuationEvidenceDto",
+        "type": "object"
+      },
+      "ManualValuationPreviewRequestDto": {
+        "properties": {
+          "as_of": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "As Of"
+          },
+          "evidence": {
+            "$ref": "#/components/schemas/ManualValuationEvidenceDto"
+          },
+          "league": {
+            "title": "League",
+            "type": "string"
+          },
+          "outcome_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Outcome Id"
+          },
+          "subject_id": {
+            "default": "current",
+            "title": "Subject Id",
+            "type": "string"
+          },
+          "subject_type": {
+            "default": "CURRENT_ITEM",
+            "title": "Subject Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "league",
+          "evidence"
+        ],
+        "title": "ManualValuationPreviewRequestDto",
+        "type": "object"
+      },
+      "ManualValuationPreviewResponseDto": {
+        "properties": {
+          "comparable_results": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/ComparableResultPreviewDto"
+            },
+            "title": "Comparable Results",
+            "type": "array"
+          },
+          "confidence": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ValuationConfidenceDto"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "duplicate_listing_ids": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Duplicate Listing Ids",
+            "type": "array"
+          },
+          "economy_snapshot_ids": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Economy Snapshot Ids",
+            "type": "array"
+          },
+          "estimate_type": {
+            "title": "Estimate Type",
+            "type": "string"
+          },
+          "estimated_value": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/EconomicValueDto"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "evidence_set_id": {
+            "title": "Evidence Set Id",
+            "type": "string"
+          },
+          "liquidity": {
+            "title": "Liquidity",
+            "type": "string"
+          },
+          "observation_count": {
+            "title": "Observation Count",
+            "type": "integer"
+          },
+          "outcome_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Outcome Id"
+          },
+          "plausible_high": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/EconomicValueDto"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "plausible_low": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/EconomicValueDto"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "readiness": {
+            "title": "Readiness",
+            "type": "string"
+          },
+          "strategy": {
+            "title": "Strategy",
+            "type": "string"
+          },
+          "subject_id": {
+            "title": "Subject Id",
+            "type": "string"
+          },
+          "subject_type": {
+            "title": "Subject Type",
+            "type": "string"
+          },
+          "unusable_observation_count": {
+            "title": "Unusable Observation Count",
+            "type": "integer"
+          },
+          "usable_observation_count": {
+            "title": "Usable Observation Count",
+            "type": "integer"
+          },
+          "warnings": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Warnings",
+            "type": "array"
+          }
+        },
+        "required": [
+          "subject_id",
+          "subject_type",
+          "strategy",
+          "evidence_set_id",
+          "observation_count",
+          "usable_observation_count",
+          "unusable_observation_count",
+          "readiness",
+          "estimate_type",
+          "liquidity"
+        ],
+        "title": "ManualValuationPreviewResponseDto",
         "type": "object"
       },
       "MaterialCostDto": {
@@ -3277,6 +3542,27 @@
         ],
         "title": "ValidationError",
         "type": "object"
+      },
+      "ValuationConfidenceDto": {
+        "properties": {
+          "level": {
+            "title": "Level",
+            "type": "string"
+          },
+          "reasons": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Reasons",
+            "type": "array"
+          }
+        },
+        "required": [
+          "level"
+        ],
+        "title": "ValuationConfidenceDto",
+        "type": "object"
       }
     }
   },
@@ -3322,6 +3608,47 @@
           }
         },
         "summary": "Analyze Advisor",
+        "tags": [
+          "advisor"
+        ]
+      }
+    },
+    "/api/v1/advisor/manual-valuation/preview": {
+      "post": {
+        "operationId": "preview_manual_valuation_api_v1_advisor_manual_valuation_preview_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManualValuationPreviewRequestDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ManualValuationPreviewResponseDto"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Preview Manual Valuation",
         "tags": [
           "advisor"
         ]

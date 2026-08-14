@@ -11,6 +11,8 @@ export type ActionAnalysis = components["schemas"]["ActionAnalysisDto"];
 export type MissingRequirement = components["schemas"]["MissingRequirementDto"];
 export type ManualListingObservation = components["schemas"]["ManualListingObservationDto"];
 export type ManualValuationEvidence = components["schemas"]["ManualValuationEvidenceDto"];
+export type ManualValuationPreviewRequest = components["schemas"]["ManualValuationPreviewRequestDto"];
+export type ManualValuationPreviewResponse = components["schemas"]["ManualValuationPreviewResponseDto"];
 export type OutcomeManualValuationEvidence = components["schemas"]["OutcomeManualValuationEvidenceDto"];
 export type CraftObservationRecordRequest = components["schemas"]["CraftObservationRecordRequestDto"];
 export type CraftObservationRecordResponse = components["schemas"]["CraftObservationRecordResponseDto"];
@@ -72,6 +74,31 @@ export async function analyzeAdvisor(request: AdvisorAnalyzeRequest): Promise<Ad
   }
 
   return response.json() as Promise<AdvisorAnalyzeResponse>;
+}
+
+export async function previewManualValuation(
+  request: ManualValuationPreviewRequest
+): Promise<ManualValuationPreviewResponse> {
+  const response = await fetch(`${API_BASE_URL}/api/v1/advisor/manual-valuation/preview`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(request)
+  });
+
+  if (!response.ok) {
+    let message = `Manual valuation preview API returned ${response.status}`;
+    try {
+      const payload = await response.json();
+      message = payload?.detail?.message ?? payload?.detail ?? message;
+    } catch {
+      // Keep the status-based message.
+    }
+    throw new Error(message);
+  }
+
+  return response.json() as Promise<ManualValuationPreviewResponse>;
 }
 
 export async function recordCraftObservation(

@@ -35,6 +35,7 @@ POST /api/v1/crafts/scenarios
 POST /api/v1/crafts/expected-value
 POST /api/v1/advisor
 POST /api/v1/advisor/analyze
+POST /api/v1/advisor/manual-valuation/preview
 POST /api/v1/observations/workspace/records
 GET  /api/v1/observations/workspace
 POST /api/v1/observations/workspace/reviews
@@ -98,6 +99,16 @@ Future Advisor DTOs should expose [ADVISOR_DECISION_ENGINE.md](ADVISOR_DECISION_
 Advisor request DTOs may later include risk fields from [RISK_AND_BANKROLL.md](RISK_AND_BANKROLL.md): bankroll, risk profile, maximum bankroll exposure, maximum acceptable loss, and minimum reserve. Responses should expose raw Advisor decision and risk-adjusted decision separately, including risk policy version and triggered rules.
 
 Task 13B implements `POST /api/v1/advisor/analyze`. See [ADVISOR_API.md](ADVISOR_API.md). Requests include clipboard text, explicit league, selected dataset versions, optional manual current valuation evidence, optional manual outcome valuation evidence keyed by deterministic outcome ID, and optional risk context. Responses preserve partial results per action, missing requirements, raw Advisor decision, optional risk-adjusted decision, and all relevant evidence references. The endpoint does not fetch external data at request time or fabricate valuations/probabilities.
+
+Task 19A implements `POST /api/v1/advisor/manual-valuation/preview` for the
+user-facing manual valuation workflow. The request contains an explicit league,
+subject identity (`CURRENT_ITEM` or `HYPOTHETICAL_OUTCOME`), optional
+`outcome_id`, comparable strategy, and manual listing observations with Decimal
+amount strings. The response returns normalized comparable rows where economy
+conversion is available, readiness, listing-derived estimate/range when policy
+allows it, confidence, liquidity, economy snapshot IDs, and warnings. Missing
+conversion remains unavailable, never zero. The endpoint performs no Trade or
+economy network calls and does not bypass `ValuationAggregator`.
 
 Task 15B extends the same endpoint with optional empirical probability dataset selection and serialized probability evidence details. Default production assembly skips synthetic empirical fixtures and keeps real actions `UNKNOWN` without compatible evidence.
 
