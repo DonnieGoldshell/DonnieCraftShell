@@ -40,6 +40,7 @@ apps/web
 - **Craft Outcome Engine**: enumerates mechanically possible hypothetical item-state deltas without probability, valuation, or recommendations.
 - **Probability Evidence Layer**: attaches exact, derived, empirical, or unknown probabilities to outcome states only when provenance supports them. Task 15A adds an offline empirical observation pipeline; current real actions remain `UNKNOWN` unless context-compatible evidence is explicitly supplied.
 - **Observation Review Layer**: curates manual recorder exports before empirical import. Human decisions remain separate from raw observation records; only accepted non-duplicate records proceed to Task 15C-compatible imports.
+- **Curated Observation Import Layer**: builds raw empirical probability datasets from accepted review exports by delegating to Task 15C validation, deduplication, and context partitioning.
 - **Scenario Analysis Layer**: composes action candidates, outcome sets, probabilities, and valuations into descriptive readiness results without EV or ranking.
 - **Expected Value Engine**: calculates EV only from `EV_READY` scenarios with complete probability and valuation inputs; it does not rank or recommend.
 - **Advisor Decision Engine**: compares SELL NOW with EV-ready craft candidates and may return `NO_RECOMMENDATION`; scenario-only actions remain non-rankable.
@@ -75,6 +76,12 @@ in a manifest, and only accepted non-duplicate observations are exported in the
 original importer-compatible shape. Automatic classification still requires
 human acceptance, unclassified observations can remain unclassified, and mixed
 synthetic/context batches surface warnings.
+
+Task 16C adds [CURATED_OBSERVATION_IMPORT.md](CURATED_OBSERVATION_IMPORT.md).
+Accepted review exports can be submitted to a controlled builder that validates
+records through Task 15C, partitions incompatible evidence contexts, and returns
+Task 15A-compatible raw empirical probability datasets. Building these datasets
+does not silently configure them for Advisor probability use.
 
 ## Item-Class Modularity
 

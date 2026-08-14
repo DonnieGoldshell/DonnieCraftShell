@@ -55,6 +55,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/observations/build-empirical-datasets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Build Empirical Datasets */
+        post: operations["build_empirical_datasets_api_v1_observations_build_empirical_datasets_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/observations/export": {
         parameters: {
             query?: never;
@@ -424,6 +441,65 @@ export interface components {
              * @default []
              */
             warnings: string[];
+        };
+        /** CuratedObservationBuildRequestDto */
+        CuratedObservationBuildRequestDto: {
+            /** Accepted Export */
+            accepted_export: {
+                [key: string]: unknown;
+            };
+            /**
+             * Dataset Id Prefix
+             * @default empirical-probability
+             */
+            dataset_id_prefix: string;
+        };
+        /** CuratedObservationBuildResponseDto */
+        CuratedObservationBuildResponseDto: {
+            /** Accepted Record Count */
+            accepted_record_count: number;
+            /** Build Version */
+            build_version: string;
+            /**
+             * Built At
+             * Format: date-time
+             */
+            built_at: string;
+            /** Dataset Count */
+            dataset_count: number;
+            /** Dataset Ids */
+            dataset_ids: string[];
+            /** Datasets */
+            datasets: {
+                [key: string]: unknown;
+            }[];
+            /** Duplicate Record Count */
+            duplicate_record_count: number;
+            /** Imported Record Count */
+            imported_record_count: number;
+            /** Invalid Record Count */
+            invalid_record_count: number;
+            /**
+             * Rejected Records
+             * @default []
+             */
+            rejected_records: components["schemas"]["CuratedObservationRejectedRecordDto"][];
+            /** Source Record Count */
+            source_record_count: number;
+            /** Unclassified Record Count */
+            unclassified_record_count: number;
+            /**
+             * Warnings
+             * @default []
+             */
+            warnings: string[];
+        };
+        /** CuratedObservationRejectedRecordDto */
+        CuratedObservationRejectedRecordDto: {
+            /** Raw Record Id */
+            raw_record_id?: string | null;
+            /** Reason */
+            reason: string;
         };
         /** EconomicValueDto */
         EconomicValueDto: {
@@ -1040,6 +1116,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ParseItemResponseDto"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    build_empirical_datasets_api_v1_observations_build_empirical_datasets_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CuratedObservationBuildRequestDto"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CuratedObservationBuildResponseDto"];
                 };
             };
             /** @description Validation Error */

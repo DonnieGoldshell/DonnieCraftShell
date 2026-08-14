@@ -76,8 +76,11 @@ class AdvisorApiTests(unittest.TestCase):
         self.assertIn("ProbabilitySummaryDto", schema_names)
         self.assertIn("CraftObservationRecordRequestDto", schema_names)
         self.assertIn("/api/v1/observations/review", openapi["paths"])
+        self.assertIn("/api/v1/observations/build-empirical-datasets", openapi["paths"])
         self.assertIn("ObservationReviewRequestDto", schema_names)
         self.assertIn("ObservationReviewResponseDto", schema_names)
+        self.assertIn("CuratedObservationBuildRequestDto", schema_names)
+        self.assertIn("CuratedObservationBuildResponseDto", schema_names)
 
     def test_valid_quiver_6_partial_response(self):
         response = self.client.post("/api/v1/advisor/analyze", json=base_request())
@@ -480,6 +483,76 @@ class AdvisorApiTests(unittest.TestCase):
         self.assertFalse(body["records"][0]["exported"])
         self.assertTrue(any("Task 15C import validation failed" in warning for warning in body["records"][0]["warnings"]))
         self.assertTrue(any("manual-craft-observation-api-absent" in warning for warning in body["warnings"]))
+
+    def test_curated_observation_build_endpoint_aggregates_accepted_export(self):
+        accepted = self._observation_export_record("manual-craft-observation-build-accepted", "outcome-api-1")
+        unclassified = self._observation_export_record("manual-craft-observation-build-unclassified", None)
+        unclassified["unclassified"] = True
+
+        response = self.client.post(
+            "/api/v1/observations/build-empirical-datasets",
+            json={
+                "accepted_export": {
+                    "review_version": "dc-observation-review-v1",
+                    "observations": [accepted, unclassified],
+                    "warnings": ["review warning carried forward"],
+                },
+                "dataset_id_prefix": "api-curated-test",
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        body = response.json()
+        self.assertEqual(body["source_record_count"], 2)
+        self.assertEqual(body["imported_record_count"], 2)
+        self.assertEqual(body["accepted_record_count"], 2)
+        self.assertEqual(body["unclassified_record_count"], 1)
+        self.assertEqual(body["invalid_record_count"], 0)
+        self.assertEqual(body["dataset_count"], 1)
+        self.assertTrue(body["dataset_ids"][0].startswith("api-curated-test-"))
+        self.assertEqual(body["datasets"][0]["unclassified_count"], 1)
+        self.assertTrue(any("does not activate probability evidence" in warning for warning in body["warnings"]))
+
+    def test_curated_observation_build_endpoint_rejects_malformed_observations(self):
+        response = self.client.post(
+            "/api/v1/observations/build-empirical-datasets",
+            json={
+                "accepted_export": {
+                    "observations": [{"raw_record_id": "manual-craft-observation-build-malformed"}]
+                }
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        body = response.json()
+        self.assertEqual(body["source_record_count"], 1)
+        self.assertEqual(body["imported_record_count"], 0)
+        self.assertEqual(body["accepted_record_count"], 0)
+        self.assertEqual(body["invalid_record_count"], 1)
+        self.assertEqual(body["dataset_count"], 0)
+        self.assertEqual(body["rejected_records"][0]["raw_record_id"], "manual-craft-observation-build-malformed")
+
+    def test_curated_observation_build_endpoint_counts_non_dict_entries_as_invalid(self):
+        accepted = self._observation_export_record("manual-craft-observation-build-valid", "outcome-api-1")
+        response = self.client.post(
+            "/api/v1/observations/build-empirical-datasets",
+            json={
+                "accepted_export": {
+                    "observations": [accepted, "not an observation object"]
+                }
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        body = response.json()
+        self.assertEqual(body["source_record_count"], 2)
+        self.assertEqual(body["imported_record_count"], 1)
+        self.assertEqual(body["accepted_record_count"], 1)
+        self.assertEqual(body["invalid_record_count"], 1)
+        self.assertEqual(body["dataset_count"], 1)
+        self.assertIsNone(body["rejected_records"][0]["raw_record_id"])
+        self.assertIn("accepted_export:2", body["rejected_records"][0]["reason"])
+        self.assertIn("str", body["rejected_records"][0]["reason"])
 
     def test_wrong_crafting_dataset_version_is_rejected(self):
         response = self.client.post(

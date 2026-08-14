@@ -19,6 +19,8 @@ export type CraftObservationExportResponse = components["schemas"]["CraftObserva
 export type ObservationReviewDecision = components["schemas"]["ObservationReviewDecisionDto"];
 export type ObservationReviewRequest = components["schemas"]["ObservationReviewRequestDto"];
 export type ObservationReviewResponse = components["schemas"]["ObservationReviewResponseDto"];
+export type CuratedObservationBuildRequest = components["schemas"]["CuratedObservationBuildRequestDto"];
+export type CuratedObservationBuildResponse = components["schemas"]["CuratedObservationBuildResponseDto"];
 
 export const EXALTED_ASSET_ID = "dc:poe2:economy-asset:currency:exalted-orb";
 export const DIVINE_ASSET_ID = "dc:poe2:economy-asset:currency:divine-orb";
@@ -123,4 +125,29 @@ export async function reviewCraftObservations(request: ObservationReviewRequest)
   }
 
   return response.json() as Promise<ObservationReviewResponse>;
+}
+
+export async function buildCuratedObservationDatasets(
+  request: CuratedObservationBuildRequest
+): Promise<CuratedObservationBuildResponse> {
+  const response = await fetch(`${API_BASE_URL}/api/v1/observations/build-empirical-datasets`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(request)
+  });
+
+  if (!response.ok) {
+    let message = `Curated observation build API returned ${response.status}`;
+    try {
+      const payload = await response.json();
+      message = payload?.detail?.message ?? payload?.detail ?? message;
+    } catch {
+      // Keep the status-based message.
+    }
+    throw new Error(message);
+  }
+
+  return response.json() as Promise<CuratedObservationBuildResponse>;
 }

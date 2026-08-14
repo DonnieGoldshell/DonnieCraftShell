@@ -104,6 +104,15 @@ records are not exported for empirical counts, duplicates are surfaced and not
 exported twice, and mixed synthetic/non-synthetic or context-mismatched batches
 produce warnings instead of silent probability evidence.
 
+Task 16C implements `POST /api/v1/observations/build-empirical-datasets`.
+See [CURATED_OBSERVATION_IMPORT.md](CURATED_OBSERVATION_IMPORT.md). The
+endpoint accepts a Task 16B accepted export, validates each record through the
+existing Task 15C empirical observation contract, aggregates through the Task
+15C context-partitioning path, and returns raw Task 15A-compatible empirical
+probability dataset payloads plus build counts and warnings. It does not write
+production datasets, activate probability evidence, or alter Advisor/EV
+readiness by itself.
+
 See [API_DEVELOPMENT.md](API_DEVELOPMENT.md) for FastAPI/Pydantic version assumptions, local startup, configuration, and future OpenAPI-to-TypeScript generation.
 
 Task 14A adds the first frontend consumer for `POST /api/v1/advisor/analyze`. The web app uses generated OpenAPI TypeScript types under `apps/web/src/api/` and must not manually duplicate response DTOs or reimplement Advisor logic. The UI treats partial analysis, unsupported items, and `NO_RECOMMENDATION` as successful transport states rather than HTTP failures.

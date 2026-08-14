@@ -9,6 +9,9 @@ from fastapi import APIRouter, Depends, HTTPException
 
 from packages.shared.donniecraftshell_contracts.advisor_orchestration import CraftAdvisorOrchestrator
 from packages.shared.donniecraftshell_contracts.domain import GameContext
+from packages.shared.donniecraftshell_contracts.curated_observation_import import (
+    build_empirical_datasets_from_curated_export,
+)
 from packages.shared.donniecraftshell_contracts.observation_recorder import (
     CraftObservationRecorder,
     OBSERVATION_RECORDER_VERSION,
@@ -28,6 +31,9 @@ from services.api.app.schemas.observations import (
     CraftObservationExportResponseDto,
     CraftObservationRecordRequestDto,
     CraftObservationRecordResponseDto,
+    CuratedObservationBuildRequestDto,
+    CuratedObservationBuildResponseDto,
+    CuratedObservationRejectedRecordDto,
     ObservationReviewRecordDto,
     ObservationReviewRequestDto,
     ObservationReviewResponseDto,
@@ -186,6 +192,44 @@ def review_observations(request: ObservationReviewRequestDto) -> ObservationRevi
         ],
         accepted_export=result.accepted_export,
         review_manifest=manifest,
+        warnings=list(result.warnings),
+    )
+
+
+@router.post("/build-empirical-datasets", response_model=CuratedObservationBuildResponseDto)
+def build_empirical_datasets(request: CuratedObservationBuildRequestDto) -> CuratedObservationBuildResponseDto:
+    try:
+        result = build_empirical_datasets_from_curated_export(
+            request.accepted_export,
+            dataset_id_prefix=request.dataset_id_prefix,
+        )
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=400,
+            detail={
+                "code": "VALIDATION_ERROR",
+                "message": str(exc),
+                "recoverable": True,
+                "reliable_no_result": True,
+            },
+        ) from exc
+    payload = result.to_dict()
+    return CuratedObservationBuildResponseDto(
+        build_version=result.build_version,
+        built_at=result.built_at,
+        source_record_count=result.source_record_count,
+        imported_record_count=result.imported_record_count,
+        accepted_record_count=result.accepted_record_count,
+        duplicate_record_count=result.duplicate_record_count,
+        unclassified_record_count=result.unclassified_record_count,
+        invalid_record_count=result.invalid_record_count,
+        dataset_count=result.dataset_count,
+        dataset_ids=list(result.dataset_ids),
+        datasets=payload["datasets"],
+        rejected_records=[
+            CuratedObservationRejectedRecordDto(raw_record_id=record.raw_record_id, reason=record.reason)
+            for record in result.rejected_records
+        ],
         warnings=list(result.warnings),
     )
 

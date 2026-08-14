@@ -69,3 +69,5 @@ The web app provides a browser-local workflow to paste a recorder export, inspec
 ## Probability Boundary
 
 Curated observations are still only evidence inputs. They do not make a probability model complete by themselves. Task 15C import, Task 15A/B probability normalization, sample-size policies, context checks, and readiness gates remain authoritative.
+
+Task 16C continues this path with [CURATED_OBSERVATION_IMPORT.md](CURATED_OBSERVATION_IMPORT.md): accepted exports can be validated and aggregated into raw empirical probability dataset payloads, but those datasets still require explicit configuration/selection before Advisor probability models can use them.
