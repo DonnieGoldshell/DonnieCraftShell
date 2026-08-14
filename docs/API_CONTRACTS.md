@@ -35,6 +35,10 @@ POST /api/v1/crafts/scenarios
 POST /api/v1/crafts/expected-value
 POST /api/v1/advisor
 POST /api/v1/advisor/analyze
+POST /api/v1/observations/workspace/records
+GET  /api/v1/observations/workspace
+POST /api/v1/observations/workspace/reviews
+GET  /api/v1/observations/workspace/accepted-export
 POST /api/v1/sessions
 POST /api/v1/sessions/{id}/steps
 ```
@@ -69,6 +73,15 @@ Task 17A adds local/operator empirical dataset registry endpoints:
 These endpoints accept/list Task 15A-compatible empirical probability dataset payloads produced by the curated observation build workflow. Registration is not activation; Advisor analysis uses a registered dataset only when the request names its dataset ID.
 
 Task 17B adds local JSON persistence behind the same registry endpoints. Register/list responses include persistence status (`FILE` vs `IN_MEMORY`, enabled flag, loaded count, skipped corrupt entry count, and warnings) without exposing arbitrary filesystem contents.
+
+Task 18A adds local/operator observation workspace endpoints:
+
+- `POST /api/v1/observations/workspace/records`
+- `GET /api/v1/observations/workspace`
+- `POST /api/v1/observations/workspace/reviews`
+- `GET /api/v1/observations/workspace/accepted-export`
+
+These endpoints persist Task 16A raw observation records and Task 16B review decisions locally without accepting or aggregating them by storage alone. `raw_record_id` remains the evidence identity, conflicting content is rejected, persisted review state stays separate from raw evidence, and accepted exports still flow through existing Task 16B/16C validation. See [OBSERVATION_WORKSPACE.md](OBSERVATION_WORKSPACE.md).
 
 Future valuation DTOs should expose the contracts from [VALUATION_MODEL.md](VALUATION_MODEL.md) and [VALUATION_AGGREGATION.md](VALUATION_AGGREGATION.md). Requests should accept a current or hypothetical valuation subject plus comparable strategy and modifier-role inputs. Comparable endpoints should return query definitions, manual workflow instructions, listing observations, normalized comparable evidence where available, readiness, economy conversion snapshots, provenance, and warnings. Aggregation responses must label estimates as `LISTING_DERIVED`, expose used/excluded comparable IDs, preserve policy ID and strategy composition, and allow `INSUFFICIENT_DATA` without fabricating an estimate.
 

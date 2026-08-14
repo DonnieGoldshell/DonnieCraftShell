@@ -61,11 +61,15 @@ Implemented API endpoints:
 - `POST /api/v1/observations/record`
 - `POST /api/v1/observations/export`
 - `POST /api/v1/observations/review`
+- `POST /api/v1/observations/workspace/records`
+- `GET /api/v1/observations/workspace`
+- `POST /api/v1/observations/workspace/reviews`
+- `GET /api/v1/observations/workspace/accepted-export`
 - `POST /api/v1/observations/build-empirical-datasets`
 - `POST /api/v1/observations/empirical-datasets/register`
 - `GET /api/v1/observations/empirical-datasets`
 
-The Advisor API uses local/offline datasets and request-supplied manual valuation evidence only. It does not scrape Trade, poll economy sources, fabricate probabilities, or execute gameplay actions. Empirical dataset registrations persist locally to `.dcs/empirical_probability_registry.json` by default; set `DCS_EMPIRICAL_REGISTRY_PATH=disabled` for in-memory registry mode.
+The Advisor API uses local/offline datasets and request-supplied manual valuation evidence only. It does not scrape Trade, poll economy sources, fabricate probabilities, or execute gameplay actions. Observation workspace records persist locally to `.dcs/observation_workspace.json` by default; set `DCS_OBSERVATION_WORKSPACE_PATH=disabled` for in-memory workspace mode. Empirical dataset registrations persist locally to `.dcs/empirical_probability_registry.json` by default; set `DCS_EMPIRICAL_REGISTRY_PATH=disabled` for in-memory registry mode.
 
 ## API Development
 

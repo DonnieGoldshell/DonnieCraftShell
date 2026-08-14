@@ -75,6 +75,7 @@ PASTE QUIVER
 - Task 16C adds a curated import/build workflow from accepted review export to Task 15C aggregation and Task 15A-compatible raw empirical datasets. Dataset build summaries show counts, invalid records, duplicates, unclassified observations, warnings, and dataset IDs, but built datasets must still be explicitly configured/selected before they can affect Advisor probability readiness.
 - Task 17A adds a local empirical dataset registry and explicit Advisor selection workflow. Built datasets can be registered and listed for operator use, but no request uses them unless `empirical_probability_dataset_version` names a registered compatible dataset.
 - Task 17B persists the local empirical dataset registry to ignored JSON storage by default so registrations survive API restarts. Persistence keeps the same explicit-selection, context-compatibility, and synthetic-evidence guards.
+- Task 18A persists the local craft observation/review workspace to ignored JSON storage by default. Raw observations survive refresh/API restart, review decisions remain separate audit metadata, and only accepted records proceed through the existing dataset-build and registry gates.
 - Expected value, ROI, probability of profit, downside risk, and required capital are represented in the recommendation model, even if early implementations mark inputs as `NEEDS VERIFICATION`.
 - Craft session data can track item states, actions, costs, total invested, current estimated value, and unrealized profit/loss.
 

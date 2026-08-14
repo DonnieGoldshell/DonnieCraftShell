@@ -417,6 +417,48 @@ describe("AdvisorWorkbench", () => {
       .mockResolvedValueOnce({
         ok: true,
         json: async () => ({
+          workspace_version: "dc-observation-workspace-v1",
+          status: "SAVED",
+          raw_record_id: "manual-craft-observation-test",
+          entry: {
+            raw_record_id: "manual-craft-observation-test",
+            record: {
+              raw_record_id: "manual-craft-observation-test",
+              outcome_id: "outcome-1",
+              classification_method: "MANUAL"
+            },
+            decision: {
+              raw_record_id: "manual-craft-observation-test",
+              status: "PENDING",
+              reviewed_at: null,
+              note: null,
+              reviewer_id: null
+            },
+            summary: {
+              raw_record_id: "manual-craft-observation-test",
+              review_status: "PENDING",
+              outcome_id: "outcome-1",
+              unclassified: false,
+              synthetic: false,
+              classification_method: "MANUAL",
+              warnings: []
+            }
+          },
+          persistence: {
+            storage_version: "dc-observation-workspace-storage-v1",
+            storage_mode: "FILE",
+            persistence_enabled: true,
+            loaded_record_count: 1,
+            loaded_decision_count: 1,
+            skipped_entry_count: 0,
+            warnings: []
+          },
+          warnings: ["Stored observation remains pending until explicitly reviewed."]
+        })
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
           recorder_version: "dc-observation-recorder-v1",
           exported_at: "2026-08-13T10:01:00Z",
           observations: [
@@ -620,14 +662,16 @@ describe("AdvisorWorkbench", () => {
     await user.click(screen.getByRole("button", { name: /record observation/i }));
 
     expect(await screen.findByText("MANUAL")).toBeInTheDocument();
-    expect(screen.getByText(/manual-cra.*n-test/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/manual-cra.*n-test/i).length).toBeGreaterThan(0);
+    expect(screen.getByText(/SAVED: manual-craft-observation-test/i)).toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: /export json/i }));
     await screen.findByText(/dc-observation-recorder-v1/i);
     const recordBody = JSON.parse(fetchMock.mock.calls[1][1].body as string);
     expect(recordBody.manual_outcome_id).toBe("outcome-1");
     expect(recordBody.manual_reason).toBe("observed after craft");
-    const exportBody = JSON.parse(fetchMock.mock.calls[2][1].body as string);
+    expect(fetchMock.mock.calls[2][0]).toContain("/api/v1/observations/workspace/records");
+    const exportBody = JSON.parse(fetchMock.mock.calls[3][1].body as string);
     expect(exportBody.observations).toEqual([
       expect.objectContaining({
         raw_record_id: "manual-craft-observation-test",
@@ -653,7 +697,7 @@ describe("AdvisorWorkbench", () => {
     await user.type(screen.getByLabelText(/review note manual-craft-observation-test/i), "reviewed in browser");
     await user.click(screen.getByRole("button", { name: /export accepted json/i }));
     expect((await screen.findAllByText(/dc-observation-review-v1/i)).length).toBeGreaterThanOrEqual(2);
-    const reviewBody = JSON.parse(fetchMock.mock.calls[4][1].body as string);
+    const reviewBody = JSON.parse(fetchMock.mock.calls[5][1].body as string);
     expect(reviewBody.decisions).toEqual([
       expect.objectContaining({
         raw_record_id: "manual-craft-observation-test",
@@ -667,7 +711,7 @@ describe("AdvisorWorkbench", () => {
     expect(await screen.findByText("Curated Import Build")).toBeInTheDocument();
     expect(screen.getAllByText(/empirical-probability-browser-test/i).length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText(/does not activate probability evidence/i).length).toBeGreaterThanOrEqual(1);
-    const buildBody = JSON.parse(fetchMock.mock.calls[5][1].body as string);
+    const buildBody = JSON.parse(fetchMock.mock.calls[6][1].body as string);
     expect(buildBody.accepted_export.observations).toEqual([
       expect.objectContaining({
         raw_record_id: "manual-craft-observation-test",
@@ -680,7 +724,113 @@ describe("AdvisorWorkbench", () => {
     expect(screen.getAllByText(/paste this id into empirical evidence dataset/i).length).toBeGreaterThan(0);
     expect(screen.getByText(/registry persistence: FILE active - 1 loaded/i)).toBeInTheDocument();
     expect(screen.getAllByText(/sample 1/i).length).toBeGreaterThan(0);
-    expect(fetchMock.mock.calls[6][0]).toContain("/api/v1/observations/empirical-datasets/register");
-    expect(fetchMock.mock.calls[7][0]).toContain("/api/v1/observations/empirical-datasets");
+    expect(fetchMock.mock.calls[7][0]).toContain("/api/v1/observations/empirical-datasets/register");
+    expect(fetchMock.mock.calls[8][0]).toContain("/api/v1/observations/empirical-datasets");
+  });
+
+  it("loads persisted observation workspace evidence for review after refresh", async () => {
+    const workspaceEntry = {
+      raw_record_id: "manual-craft-observation-reloaded",
+      record: {
+        raw_record_id: "manual-craft-observation-reloaded",
+        outcome_id: "outcome-1",
+        unclassified: false,
+        classification_method: "MANUAL"
+      },
+      decision: {
+        raw_record_id: "manual-craft-observation-reloaded",
+        status: "ACCEPTED",
+        reviewed_at: "2026-08-13T10:03:00Z",
+        note: "already reviewed",
+        reviewer_id: "browser-observation-review-session"
+      },
+      summary: {
+        raw_record_id: "manual-craft-observation-reloaded",
+        review_status: "ACCEPTED",
+        outcome_id: "outcome-1",
+        unclassified: false,
+        synthetic: false,
+        classification_method: "MANUAL",
+        note: "already reviewed",
+        warnings: []
+      }
+    };
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => quiverResponse
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          workspace_version: "dc-observation-workspace-v1",
+          entries: [workspaceEntry],
+          persistence: {
+            storage_version: "dc-observation-workspace-storage-v1",
+            storage_mode: "FILE",
+            persistence_enabled: true,
+            loaded_record_count: 1,
+            loaded_decision_count: 1,
+            skipped_entry_count: 0,
+            warnings: []
+          },
+          warnings: []
+        })
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          review_version: "dc-observation-review-v1",
+          records: [
+            {
+              raw_record_id: "manual-craft-observation-reloaded",
+              status: "ACCEPTED",
+              duplicate: false,
+              valid_for_import: true,
+              exported: true,
+              classification_method: "MANUAL",
+              outcome_id: "outcome-1",
+              unclassified: false,
+              synthetic: false,
+              action_id: "dc:poe2:craft-action:orb-of-annulment",
+              source_outcome_set_id: "manual-recorder:dc:poe2:craft-action:orb-of-annulment",
+              warnings: ["Manual classification remains manual evidence after curation."]
+            }
+          ],
+          accepted_export: {
+            review_version: "dc-observation-review-v1",
+            observations: [
+              {
+                raw_record_id: "manual-craft-observation-reloaded",
+                outcome_id: "outcome-1",
+                classification_method: "MANUAL"
+              }
+            ],
+            warnings: []
+          },
+          review_manifest: {
+            review_version: "dc-observation-review-v1",
+            records: []
+          },
+          warnings: []
+        })
+      });
+    vi.stubGlobal("fetch", fetchMock);
+    const user = userEvent.setup();
+
+    render(<AdvisorWorkbench />);
+    await user.type(screen.getByLabelText(/clipboard item text/i), "Item Class: Quivers\nRarity: Rare");
+    await user.click(screen.getByRole("button", { name: /analyze quiver/i }));
+    await screen.findByText("Observation Review");
+
+    await user.click(screen.getByRole("button", { name: /load persisted workspace/i }));
+
+    expect(await screen.findByText(/workspace persistence: FILE active - 1 records - 1 decisions/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/manual-cra.*loaded/i).length).toBeGreaterThan(0);
+    expect((screen.getByLabelText(/review status manual-craft-observation-reloaded/i) as HTMLSelectElement).value).toBe(
+      "ACCEPTED"
+    );
+    expect(fetchMock.mock.calls[1][0]).toContain("/api/v1/observations/workspace");
   });
 });

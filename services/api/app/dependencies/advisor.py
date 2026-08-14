@@ -15,6 +15,10 @@ from packages.shared.donniecraftshell_contracts.empirical_probability import (
     FileBackedEmpiricalProbabilityDatasetRegistry,
 )
 from packages.shared.donniecraftshell_contracts.game_data_repository import GameDataRepository
+from packages.shared.donniecraftshell_contracts.observation_workspace import (
+    FileBackedObservationWorkspaceRepository,
+    ObservationWorkspaceRepository,
+)
 from packages.shared.donniecraftshell_contracts.poe_show_economy import load_normalized_economy_snapshot
 from packages.shared.donniecraftshell_contracts.probability import ProbabilityProvider
 
@@ -45,6 +49,14 @@ def get_empirical_probability_registry() -> EmpiricalProbabilityDatasetRegistry:
             settings.empirical_registry_storage_path,
         )
     return EmpiricalProbabilityDatasetRegistry.from_repository(repository)
+
+
+@lru_cache(maxsize=1)
+def get_observation_workspace() -> ObservationWorkspaceRepository:
+    settings = get_cached_settings()
+    if settings.observation_workspace_storage_path is not None:
+        return FileBackedObservationWorkspaceRepository(settings.observation_workspace_storage_path)
+    return ObservationWorkspaceRepository()
 
 
 @lru_cache(maxsize=1)

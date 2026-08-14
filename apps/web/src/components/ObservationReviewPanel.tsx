@@ -1,14 +1,18 @@
 import { useState } from "react";
 import {
   buildCuratedObservationDatasets,
+  exportObservationWorkspaceAccepted,
   listEmpiricalDatasets,
+  listObservationWorkspace,
   registerEmpiricalDataset,
   reviewCraftObservations,
+  reviewObservationWorkspace,
   type CuratedObservationBuildResponse,
   type EmpiricalDatasetListResponse,
   type EmpiricalDatasetRegisterResponse,
   type ObservationReviewDecision,
-  type ObservationReviewResponse
+  type ObservationReviewResponse,
+  type ObservationWorkspaceListResponse
 } from "@/api/advisor";
 
 type DecisionState = Record<string, { status: string; note: string }>;
@@ -16,6 +20,8 @@ type DecisionState = Record<string, { status: string; note: string }>;
 export function ObservationReviewPanel() {
   const [batchText, setBatchText] = useState("");
   const [review, setReview] = useState<ObservationReviewResponse | null>(null);
+  const [workspace, setWorkspace] = useState<ObservationWorkspaceListResponse | null>(null);
+  const [workspaceLoaded, setWorkspaceLoaded] = useState(false);
   const [decisions, setDecisions] = useState<DecisionState>({});
   const [acceptedJson, setAcceptedJson] = useState("");
   const [manifestJson, setManifestJson] = useState("");
@@ -39,6 +45,7 @@ export function ObservationReviewPanel() {
       setBusy(true);
       const response = await reviewCraftObservations({ batches: [payload], decisions: [] });
       setReview(response);
+      setWorkspaceLoaded(false);
       setDecisions(
         Object.fromEntries(response.records.map((record) => [record.raw_record_id, { status: record.status, note: "" }]))
       );
@@ -49,11 +56,44 @@ export function ObservationReviewPanel() {
     }
   }
 
+  async function loadWorkspace() {
+    setError(null);
+    setAcceptedJson("");
+    setManifestJson("");
+    setBuildResult(null);
+    setDatasetJson("");
+    setRegistryResult(null);
+    setRegisteredDatasets(null);
+    try {
+      setBusy(true);
+      const listed = await listObservationWorkspace();
+      setWorkspace(listed);
+      setWorkspaceLoaded(true);
+      setBatchText(JSON.stringify({ observations: listed.entries.map((entry) => entry.record) }, null, 2));
+      const response = await reviewCraftObservations({
+        observations: listed.entries.map((entry) => entry.record),
+        decisions: listed.entries.map((entry) => entry.decision)
+      });
+      setReview(response);
+      setDecisions(
+        Object.fromEntries(
+          listed.entries.map((entry) => [
+            entry.raw_record_id,
+            { status: entry.decision.status, note: entry.decision.note ?? "" }
+          ])
+        )
+      );
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Unable to load observation workspace.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function exportAccepted() {
     if (!review) return;
     setError(null);
     try {
-      const parsed = JSON.parse(batchText);
       const reviewDecisions: ObservationReviewDecision[] = review.records.map((record) => ({
         raw_record_id: record.raw_record_id,
         status: decisions[record.raw_record_id]?.status ?? "PENDING",
@@ -61,12 +101,17 @@ export function ObservationReviewPanel() {
         reviewer_id: "browser-observation-review-session"
       }));
       setBusy(true);
-      const response = await reviewCraftObservations({
-        batches: [parsed],
-        decisions: reviewDecisions
-      });
+      const response = workspaceLoaded
+        ? (await reviewObservationWorkspace({ decisions: reviewDecisions })).review
+        : await reviewCraftObservations({
+            batches: [JSON.parse(batchText)],
+            decisions: reviewDecisions
+          });
+      const acceptedExport = workspaceLoaded
+        ? (await exportObservationWorkspaceAccepted()).accepted_export
+        : response.accepted_export;
       setReview(response);
-      setAcceptedJson(JSON.stringify(response.accepted_export, null, 2));
+      setAcceptedJson(JSON.stringify(acceptedExport, null, 2));
       setManifestJson(JSON.stringify(response.review_manifest, null, 2));
       setBuildResult(null);
       setDatasetJson("");
@@ -133,9 +178,20 @@ export function ObservationReviewPanel() {
         <span className="count">{review?.records.length ?? 0}</span>
       </div>
       <p className="muted">
-        Review recorder JSON before empirical import. Accepted observations are exported unchanged; review decisions
-        stay in a separate manifest.
+        Review persisted or pasted recorder evidence before empirical import. Accepted observations are exported
+        unchanged; review decisions stay in a separate manifest.
       </p>
+      <button className="secondary-button" type="button" onClick={loadWorkspace} disabled={busy}>
+        {busy ? "Loading..." : "Load Persisted Workspace"}
+      </button>
+      {workspace && (
+        <p className="muted">
+          Workspace persistence: {workspace.persistence.storage_mode}
+          {workspace.persistence.persistence_enabled ? " active" : " disabled"} -{" "}
+          {workspace.persistence.loaded_record_count} records - {workspace.persistence.loaded_decision_count} decisions
+          {workspace.persistence.skipped_entry_count ? ` - ${workspace.persistence.skipped_entry_count} skipped` : ""}
+        </p>
+      )}
       <label className="wide-field">
         Recorder export JSON
         <textarea

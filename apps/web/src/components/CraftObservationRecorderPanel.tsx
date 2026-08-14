@@ -5,6 +5,7 @@ import {
   DEFAULT_LEAGUE,
   exportCraftObservations,
   recordCraftObservation,
+  saveObservationWorkspaceRecord,
   type ActionAnalysis,
   type CraftObservationRecordResponse
 } from "@/api/advisor";
@@ -45,6 +46,7 @@ export function CraftObservationRecorderPanel({
   const [manualReason, setManualReason] = useState("");
   const [saved, setSaved] = useState<SavedObservation[]>([]);
   const [exportJson, setExportJson] = useState("");
+  const [workspaceMessage, setWorkspaceMessage] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const selectedAction = actionOptions.find((action) => action.actionId === actionId);
@@ -79,8 +81,12 @@ export function CraftObservationRecorderPanel({
         manual_reason: optionalText(manualReason),
         outcome_candidates: selectedAction.outcomeCandidates
       });
+      const workspace = await saveObservationWorkspaceRecord({ record: response.export_record });
       setSaved((records) => [...records, response]);
       setExportJson("");
+      setWorkspaceMessage(
+        `${workspace.status}: ${workspace.raw_record_id}. Observation workspace ${workspace.persistence.persistence_enabled ? "persisted" : "in memory"}.`
+      );
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Unable to record observation.");
     } finally {
@@ -107,8 +113,8 @@ export function CraftObservationRecorderPanel({
         <span className="count">{saved.length}</span>
       </div>
       <p className="muted">
-        Record real before/after craft observations manually. Recording evidence does not change probability
-        readiness until exported data is reviewed and imported separately.
+        Record real before/after craft observations manually. Recorded evidence is saved to the local observation
+        workspace, but it does not affect probability readiness until reviewed, imported, registered, and explicitly selected.
       </p>
       <form className="recorder-form" onSubmit={submit}>
         <label>
@@ -159,6 +165,7 @@ export function CraftObservationRecorderPanel({
         </button>
         {error && <p className="error-message compact">{error}</p>}
       </form>
+      {workspaceMessage && <p className="muted">{workspaceMessage}</p>}
 
       {saved.length ? (
         <>
@@ -185,7 +192,7 @@ export function CraftObservationRecorderPanel({
           )}
         </>
       ) : (
-        <p className="muted">No craft observations recorded in this browser session.</p>
+        <p className="muted">No craft observations recorded in this browser session. Use Observation Review to reload persisted workspace evidence.</p>
       )}
     </section>
   );

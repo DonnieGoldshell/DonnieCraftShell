@@ -157,6 +157,74 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/observations/workspace": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Workspace */
+        get: operations["list_workspace_api_v1_observations_workspace_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/observations/workspace/accepted-export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Workspace Accepted Export */
+        get: operations["workspace_accepted_export_api_v1_observations_workspace_accepted_export_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/observations/workspace/records": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Save Workspace Record */
+        post: operations["save_workspace_record_api_v1_observations_workspace_records_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/observations/workspace/reviews": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Review Workspace */
+        post: operations["review_workspace_api_v1_observations_workspace_reviews_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/health": {
         parameters: {
             query?: never;
@@ -972,6 +1040,149 @@ export interface components {
              */
             warnings: string[];
         };
+        /** ObservationWorkspaceAcceptedExportResponseDto */
+        ObservationWorkspaceAcceptedExportResponseDto: {
+            /** Accepted Export */
+            accepted_export: {
+                [key: string]: unknown;
+            };
+            persistence: components["schemas"]["ObservationWorkspacePersistenceStatusDto"];
+            review: components["schemas"]["ObservationReviewResponseDto"];
+            /**
+             * Warnings
+             * @default []
+             */
+            warnings: string[];
+            /** Workspace Version */
+            workspace_version: string;
+        };
+        /** ObservationWorkspaceEntryDto */
+        ObservationWorkspaceEntryDto: {
+            decision: components["schemas"]["ObservationReviewDecisionDto"];
+            /** Raw Record Id */
+            raw_record_id: string;
+            /** Record */
+            record: {
+                [key: string]: unknown;
+            };
+            summary: components["schemas"]["ObservationWorkspaceRecordSummaryDto"];
+        };
+        /** ObservationWorkspaceListResponseDto */
+        ObservationWorkspaceListResponseDto: {
+            /** Entries */
+            entries: components["schemas"]["ObservationWorkspaceEntryDto"][];
+            persistence: components["schemas"]["ObservationWorkspacePersistenceStatusDto"];
+            /**
+             * Warnings
+             * @default []
+             */
+            warnings: string[];
+            /** Workspace Version */
+            workspace_version: string;
+        };
+        /** ObservationWorkspacePersistenceStatusDto */
+        ObservationWorkspacePersistenceStatusDto: {
+            /** Loaded Decision Count */
+            loaded_decision_count: number;
+            /** Loaded Record Count */
+            loaded_record_count: number;
+            /** Persistence Enabled */
+            persistence_enabled: boolean;
+            /**
+             * Skipped Entry Count
+             * @default 0
+             */
+            skipped_entry_count: number;
+            /** Storage Mode */
+            storage_mode: string;
+            /** Storage Version */
+            storage_version: string;
+            /**
+             * Warnings
+             * @default []
+             */
+            warnings: string[];
+        };
+        /** ObservationWorkspaceRecordSummaryDto */
+        ObservationWorkspaceRecordSummaryDto: {
+            /** Action Id */
+            action_id?: string | null;
+            /** Classification Method */
+            classification_method?: string | null;
+            /** Note */
+            note?: string | null;
+            /** Observed At */
+            observed_at?: string | null;
+            /** Outcome Id */
+            outcome_id?: string | null;
+            /** Raw Record Id */
+            raw_record_id: string;
+            /** Review Status */
+            review_status: string;
+            /** Reviewed At */
+            reviewed_at?: string | null;
+            /** Reviewer Id */
+            reviewer_id?: string | null;
+            /** Source Outcome Set Id */
+            source_outcome_set_id?: string | null;
+            /**
+             * Synthetic
+             * @default false
+             */
+            synthetic: boolean;
+            /**
+             * Unclassified
+             * @default false
+             */
+            unclassified: boolean;
+            /**
+             * Warnings
+             * @default []
+             */
+            warnings: string[];
+        };
+        /** ObservationWorkspaceReviewRequestDto */
+        ObservationWorkspaceReviewRequestDto: {
+            /** Decisions */
+            decisions: components["schemas"]["ObservationReviewDecisionDto"][];
+        };
+        /** ObservationWorkspaceReviewResponseDto */
+        ObservationWorkspaceReviewResponseDto: {
+            /** Entries */
+            entries: components["schemas"]["ObservationWorkspaceEntryDto"][];
+            persistence: components["schemas"]["ObservationWorkspacePersistenceStatusDto"];
+            review: components["schemas"]["ObservationReviewResponseDto"];
+            /**
+             * Warnings
+             * @default []
+             */
+            warnings: string[];
+            /** Workspace Version */
+            workspace_version: string;
+        };
+        /** ObservationWorkspaceSaveRequestDto */
+        ObservationWorkspaceSaveRequestDto: {
+            /** Record */
+            record: {
+                [key: string]: unknown;
+            };
+        };
+        /** ObservationWorkspaceSaveResponseDto */
+        ObservationWorkspaceSaveResponseDto: {
+            entry?: components["schemas"]["ObservationWorkspaceEntryDto"] | null;
+            persistence: components["schemas"]["ObservationWorkspacePersistenceStatusDto"];
+            /** Raw Record Id */
+            raw_record_id?: string | null;
+            /** Status */
+            status: string;
+            /**
+             * Warnings
+             * @default []
+             */
+            warnings: string[];
+            /** Workspace Version */
+            workspace_version: string;
+        };
         /** OutcomeCandidateDto */
         OutcomeCandidateDto: {
             /** Outcome Id */
@@ -1439,6 +1650,112 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ObservationReviewResponseDto"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_workspace_api_v1_observations_workspace_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ObservationWorkspaceListResponseDto"];
+                };
+            };
+        };
+    };
+    workspace_accepted_export_api_v1_observations_workspace_accepted_export_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ObservationWorkspaceAcceptedExportResponseDto"];
+                };
+            };
+        };
+    };
+    save_workspace_record_api_v1_observations_workspace_records_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ObservationWorkspaceSaveRequestDto"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ObservationWorkspaceSaveResponseDto"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    review_workspace_api_v1_observations_workspace_reviews_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ObservationWorkspaceReviewRequestDto"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ObservationWorkspaceReviewResponseDto"];
                 };
             };
             /** @description Validation Error */
