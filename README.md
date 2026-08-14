@@ -50,7 +50,7 @@ tests/             Cross-service integration and acceptance tests
 
 The repository now contains the framework-independent DonnieCraftShell domain engines for the rare Quiver vertical slice plus a FastAPI transport layer for item parsing and Advisor analysis.
 
-The first frontend vertical slice lives in `apps/web`. It is a Next.js + React + TypeScript Craft Advisor workbench that posts Quiver clipboard text and optional manual comparable listing observations to the Advisor API, then renders partial analysis, action candidates, costs, missing requirements, valuation readiness, and raw/risk-adjusted decisions without duplicating backend decision logic. It also includes a manual craft observation recorder and review panel that export accepted Task 15C-compatible empirical observation JSON without changing probability readiness by themselves.
+The first frontend vertical slice lives in `apps/web`. It is a Next.js + React + TypeScript Craft Advisor workbench that posts Quiver clipboard text and optional manual comparable listing observations to the Advisor API, then renders partial analysis, action candidates, costs, missing requirements, valuation readiness, and raw/risk-adjusted decisions without duplicating backend decision logic. It also includes a manual craft observation recorder, review panel, and curated empirical dataset build flow that export accepted Task 15C-compatible evidence and build raw empirical dataset payloads without changing probability readiness by themselves.
 
 Implemented API endpoints:
 

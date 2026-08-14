@@ -820,6 +820,136 @@
         "title": "CraftObservationRecordResponseDto",
         "type": "object"
       },
+      "CuratedObservationBuildRequestDto": {
+        "properties": {
+          "accepted_export": {
+            "additionalProperties": true,
+            "title": "Accepted Export",
+            "type": "object"
+          },
+          "dataset_id_prefix": {
+            "default": "empirical-probability",
+            "title": "Dataset Id Prefix",
+            "type": "string"
+          }
+        },
+        "required": [
+          "accepted_export"
+        ],
+        "title": "CuratedObservationBuildRequestDto",
+        "type": "object"
+      },
+      "CuratedObservationBuildResponseDto": {
+        "properties": {
+          "accepted_record_count": {
+            "title": "Accepted Record Count",
+            "type": "integer"
+          },
+          "build_version": {
+            "title": "Build Version",
+            "type": "string"
+          },
+          "built_at": {
+            "format": "date-time",
+            "title": "Built At",
+            "type": "string"
+          },
+          "dataset_count": {
+            "title": "Dataset Count",
+            "type": "integer"
+          },
+          "dataset_ids": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Dataset Ids",
+            "type": "array"
+          },
+          "datasets": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "title": "Datasets",
+            "type": "array"
+          },
+          "duplicate_record_count": {
+            "title": "Duplicate Record Count",
+            "type": "integer"
+          },
+          "imported_record_count": {
+            "title": "Imported Record Count",
+            "type": "integer"
+          },
+          "invalid_record_count": {
+            "title": "Invalid Record Count",
+            "type": "integer"
+          },
+          "rejected_records": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/CuratedObservationRejectedRecordDto"
+            },
+            "title": "Rejected Records",
+            "type": "array"
+          },
+          "source_record_count": {
+            "title": "Source Record Count",
+            "type": "integer"
+          },
+          "unclassified_record_count": {
+            "title": "Unclassified Record Count",
+            "type": "integer"
+          },
+          "warnings": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Warnings",
+            "type": "array"
+          }
+        },
+        "required": [
+          "build_version",
+          "built_at",
+          "source_record_count",
+          "imported_record_count",
+          "accepted_record_count",
+          "duplicate_record_count",
+          "unclassified_record_count",
+          "invalid_record_count",
+          "dataset_count",
+          "dataset_ids",
+          "datasets"
+        ],
+        "title": "CuratedObservationBuildResponseDto",
+        "type": "object"
+      },
+      "CuratedObservationRejectedRecordDto": {
+        "properties": {
+          "raw_record_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Raw Record Id"
+          },
+          "reason": {
+            "title": "Reason",
+            "type": "string"
+          }
+        },
+        "required": [
+          "reason"
+        ],
+        "title": "CuratedObservationRejectedRecordDto",
+        "type": "object"
+      },
       "EconomicValueDto": {
         "properties": {
           "amount": {
@@ -2427,6 +2557,47 @@
         "summary": "Parse Item",
         "tags": [
           "items"
+        ]
+      }
+    },
+    "/api/v1/observations/build-empirical-datasets": {
+      "post": {
+        "operationId": "build_empirical_datasets_api_v1_observations_build_empirical_datasets_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CuratedObservationBuildRequestDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CuratedObservationBuildResponseDto"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Build Empirical Datasets",
+        "tags": [
+          "observations"
         ]
       }
     },

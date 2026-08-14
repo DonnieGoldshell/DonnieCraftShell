@@ -499,6 +499,29 @@ describe("AdvisorWorkbench", () => {
           },
           warnings: []
         })
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          build_version: "dc-curated-observation-import-v1",
+          built_at: "2026-08-13T10:04:00Z",
+          source_record_count: 1,
+          imported_record_count: 1,
+          accepted_record_count: 1,
+          duplicate_record_count: 0,
+          unclassified_record_count: 0,
+          invalid_record_count: 0,
+          dataset_count: 1,
+          dataset_ids: ["empirical-probability-browser-test"],
+          datasets: [
+            {
+              dataset_id: "empirical-probability-browser-test",
+              observations: [{ outcome_id: "outcome-1", observed_count: 1, raw_record_ids: ["manual-craft-observation-test"] }]
+            }
+          ],
+          rejected_records: [],
+          warnings: ["Dataset build does not activate probability evidence or make Advisor EV-ready by itself."]
+        })
       });
     vi.stubGlobal("fetch", fetchMock);
     const user = userEvent.setup();
@@ -555,6 +578,18 @@ describe("AdvisorWorkbench", () => {
         status: "ACCEPTED",
         note: "reviewed in browser",
         reviewer_id: "browser-observation-review-session"
+      })
+    ]);
+
+    await user.click(screen.getByRole("button", { name: /build empirical datasets/i }));
+    expect(await screen.findByText("Curated Import Build")).toBeInTheDocument();
+    expect(screen.getAllByText(/empirical-probability-browser-test/i).length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText(/does not activate probability evidence/i).length).toBeGreaterThanOrEqual(1);
+    const buildBody = JSON.parse(fetchMock.mock.calls[5][1].body as string);
+    expect(buildBody.accepted_export.observations).toEqual([
+      expect.objectContaining({
+        raw_record_id: "manual-craft-observation-test",
+        classification_method: "MANUAL"
       })
     ]);
   });

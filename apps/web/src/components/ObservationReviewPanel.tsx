@@ -1,6 +1,8 @@
 import { useState } from "react";
 import {
+  buildCuratedObservationDatasets,
   reviewCraftObservations,
+  type CuratedObservationBuildResponse,
   type ObservationReviewDecision,
   type ObservationReviewResponse
 } from "@/api/advisor";
@@ -13,6 +15,8 @@ export function ObservationReviewPanel() {
   const [decisions, setDecisions] = useState<DecisionState>({});
   const [acceptedJson, setAcceptedJson] = useState("");
   const [manifestJson, setManifestJson] = useState("");
+  const [buildResult, setBuildResult] = useState<CuratedObservationBuildResponse | null>(null);
+  const [datasetJson, setDatasetJson] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -20,6 +24,8 @@ export function ObservationReviewPanel() {
     setError(null);
     setAcceptedJson("");
     setManifestJson("");
+    setBuildResult(null);
+    setDatasetJson("");
     try {
       const payload = JSON.parse(batchText);
       setBusy(true);
@@ -54,8 +60,29 @@ export function ObservationReviewPanel() {
       setReview(response);
       setAcceptedJson(JSON.stringify(response.accepted_export, null, 2));
       setManifestJson(JSON.stringify(response.review_manifest, null, 2));
+      setBuildResult(null);
+      setDatasetJson("");
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Unable to export accepted observations.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function buildDatasets() {
+    if (!acceptedJson) return;
+    setError(null);
+    try {
+      const acceptedExport = JSON.parse(acceptedJson);
+      setBusy(true);
+      const response = await buildCuratedObservationDatasets({
+        accepted_export: acceptedExport,
+        dataset_id_prefix: "empirical-probability"
+      });
+      setBuildResult(response);
+      setDatasetJson(JSON.stringify(response.datasets, null, 2));
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Unable to build empirical datasets.");
     } finally {
       setBusy(false);
     }
@@ -146,6 +173,42 @@ export function ObservationReviewPanel() {
               Review manifest
               <textarea readOnly value={manifestJson} rows={8} />
             </label>
+          )}
+          {acceptedJson && (
+            <button className="secondary-button" type="button" onClick={buildDatasets} disabled={busy}>
+              Build Empirical Datasets
+            </button>
+          )}
+          {buildResult && (
+            <div className="evidence-list-block">
+              <div className="section-heading compact-heading">
+                <h3>Curated Import Build</h3>
+                <span className="count">{buildResult.dataset_count}</span>
+              </div>
+              <p className="muted">
+                Building datasets does not activate probability evidence or make Advisor EV-ready by itself.
+              </p>
+              <ul className="evidence-list">
+                <li>
+                  <strong>{buildResult.accepted_record_count} imported</strong>
+                  <small>
+                    {buildResult.duplicate_record_count} duplicate · {buildResult.unclassified_record_count} unclassified ·{" "}
+                    {buildResult.invalid_record_count} invalid
+                  </small>
+                </li>
+                {buildResult.dataset_ids.map((datasetId) => (
+                  <li key={datasetId}>
+                    <strong>{shortId(datasetId)}</strong>
+                    <small>{datasetId}</small>
+                  </li>
+                ))}
+              </ul>
+              {buildResult.warnings.length > 0 && <p className="muted">{buildResult.warnings.join(" ")}</p>}
+              <label className="wide-field">
+                Built empirical datasets
+                <textarea readOnly value={datasetJson} rows={8} />
+              </label>
+            </div>
           )}
         </>
       )}

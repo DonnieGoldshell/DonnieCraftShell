@@ -96,3 +96,29 @@ class ObservationReviewResponseDto(ApiModel):
     accepted_export: dict
     review_manifest: dict
     warnings: list[str] = []
+
+
+class CuratedObservationBuildRequestDto(ApiModel):
+    accepted_export: dict
+    dataset_id_prefix: str = "empirical-probability"
+
+
+class CuratedObservationRejectedRecordDto(ApiModel):
+    raw_record_id: str | None = None
+    reason: str
+
+
+class CuratedObservationBuildResponseDto(ApiModel):
+    build_version: str
+    built_at: datetime
+    source_record_count: int
+    imported_record_count: int
+    accepted_record_count: int
+    duplicate_record_count: int
+    unclassified_record_count: int
+    invalid_record_count: int
+    dataset_count: int
+    dataset_ids: list[str]
+    datasets: list[dict]
+    rejected_records: list[CuratedObservationRejectedRecordDto] = []
+    warnings: list[str] = []
