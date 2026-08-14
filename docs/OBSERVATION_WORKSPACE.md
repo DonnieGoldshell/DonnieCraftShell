@@ -62,6 +62,9 @@ The JSON envelope is transparent and versioned:
 ```
 
 Writes use deterministic JSON ordering and same-directory temporary-file replacement before replacing the workspace file.
+Record and review-decision saves are transactional at the repository boundary: if persistence fails, the in-memory
+mutation is rolled back, the existing workspace file is preserved, and the save returns `REJECTED` with an explicit
+warning rather than reporting `SAVED`.
 
 ## Identity And Conflicts
 

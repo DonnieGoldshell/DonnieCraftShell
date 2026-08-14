@@ -867,6 +867,46 @@ class AdvisorApiTests(unittest.TestCase):
         self.assertEqual(build.status_code, 200)
         self.assertEqual(build.json()["accepted_record_count"], 1)
 
+    def test_observation_workspace_persistence_failure_is_structured_rejection(self):
+        from packages.shared.donniecraftshell_contracts.observation_workspace import FileBackedObservationWorkspaceRepository
+        from services.api.app.dependencies import advisor as advisor_dependencies
+
+        with tempfile.TemporaryDirectory() as directory:
+            workspace = FileBackedObservationWorkspaceRepository(Path(directory) / "workspace.json")
+
+            def fail_persist() -> None:
+                raise OSError("synthetic disk failure")
+
+            workspace._persist = fail_persist
+            self.app.dependency_overrides[advisor_dependencies.get_observation_workspace] = lambda: workspace
+            record = {
+                "raw_record_id": "manual-craft-observation-api-workspace-failure",
+                "action_id": "dc:poe2:craft-action:orb-of-annulment",
+                "source_outcome_set_id": "api-workspace-outcome-set",
+                "item_class": "Quivers",
+                "league": LEAGUE,
+                "game": "Path of Exile 2",
+                "observed_at": AS_OF,
+                "source_id": "api-workspace-test",
+                "source_type": "MANUAL_RESEARCH",
+                "outcome_id": "outcome-1",
+                "unclassified": False,
+                "synthetic": False,
+                "verification_status": "NEEDS_VERIFICATION",
+                "classification_method": "MANUAL",
+                "crafting_dataset_version": CRAFTING_DATASET_ID,
+                "modifier_dataset_version": GAME_DATASET_ID,
+            }
+
+            saved = self.client.post("/api/v1/observations/workspace/records", json={"record": record})
+            listed = self.client.get("/api/v1/observations/workspace")
+
+        self.assertEqual(saved.status_code, 400)
+        self.assertEqual(saved.json()["detail"]["code"], "VALIDATION_ERROR")
+        self.assertTrue(any("persistence failed" in warning for warning in saved.json()["detail"]["warnings"]))
+        self.assertEqual(listed.status_code, 200)
+        self.assertEqual(listed.json()["entries"], [])
+
     def test_observation_workspace_incompatible_version_surfaces_warning(self):
         from packages.shared.donniecraftshell_contracts.observation_workspace import OBSERVATION_WORKSPACE_STORAGE_VERSION
         from services.api.app.dependencies import advisor as advisor_dependencies

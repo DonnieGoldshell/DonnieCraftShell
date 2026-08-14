@@ -78,6 +78,65 @@ class ObservationWorkspaceTests(unittest.TestCase):
             self.assertEqual(entry.decision.status, ObservationReviewStatus.ACCEPTED)
             self.assertEqual(entry.decision.note, "accepted for test")
 
+    def test_failed_record_persistence_rolls_back_memory_and_preserves_file(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "workspace.json"
+            original = recorded_export_record("original-record")
+            attempted = recorded_export_record("attempted-record")
+            workspace = FileBackedObservationWorkspaceRepository(path)
+            workspace.save_record(original)
+            before_file = path.read_text(encoding="utf-8")
+
+            def fail_persist() -> None:
+                raise OSError("synthetic disk failure")
+
+            workspace._persist = fail_persist
+
+            result = workspace.save_record(attempted)
+
+            self.assertEqual(result.status, ObservationWorkspaceSaveStatus.REJECTED)
+            self.assertTrue(any("persistence failed" in warning for warning in result.warnings))
+            self.assertIsNone(workspace.get_entry(attempted["raw_record_id"]))
+            self.assertIsNotNone(workspace.get_entry(original["raw_record_id"]))
+            self.assertEqual(path.read_text(encoding="utf-8"), before_file)
+
+            reloaded = FileBackedObservationWorkspaceRepository(path)
+            self.assertIsNone(reloaded.get_entry(attempted["raw_record_id"]))
+            self.assertIsNotNone(reloaded.get_entry(original["raw_record_id"]))
+
+    def test_failed_decision_persistence_rolls_back_memory_and_preserves_file(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "workspace.json"
+            record = recorded_export_record()
+            workspace = FileBackedObservationWorkspaceRepository(path)
+            workspace.save_record(record)
+            before_file = path.read_text(encoding="utf-8")
+            before_entry = workspace.get_entry(record["raw_record_id"])
+
+            def fail_persist() -> None:
+                raise OSError("synthetic disk failure")
+
+            workspace._persist = fail_persist
+
+            result = workspace.save_decision(
+                ObservationReviewDecision(
+                    raw_record_id=record["raw_record_id"],
+                    status=ObservationReviewStatus.ACCEPTED,
+                    reviewed_at=datetime(2026, 8, 14, 12, 0, tzinfo=timezone.utc),
+                    note="attempted acceptance",
+                    reviewer_id="unit-test-reviewer",
+                )
+            )
+
+            after_entry = workspace.get_entry(record["raw_record_id"])
+            self.assertEqual(result.status, ObservationWorkspaceSaveStatus.REJECTED)
+            self.assertTrue(any("persistence failed" in warning for warning in result.warnings))
+            self.assertEqual(after_entry.decision, before_entry.decision)
+            self.assertEqual(path.read_text(encoding="utf-8"), before_file)
+
+            reloaded = FileBackedObservationWorkspaceRepository(path)
+            self.assertEqual(reloaded.get_entry(record["raw_record_id"]).decision, before_entry.decision)
+
     def test_pending_and_rejected_records_are_excluded_from_accepted_export_and_dataset_build(self):
         workspace = ObservationWorkspaceRepository()
         accepted = recorded_export_record()

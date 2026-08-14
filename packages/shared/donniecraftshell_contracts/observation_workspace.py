@@ -190,15 +190,34 @@ class FileBackedObservationWorkspaceRepository(ObservationWorkspaceRepository):
         self._loading = False
 
     def save_record(self, record: dict[str, Any]) -> ObservationWorkspaceSaveResult:
+        before = self._snapshot_state()
         result = super().save_record(record)
         if result.status == ObservationWorkspaceSaveStatus.SAVED and not self._loading:
-            self._persist()
+            try:
+                self._persist()
+            except Exception as exc:
+                self._restore_state(before)
+                return ObservationWorkspaceSaveResult(
+                    status=ObservationWorkspaceSaveStatus.REJECTED,
+                    raw_record_id=result.raw_record_id,
+                    warnings=(f"Observation workspace persistence failed; record was not saved: {exc}",),
+                )
         return result
 
     def save_decision(self, decision: ObservationReviewDecision) -> ObservationWorkspaceSaveResult:
+        before = self._snapshot_state()
         result = super().save_decision(decision)
         if result.status == ObservationWorkspaceSaveStatus.SAVED and not self._loading:
-            self._persist()
+            try:
+                self._persist()
+            except Exception as exc:
+                self._restore_state(before)
+                return ObservationWorkspaceSaveResult(
+                    status=ObservationWorkspaceSaveStatus.REJECTED,
+                    raw_record_id=decision.raw_record_id,
+                    entry=self.get_entry(decision.raw_record_id),
+                    warnings=(f"Observation workspace persistence failed; review decision was not saved: {exc}",),
+                )
         return result
 
     def persistence_status(self) -> ObservationWorkspacePersistenceStatus:
@@ -296,6 +315,17 @@ class FileBackedObservationWorkspaceRepository(ObservationWorkspaceRepository):
     def _skip(self, warning: str) -> None:
         self._skipped_entry_count += 1
         self._load_warnings.append(warning)
+
+    def _snapshot_state(
+        self,
+    ) -> tuple[dict[str, dict[str, Any]], dict[str, str], dict[str, ObservationReviewDecision]]:
+        return (deepcopy(self._records), dict(self._fingerprints), dict(self._decisions))
+
+    def _restore_state(
+        self,
+        snapshot: tuple[dict[str, dict[str, Any]], dict[str, str], dict[str, ObservationReviewDecision]],
+    ) -> None:
+        self._records, self._fingerprints, self._decisions = snapshot
 
 
 def _raw_record_id(record: dict[str, Any]) -> str:
