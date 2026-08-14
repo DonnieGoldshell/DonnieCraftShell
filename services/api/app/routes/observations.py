@@ -172,6 +172,7 @@ def review_observations(request: ObservationReviewRequestDto) -> ObservationRevi
                 raw_record_id=record.raw_record_id,
                 status=record.decision.status.value,
                 duplicate=record.duplicate,
+                valid_for_import=record.valid_for_import,
                 exported=record.accepted_for_export,
                 classification_method=record.original_record.get("classification_method"),
                 outcome_id=record.original_record.get("outcome_id"),

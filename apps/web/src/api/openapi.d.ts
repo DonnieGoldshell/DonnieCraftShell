@@ -717,6 +717,8 @@ export interface components {
              * @default false
              */
             unclassified: boolean;
+            /** Valid For Import */
+            valid_for_import: boolean;
             /**
              * Warnings
              * @default []

@@ -455,6 +455,32 @@ class AdvisorApiTests(unittest.TestCase):
         result = aggregate_observations(ObservationImportBatch(imported))
         self.assertEqual(result.accepted_record_count, 1)
 
+    def test_observation_review_endpoint_surfaces_invalid_records_and_absent_decisions(self):
+        response = self.client.post(
+            "/api/v1/observations/review",
+            json={
+                "observations": [{"raw_record_id": "manual-craft-observation-api-malformed"}],
+                "decisions": [
+                    {
+                        "raw_record_id": "manual-craft-observation-api-malformed",
+                        "status": "ACCEPTED",
+                    },
+                    {
+                        "raw_record_id": "manual-craft-observation-api-absent",
+                        "status": "REJECTED",
+                    },
+                ],
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        body = response.json()
+        self.assertEqual(body["accepted_export"]["observations"], [])
+        self.assertFalse(body["records"][0]["valid_for_import"])
+        self.assertFalse(body["records"][0]["exported"])
+        self.assertTrue(any("Task 15C import validation failed" in warning for warning in body["records"][0]["warnings"]))
+        self.assertTrue(any("manual-craft-observation-api-absent" in warning for warning in body["warnings"]))
+
     def test_wrong_crafting_dataset_version_is_rejected(self):
         response = self.client.post(
             "/api/v1/observations/record",

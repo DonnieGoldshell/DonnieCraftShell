@@ -13,6 +13,8 @@ from datetime import datetime, timezone
 from enum import Enum
 from typing import Any, Iterable
 
+from .empirical_observation_import import empirical_observation_from_dict
+
 
 OBSERVATION_REVIEW_VERSION = "dc-observation-review-v1"
 
@@ -44,11 +46,12 @@ class CuratedObservationRecord:
     original_record: dict[str, Any]
     decision: ObservationReviewDecision
     duplicate: bool = False
+    valid_for_import: bool = True
     warnings: tuple[str, ...] = ()
 
     @property
     def accepted_for_export(self) -> bool:
-        return self.decision.status == ObservationReviewStatus.ACCEPTED and not self.duplicate
+        return self.decision.status == ObservationReviewStatus.ACCEPTED and not self.duplicate and self.valid_for_import
 
 
 @dataclass(frozen=True)
@@ -118,6 +121,11 @@ def review_observation_batches(
     for index, record in enumerate(records, start=1):
         raw_record_id = str(record.get("raw_record_id", ""))
         record_warnings = list(_record_warnings(record, index))
+        valid_for_import = True
+        validation_error = _import_validation_error(record)
+        if validation_error:
+            valid_for_import = False
+            record_warnings.append(f"Task 15C import validation failed: {validation_error}")
         duplicate = False
         if raw_record_id:
             duplicate = raw_record_id in seen_ids
@@ -135,11 +143,23 @@ def review_observation_batches(
                 original_record=deepcopy(record),
                 decision=decision,
                 duplicate=duplicate,
+                valid_for_import=valid_for_import,
                 warnings=tuple(record_warnings),
             )
         )
 
+    absent_decision_ids = sorted(set(decision_by_id) - {record.raw_record_id for record in curated})
+    for raw_record_id in absent_decision_ids:
+        warnings.append(f"Review decision references absent raw_record_id {raw_record_id}.")
+
     accepted_records = tuple(record for record in curated if record.accepted_for_export)
+    invalid_accepted = tuple(
+        record
+        for record in curated
+        if record.decision.status == ObservationReviewStatus.ACCEPTED and not record.valid_for_import
+    )
+    for record in invalid_accepted:
+        warnings.append(f"Accepted decision for {record.raw_record_id} was not exported because Task 15C validation failed.")
     warnings.extend(_context_warnings(accepted_records))
     accepted_export = {
         "review_version": OBSERVATION_REVIEW_VERSION,
@@ -185,6 +205,14 @@ def _record_warnings(record: dict[str, Any], index: int) -> tuple[str, ...]:
     return tuple(warnings)
 
 
+def _import_validation_error(record: dict[str, Any]) -> str | None:
+    try:
+        empirical_observation_from_dict(record)
+    except Exception as exc:
+        return str(exc)
+    return None
+
+
 def _context_warnings(records: Iterable[CuratedObservationRecord]) -> tuple[str, ...]:
     accepted = tuple(records)
     warnings: list[str] = []
@@ -228,6 +256,7 @@ def _manifest_record(record: CuratedObservationRecord) -> dict[str, Any]:
         "reviewer_id": record.decision.reviewer_id,
         "note": record.decision.note,
         "duplicate": record.duplicate,
+        "valid_for_import": record.valid_for_import,
         "exported": record.accepted_for_export,
         "classification_method": original.get("classification_method"),
         "outcome_id": original.get("outcome_id"),

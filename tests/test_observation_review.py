@@ -133,6 +133,33 @@ class ObservationReviewTests(unittest.TestCase):
         self.assertEqual(result.manifest.duplicate_count, 1)
         self.assertTrue(any("Duplicate raw_record_id" in warning for warning in result.warnings))
 
+    def test_invalid_accepted_record_is_not_exported_and_validation_is_manifested(self):
+        malformed = {"raw_record_id": "manual-craft-observation-malformed"}
+        result = review_observation_batches(
+            ({"observations": [malformed]},),
+            (ObservationReviewDecision(malformed["raw_record_id"], ObservationReviewStatus.ACCEPTED),),
+            reviewed_at=REVIEWED_AT,
+        )
+
+        self.assertEqual(result.accepted_export["observations"], [])
+        self.assertFalse(result.records[0].valid_for_import)
+        self.assertTrue(any("Task 15C import validation failed" in warning for warning in result.records[0].warnings))
+        self.assertTrue(any("was not exported" in warning for warning in result.warnings))
+        manifest_record = result.manifest.to_dict()["records"][0]
+        self.assertEqual(manifest_record["status"], "ACCEPTED")
+        self.assertFalse(manifest_record["valid_for_import"])
+        self.assertFalse(manifest_record["exported"])
+
+    def test_absent_review_decision_is_surfaced_as_warning(self):
+        result = review_observation_batches(
+            ({"observations": [observation()]},),
+            (ObservationReviewDecision("manual-craft-observation-absent", ObservationReviewStatus.ACCEPTED),),
+            reviewed_at=REVIEWED_AT,
+        )
+
+        self.assertTrue(any("manual-craft-observation-absent" in warning for warning in result.warnings))
+        self.assertEqual(result.accepted_export["observations"], [])
+
     def test_synthetic_and_non_synthetic_mix_is_warned_not_silent(self):
         synthetic = observation("manual-craft-observation-synthetic", synthetic=True)
         real = observation("manual-craft-observation-real", synthetic=False)

@@ -1652,6 +1652,10 @@
             "title": "Unclassified",
             "type": "boolean"
           },
+          "valid_for_import": {
+            "title": "Valid For Import",
+            "type": "boolean"
+          },
           "warnings": {
             "default": [],
             "items": {
@@ -1665,6 +1669,7 @@
           "raw_record_id",
           "status",
           "duplicate",
+          "valid_for_import",
           "exported"
         ],
         "title": "ObservationReviewRecordDto",

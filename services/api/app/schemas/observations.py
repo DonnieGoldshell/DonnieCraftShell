@@ -79,6 +79,7 @@ class ObservationReviewRecordDto(ApiModel):
     raw_record_id: str
     status: str
     duplicate: bool
+    valid_for_import: bool
     exported: bool
     classification_method: str | None = None
     outcome_id: str | None = None
