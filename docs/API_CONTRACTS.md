@@ -94,6 +94,16 @@ candidate data is not trusted as evidence for `AUTOMATIC` results. Exported
 source outcome-set and dataset-version provenance must be backend-derived or
 strictly validated against configured backend datasets.
 
+Task 16B implements `POST /api/v1/observations/review` for the review and
+curation gate documented in [OBSERVATION_REVIEW.md](OBSERVATION_REVIEW.md).
+The endpoint loads one or more recorder export batches, returns every record as
+`PENDING` unless an explicit review decision is supplied, and emits both an
+accepted-only Task 15C-compatible export and a separate review manifest. Review
+metadata is not injected into accepted observation records, rejected/pending
+records are not exported for empirical counts, duplicates are surfaced and not
+exported twice, and mixed synthetic/non-synthetic or context-mismatched batches
+produce warnings instead of silent probability evidence.
+
 See [API_DEVELOPMENT.md](API_DEVELOPMENT.md) for FastAPI/Pydantic version assumptions, local startup, configuration, and future OpenAPI-to-TypeScript generation.
 
 Task 14A adds the first frontend consumer for `POST /api/v1/advisor/analyze`. The web app uses generated OpenAPI TypeScript types under `apps/web/src/api/` and must not manually duplicate response DTOs or reimplement Advisor logic. The UI treats partial analysis, unsupported items, and `NO_RECOMMENDATION` as successful transport states rather than HTTP failures.

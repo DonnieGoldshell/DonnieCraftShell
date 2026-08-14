@@ -39,6 +39,7 @@ apps/web
 - **Affix Capacity Resolver**: derives open explicit prefix/suffix slots from parsed modifiers and source-backed capacity definitions.
 - **Craft Outcome Engine**: enumerates mechanically possible hypothetical item-state deltas without probability, valuation, or recommendations.
 - **Probability Evidence Layer**: attaches exact, derived, empirical, or unknown probabilities to outcome states only when provenance supports them. Task 15A adds an offline empirical observation pipeline; current real actions remain `UNKNOWN` unless context-compatible evidence is explicitly supplied.
+- **Observation Review Layer**: curates manual recorder exports before empirical import. Human decisions remain separate from raw observation records; only accepted non-duplicate records proceed to Task 15C-compatible imports.
 - **Scenario Analysis Layer**: composes action candidates, outcome sets, probabilities, and valuations into descriptive readiness results without EV or ranking.
 - **Expected Value Engine**: calculates EV only from `EV_READY` scenarios with complete probability and valuation inputs; it does not rank or recommend.
 - **Advisor Decision Engine**: compares SELL NOW with EV-ready craft candidates and may return `NO_RECOMMENDATION`; scenario-only actions remain non-rankable.
@@ -67,6 +68,13 @@ The recorder captures before/after clipboard text, item fingerprints,
 classification method, and Task 15C-compatible raw records. It is evidence
 collection only; probability, EV, valuation, and Advisor readiness remain owned
 by their existing engines.
+
+Task 16B adds [OBSERVATION_REVIEW.md](OBSERVATION_REVIEW.md). Recorder exports
+load as pending review records; accepted/rejected/pending decisions are audited
+in a manifest, and only accepted non-duplicate observations are exported in the
+original importer-compatible shape. Automatic classification still requires
+human acceptance, unclassified observations can remain unclassified, and mixed
+synthetic/context batches surface warnings.
 
 ## Item-Class Modularity
 

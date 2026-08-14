@@ -19,6 +19,7 @@ import { DecisionPanel } from "./DecisionPanel";
 import { ItemSummary } from "./ItemSummary";
 import { ManualValuationPanel } from "./ManualValuationPanel";
 import { MissingRequirements } from "./MissingRequirements";
+import { ObservationReviewPanel } from "./ObservationReviewPanel";
 import { StatusBadge } from "./StatusBadge";
 
 const PLACEHOLDER = `Item Class: Quivers
@@ -136,6 +137,7 @@ export function AdvisorWorkbench() {
                 craftingDatasetVersion={craftingDataset}
                 modifierDatasetVersion={gameDataDataset}
               />
+              <ObservationReviewPanel />
               <MissingRequirements requirements={analysis.missing_requirements} warnings={analysis.warnings} />
             </>
           ) : (

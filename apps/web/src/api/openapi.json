@@ -1528,6 +1528,223 @@
         "title": "ObservationClassificationDto",
         "type": "object"
       },
+      "ObservationReviewDecisionDto": {
+        "properties": {
+          "note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          },
+          "raw_record_id": {
+            "title": "Raw Record Id",
+            "type": "string"
+          },
+          "reviewed_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reviewed At"
+          },
+          "reviewer_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reviewer Id"
+          },
+          "status": {
+            "default": "PENDING",
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "raw_record_id"
+        ],
+        "title": "ObservationReviewDecisionDto",
+        "type": "object"
+      },
+      "ObservationReviewRecordDto": {
+        "properties": {
+          "action_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Action Id"
+          },
+          "classification_method": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Classification Method"
+          },
+          "duplicate": {
+            "title": "Duplicate",
+            "type": "boolean"
+          },
+          "exported": {
+            "title": "Exported",
+            "type": "boolean"
+          },
+          "outcome_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Outcome Id"
+          },
+          "raw_record_id": {
+            "title": "Raw Record Id",
+            "type": "string"
+          },
+          "source_outcome_set_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Outcome Set Id"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "synthetic": {
+            "default": false,
+            "title": "Synthetic",
+            "type": "boolean"
+          },
+          "unclassified": {
+            "default": false,
+            "title": "Unclassified",
+            "type": "boolean"
+          },
+          "valid_for_import": {
+            "title": "Valid For Import",
+            "type": "boolean"
+          },
+          "warnings": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Warnings",
+            "type": "array"
+          }
+        },
+        "required": [
+          "raw_record_id",
+          "status",
+          "duplicate",
+          "valid_for_import",
+          "exported"
+        ],
+        "title": "ObservationReviewRecordDto",
+        "type": "object"
+      },
+      "ObservationReviewRequestDto": {
+        "properties": {
+          "batches": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "title": "Batches",
+            "type": "array"
+          },
+          "decisions": {
+            "items": {
+              "$ref": "#/components/schemas/ObservationReviewDecisionDto"
+            },
+            "title": "Decisions",
+            "type": "array"
+          },
+          "observations": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "title": "Observations",
+            "type": "array"
+          }
+        },
+        "title": "ObservationReviewRequestDto",
+        "type": "object"
+      },
+      "ObservationReviewResponseDto": {
+        "properties": {
+          "accepted_export": {
+            "additionalProperties": true,
+            "title": "Accepted Export",
+            "type": "object"
+          },
+          "records": {
+            "items": {
+              "$ref": "#/components/schemas/ObservationReviewRecordDto"
+            },
+            "title": "Records",
+            "type": "array"
+          },
+          "review_manifest": {
+            "additionalProperties": true,
+            "title": "Review Manifest",
+            "type": "object"
+          },
+          "review_version": {
+            "title": "Review Version",
+            "type": "string"
+          },
+          "warnings": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Warnings",
+            "type": "array"
+          }
+        },
+        "required": [
+          "review_version",
+          "records",
+          "accepted_export",
+          "review_manifest"
+        ],
+        "title": "ObservationReviewResponseDto",
+        "type": "object"
+      },
       "OutcomeCandidateDto": {
         "properties": {
           "outcome_id": {
@@ -2290,6 +2507,47 @@
           }
         },
         "summary": "Record Observation",
+        "tags": [
+          "observations"
+        ]
+      }
+    },
+    "/api/v1/observations/review": {
+      "post": {
+        "operationId": "review_observations_api_v1_observations_review_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ObservationReviewRequestDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ObservationReviewResponseDto"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Review Observations",
         "tags": [
           "observations"
         ]
