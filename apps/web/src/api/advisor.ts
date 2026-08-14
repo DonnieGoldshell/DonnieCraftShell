@@ -19,6 +19,13 @@ export type CraftObservationExportResponse = components["schemas"]["CraftObserva
 export type ObservationReviewDecision = components["schemas"]["ObservationReviewDecisionDto"];
 export type ObservationReviewRequest = components["schemas"]["ObservationReviewRequestDto"];
 export type ObservationReviewResponse = components["schemas"]["ObservationReviewResponseDto"];
+export type ObservationWorkspaceAcceptedExportResponse =
+  components["schemas"]["ObservationWorkspaceAcceptedExportResponseDto"];
+export type ObservationWorkspaceListResponse = components["schemas"]["ObservationWorkspaceListResponseDto"];
+export type ObservationWorkspaceReviewRequest = components["schemas"]["ObservationWorkspaceReviewRequestDto"];
+export type ObservationWorkspaceReviewResponse = components["schemas"]["ObservationWorkspaceReviewResponseDto"];
+export type ObservationWorkspaceSaveRequest = components["schemas"]["ObservationWorkspaceSaveRequestDto"];
+export type ObservationWorkspaceSaveResponse = components["schemas"]["ObservationWorkspaceSaveResponseDto"];
 export type CuratedObservationBuildRequest = components["schemas"]["CuratedObservationBuildRequestDto"];
 export type CuratedObservationBuildResponse = components["schemas"]["CuratedObservationBuildResponseDto"];
 export type EmpiricalDatasetRegisterRequest = components["schemas"]["EmpiricalDatasetRegisterRequestDto"];
@@ -128,6 +135,76 @@ export async function reviewCraftObservations(request: ObservationReviewRequest)
   }
 
   return response.json() as Promise<ObservationReviewResponse>;
+}
+
+export async function saveObservationWorkspaceRecord(
+  request: ObservationWorkspaceSaveRequest
+): Promise<ObservationWorkspaceSaveResponse> {
+  const response = await fetch(`${API_BASE_URL}/api/v1/observations/workspace/records`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(request)
+  });
+
+  if (!response.ok) {
+    let message = `Observation workspace save API returned ${response.status}`;
+    try {
+      const payload = await response.json();
+      message = payload?.detail?.message ?? payload?.detail ?? message;
+    } catch {
+      // Keep the status-based message.
+    }
+    throw new Error(message);
+  }
+
+  return response.json() as Promise<ObservationWorkspaceSaveResponse>;
+}
+
+export async function listObservationWorkspace(): Promise<ObservationWorkspaceListResponse> {
+  const response = await fetch(`${API_BASE_URL}/api/v1/observations/workspace`);
+
+  if (!response.ok) {
+    throw new Error(`Observation workspace list API returned ${response.status}`);
+  }
+
+  return response.json() as Promise<ObservationWorkspaceListResponse>;
+}
+
+export async function reviewObservationWorkspace(
+  request: ObservationWorkspaceReviewRequest
+): Promise<ObservationWorkspaceReviewResponse> {
+  const response = await fetch(`${API_BASE_URL}/api/v1/observations/workspace/reviews`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(request)
+  });
+
+  if (!response.ok) {
+    let message = `Observation workspace review API returned ${response.status}`;
+    try {
+      const payload = await response.json();
+      message = payload?.detail?.message ?? payload?.detail ?? message;
+    } catch {
+      // Keep the status-based message.
+    }
+    throw new Error(message);
+  }
+
+  return response.json() as Promise<ObservationWorkspaceReviewResponse>;
+}
+
+export async function exportObservationWorkspaceAccepted(): Promise<ObservationWorkspaceAcceptedExportResponse> {
+  const response = await fetch(`${API_BASE_URL}/api/v1/observations/workspace/accepted-export`);
+
+  if (!response.ok) {
+    throw new Error(`Observation workspace accepted export API returned ${response.status}`);
+  }
+
+  return response.json() as Promise<ObservationWorkspaceAcceptedExportResponse>;
 }
 
 export async function buildCuratedObservationDatasets(

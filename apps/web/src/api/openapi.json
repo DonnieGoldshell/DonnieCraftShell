@@ -2157,6 +2157,390 @@
         "title": "ObservationReviewResponseDto",
         "type": "object"
       },
+      "ObservationWorkspaceAcceptedExportResponseDto": {
+        "properties": {
+          "accepted_export": {
+            "additionalProperties": true,
+            "title": "Accepted Export",
+            "type": "object"
+          },
+          "persistence": {
+            "$ref": "#/components/schemas/ObservationWorkspacePersistenceStatusDto"
+          },
+          "review": {
+            "$ref": "#/components/schemas/ObservationReviewResponseDto"
+          },
+          "warnings": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Warnings",
+            "type": "array"
+          },
+          "workspace_version": {
+            "title": "Workspace Version",
+            "type": "string"
+          }
+        },
+        "required": [
+          "workspace_version",
+          "review",
+          "accepted_export",
+          "persistence"
+        ],
+        "title": "ObservationWorkspaceAcceptedExportResponseDto",
+        "type": "object"
+      },
+      "ObservationWorkspaceEntryDto": {
+        "properties": {
+          "decision": {
+            "$ref": "#/components/schemas/ObservationReviewDecisionDto"
+          },
+          "raw_record_id": {
+            "title": "Raw Record Id",
+            "type": "string"
+          },
+          "record": {
+            "additionalProperties": true,
+            "title": "Record",
+            "type": "object"
+          },
+          "summary": {
+            "$ref": "#/components/schemas/ObservationWorkspaceRecordSummaryDto"
+          }
+        },
+        "required": [
+          "raw_record_id",
+          "record",
+          "decision",
+          "summary"
+        ],
+        "title": "ObservationWorkspaceEntryDto",
+        "type": "object"
+      },
+      "ObservationWorkspaceListResponseDto": {
+        "properties": {
+          "entries": {
+            "items": {
+              "$ref": "#/components/schemas/ObservationWorkspaceEntryDto"
+            },
+            "title": "Entries",
+            "type": "array"
+          },
+          "persistence": {
+            "$ref": "#/components/schemas/ObservationWorkspacePersistenceStatusDto"
+          },
+          "warnings": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Warnings",
+            "type": "array"
+          },
+          "workspace_version": {
+            "title": "Workspace Version",
+            "type": "string"
+          }
+        },
+        "required": [
+          "workspace_version",
+          "entries",
+          "persistence"
+        ],
+        "title": "ObservationWorkspaceListResponseDto",
+        "type": "object"
+      },
+      "ObservationWorkspacePersistenceStatusDto": {
+        "properties": {
+          "loaded_decision_count": {
+            "title": "Loaded Decision Count",
+            "type": "integer"
+          },
+          "loaded_record_count": {
+            "title": "Loaded Record Count",
+            "type": "integer"
+          },
+          "persistence_enabled": {
+            "title": "Persistence Enabled",
+            "type": "boolean"
+          },
+          "skipped_entry_count": {
+            "default": 0,
+            "title": "Skipped Entry Count",
+            "type": "integer"
+          },
+          "storage_mode": {
+            "title": "Storage Mode",
+            "type": "string"
+          },
+          "storage_version": {
+            "title": "Storage Version",
+            "type": "string"
+          },
+          "warnings": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Warnings",
+            "type": "array"
+          }
+        },
+        "required": [
+          "storage_version",
+          "storage_mode",
+          "persistence_enabled",
+          "loaded_record_count",
+          "loaded_decision_count"
+        ],
+        "title": "ObservationWorkspacePersistenceStatusDto",
+        "type": "object"
+      },
+      "ObservationWorkspaceRecordSummaryDto": {
+        "properties": {
+          "action_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Action Id"
+          },
+          "classification_method": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Classification Method"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          },
+          "observed_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Observed At"
+          },
+          "outcome_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Outcome Id"
+          },
+          "raw_record_id": {
+            "title": "Raw Record Id",
+            "type": "string"
+          },
+          "review_status": {
+            "title": "Review Status",
+            "type": "string"
+          },
+          "reviewed_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reviewed At"
+          },
+          "reviewer_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reviewer Id"
+          },
+          "source_outcome_set_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Outcome Set Id"
+          },
+          "synthetic": {
+            "default": false,
+            "title": "Synthetic",
+            "type": "boolean"
+          },
+          "unclassified": {
+            "default": false,
+            "title": "Unclassified",
+            "type": "boolean"
+          },
+          "warnings": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Warnings",
+            "type": "array"
+          }
+        },
+        "required": [
+          "raw_record_id",
+          "review_status"
+        ],
+        "title": "ObservationWorkspaceRecordSummaryDto",
+        "type": "object"
+      },
+      "ObservationWorkspaceReviewRequestDto": {
+        "properties": {
+          "decisions": {
+            "items": {
+              "$ref": "#/components/schemas/ObservationReviewDecisionDto"
+            },
+            "title": "Decisions",
+            "type": "array"
+          }
+        },
+        "required": [
+          "decisions"
+        ],
+        "title": "ObservationWorkspaceReviewRequestDto",
+        "type": "object"
+      },
+      "ObservationWorkspaceReviewResponseDto": {
+        "properties": {
+          "entries": {
+            "items": {
+              "$ref": "#/components/schemas/ObservationWorkspaceEntryDto"
+            },
+            "title": "Entries",
+            "type": "array"
+          },
+          "persistence": {
+            "$ref": "#/components/schemas/ObservationWorkspacePersistenceStatusDto"
+          },
+          "review": {
+            "$ref": "#/components/schemas/ObservationReviewResponseDto"
+          },
+          "warnings": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Warnings",
+            "type": "array"
+          },
+          "workspace_version": {
+            "title": "Workspace Version",
+            "type": "string"
+          }
+        },
+        "required": [
+          "workspace_version",
+          "entries",
+          "review",
+          "persistence"
+        ],
+        "title": "ObservationWorkspaceReviewResponseDto",
+        "type": "object"
+      },
+      "ObservationWorkspaceSaveRequestDto": {
+        "properties": {
+          "record": {
+            "additionalProperties": true,
+            "title": "Record",
+            "type": "object"
+          }
+        },
+        "required": [
+          "record"
+        ],
+        "title": "ObservationWorkspaceSaveRequestDto",
+        "type": "object"
+      },
+      "ObservationWorkspaceSaveResponseDto": {
+        "properties": {
+          "entry": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ObservationWorkspaceEntryDto"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "persistence": {
+            "$ref": "#/components/schemas/ObservationWorkspacePersistenceStatusDto"
+          },
+          "raw_record_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Raw Record Id"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "warnings": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Warnings",
+            "type": "array"
+          },
+          "workspace_version": {
+            "title": "Workspace Version",
+            "type": "string"
+          }
+        },
+        "required": [
+          "workspace_version",
+          "status",
+          "persistence"
+        ],
+        "title": "ObservationWorkspaceSaveResponseDto",
+        "type": "object"
+      },
       "OutcomeCandidateDto": {
         "properties": {
           "outcome_id": {
@@ -3063,6 +3447,130 @@
           }
         },
         "summary": "Review Observations",
+        "tags": [
+          "observations"
+        ]
+      }
+    },
+    "/api/v1/observations/workspace": {
+      "get": {
+        "operationId": "list_workspace_api_v1_observations_workspace_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ObservationWorkspaceListResponseDto"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "List Workspace",
+        "tags": [
+          "observations"
+        ]
+      }
+    },
+    "/api/v1/observations/workspace/accepted-export": {
+      "get": {
+        "operationId": "workspace_accepted_export_api_v1_observations_workspace_accepted_export_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ObservationWorkspaceAcceptedExportResponseDto"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Workspace Accepted Export",
+        "tags": [
+          "observations"
+        ]
+      }
+    },
+    "/api/v1/observations/workspace/records": {
+      "post": {
+        "operationId": "save_workspace_record_api_v1_observations_workspace_records_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ObservationWorkspaceSaveRequestDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ObservationWorkspaceSaveResponseDto"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Save Workspace Record",
+        "tags": [
+          "observations"
+        ]
+      }
+    },
+    "/api/v1/observations/workspace/reviews": {
+      "post": {
+        "operationId": "review_workspace_api_v1_observations_workspace_reviews_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ObservationWorkspaceReviewRequestDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ObservationWorkspaceReviewResponseDto"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Review Workspace",
         "tags": [
           "observations"
         ]

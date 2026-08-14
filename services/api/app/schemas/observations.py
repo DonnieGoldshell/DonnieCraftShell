@@ -98,6 +98,79 @@ class ObservationReviewResponseDto(ApiModel):
     warnings: list[str] = []
 
 
+class ObservationWorkspacePersistenceStatusDto(ApiModel):
+    storage_version: str
+    storage_mode: str
+    persistence_enabled: bool
+    loaded_record_count: int
+    loaded_decision_count: int
+    skipped_entry_count: int = 0
+    warnings: list[str] = []
+
+
+class ObservationWorkspaceRecordSummaryDto(ApiModel):
+    raw_record_id: str
+    review_status: str
+    action_id: str | None = None
+    source_outcome_set_id: str | None = None
+    outcome_id: str | None = None
+    unclassified: bool = False
+    synthetic: bool = False
+    observed_at: str | None = None
+    classification_method: str | None = None
+    reviewer_id: str | None = None
+    reviewed_at: datetime | None = None
+    note: str | None = None
+    warnings: list[str] = []
+
+
+class ObservationWorkspaceEntryDto(ApiModel):
+    raw_record_id: str
+    record: dict
+    decision: ObservationReviewDecisionDto
+    summary: ObservationWorkspaceRecordSummaryDto
+
+
+class ObservationWorkspaceSaveRequestDto(ApiModel):
+    record: dict
+
+
+class ObservationWorkspaceSaveResponseDto(ApiModel):
+    workspace_version: str
+    status: str
+    raw_record_id: str | None = None
+    entry: ObservationWorkspaceEntryDto | None = None
+    persistence: ObservationWorkspacePersistenceStatusDto
+    warnings: list[str] = []
+
+
+class ObservationWorkspaceListResponseDto(ApiModel):
+    workspace_version: str
+    entries: list[ObservationWorkspaceEntryDto]
+    persistence: ObservationWorkspacePersistenceStatusDto
+    warnings: list[str] = []
+
+
+class ObservationWorkspaceReviewRequestDto(ApiModel):
+    decisions: list[ObservationReviewDecisionDto]
+
+
+class ObservationWorkspaceReviewResponseDto(ApiModel):
+    workspace_version: str
+    entries: list[ObservationWorkspaceEntryDto]
+    review: ObservationReviewResponseDto
+    persistence: ObservationWorkspacePersistenceStatusDto
+    warnings: list[str] = []
+
+
+class ObservationWorkspaceAcceptedExportResponseDto(ApiModel):
+    workspace_version: str
+    review: ObservationReviewResponseDto
+    accepted_export: dict
+    persistence: ObservationWorkspacePersistenceStatusDto
+    warnings: list[str] = []
+
+
 class CuratedObservationBuildRequestDto(ApiModel):
     accepted_export: dict
     dataset_id_prefix: str = "empirical-probability"

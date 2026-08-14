@@ -28,9 +28,18 @@ from packages.shared.donniecraftshell_contracts.observation_review import (
     ObservationReviewStatus,
     review_observation_batches,
 )
+from packages.shared.donniecraftshell_contracts.observation_workspace import (
+    OBSERVATION_WORKSPACE_VERSION,
+    ObservationWorkspaceRepository,
+    ObservationWorkspaceSaveStatus,
+)
 from packages.shared.donniecraftshell_contracts.parser import parse_clipboard_item
 
-from services.api.app.dependencies.advisor import get_advisor_orchestrator, get_empirical_probability_registry
+from services.api.app.dependencies.advisor import (
+    get_advisor_orchestrator,
+    get_empirical_probability_registry,
+    get_observation_workspace,
+)
 from services.api.app.schemas.observations import (
     CraftObservationExportRequestDto,
     CraftObservationExportResponseDto,
@@ -48,6 +57,16 @@ from services.api.app.schemas.observations import (
     ObservationReviewRequestDto,
     ObservationReviewResponseDto,
     ObservationClassificationDto,
+    ObservationReviewDecisionDto,
+    ObservationWorkspaceAcceptedExportResponseDto,
+    ObservationWorkspaceEntryDto,
+    ObservationWorkspaceListResponseDto,
+    ObservationWorkspacePersistenceStatusDto,
+    ObservationWorkspaceRecordSummaryDto,
+    ObservationWorkspaceReviewRequestDto,
+    ObservationWorkspaceReviewResponseDto,
+    ObservationWorkspaceSaveRequestDto,
+    ObservationWorkspaceSaveResponseDto,
 )
 
 
@@ -203,6 +222,90 @@ def review_observations(request: ObservationReviewRequestDto) -> ObservationRevi
         accepted_export=result.accepted_export,
         review_manifest=manifest,
         warnings=list(result.warnings),
+    )
+
+
+@router.post("/workspace/records", response_model=ObservationWorkspaceSaveResponseDto)
+def save_workspace_record(
+    request: ObservationWorkspaceSaveRequestDto,
+    workspace: ObservationWorkspaceRepository = Depends(get_observation_workspace),
+) -> ObservationWorkspaceSaveResponseDto:
+    result = workspace.save_record(request.record)
+    if result.status == ObservationWorkspaceSaveStatus.REJECTED:
+        raise HTTPException(
+            status_code=400,
+            detail={
+                "code": "VALIDATION_ERROR",
+                "message": "Observation workspace record was rejected.",
+                "recoverable": True,
+                "reliable_no_result": True,
+                "warnings": list(result.warnings),
+            },
+        )
+    return ObservationWorkspaceSaveResponseDto(
+        workspace_version=OBSERVATION_WORKSPACE_VERSION,
+        status=result.status.value,
+        raw_record_id=result.raw_record_id,
+        entry=_workspace_entry_to_dto(result.entry),
+        persistence=_workspace_persistence_to_dto(workspace.persistence_status()),
+        warnings=list(result.warnings),
+    )
+
+
+@router.get("/workspace", response_model=ObservationWorkspaceListResponseDto)
+def list_workspace(
+    workspace: ObservationWorkspaceRepository = Depends(get_observation_workspace),
+) -> ObservationWorkspaceListResponseDto:
+    return ObservationWorkspaceListResponseDto(
+        workspace_version=OBSERVATION_WORKSPACE_VERSION,
+        entries=[_workspace_entry_to_dto(entry) for entry in workspace.list_entries()],
+        persistence=_workspace_persistence_to_dto(workspace.persistence_status()),
+        warnings=(
+            "Stored observations remain excluded from empirical counts until explicitly accepted and built.",
+            *workspace.persistence_status().warnings,
+        ),
+    )
+
+
+@router.post("/workspace/reviews", response_model=ObservationWorkspaceReviewResponseDto)
+def review_workspace(
+    request: ObservationWorkspaceReviewRequestDto,
+    workspace: ObservationWorkspaceRepository = Depends(get_observation_workspace),
+) -> ObservationWorkspaceReviewResponseDto:
+    for decision in request.decisions:
+        result = workspace.save_decision(_decision_from_dto(decision))
+        if result.status == ObservationWorkspaceSaveStatus.REJECTED:
+            raise HTTPException(
+                status_code=400,
+                detail={
+                    "code": "VALIDATION_ERROR",
+                    "message": "Observation workspace review decision was rejected.",
+                    "recoverable": True,
+                    "reliable_no_result": True,
+                    "warnings": list(result.warnings),
+                },
+            )
+    review = workspace.review_result()
+    return ObservationWorkspaceReviewResponseDto(
+        workspace_version=OBSERVATION_WORKSPACE_VERSION,
+        entries=[_workspace_entry_to_dto(entry) for entry in workspace.list_entries()],
+        review=_review_result_to_dto(review),
+        persistence=_workspace_persistence_to_dto(workspace.persistence_status()),
+        warnings=list(review.warnings),
+    )
+
+
+@router.get("/workspace/accepted-export", response_model=ObservationWorkspaceAcceptedExportResponseDto)
+def workspace_accepted_export(
+    workspace: ObservationWorkspaceRepository = Depends(get_observation_workspace),
+) -> ObservationWorkspaceAcceptedExportResponseDto:
+    review = workspace.review_result()
+    return ObservationWorkspaceAcceptedExportResponseDto(
+        workspace_version=OBSERVATION_WORKSPACE_VERSION,
+        review=_review_result_to_dto(review),
+        accepted_export=review.accepted_export,
+        persistence=_workspace_persistence_to_dto(workspace.persistence_status()),
+        warnings=list(review.warnings),
     )
 
 
@@ -408,6 +511,86 @@ def _dataset_summary_to_dto(summary) -> EmpiricalDatasetSummaryDto | None:
         source_uri=summary.source_uri,
         source_type=summary.source_type.value if summary.source_type is not None else None,
         warnings=list(summary.warnings),
+    )
+
+
+def _review_result_to_dto(result) -> ObservationReviewResponseDto:
+    manifest = result.manifest.to_dict()
+    return ObservationReviewResponseDto(
+        review_version=OBSERVATION_REVIEW_VERSION,
+        records=[
+            ObservationReviewRecordDto(
+                raw_record_id=record.raw_record_id,
+                status=record.decision.status.value,
+                duplicate=record.duplicate,
+                valid_for_import=record.valid_for_import,
+                exported=record.accepted_for_export,
+                classification_method=record.original_record.get("classification_method"),
+                outcome_id=record.original_record.get("outcome_id"),
+                unclassified=bool(record.original_record.get("unclassified", False)),
+                synthetic=bool(record.original_record.get("synthetic", False)),
+                action_id=record.original_record.get("action_id"),
+                source_outcome_set_id=record.original_record.get("source_outcome_set_id"),
+                warnings=list(record.warnings),
+            )
+            for record in result.records
+        ],
+        accepted_export=result.accepted_export,
+        review_manifest=manifest,
+        warnings=list(result.warnings),
+    )
+
+
+def _decision_from_dto(decision) -> ObservationReviewDecision:
+    return ObservationReviewDecision(
+        raw_record_id=decision.raw_record_id,
+        status=ObservationReviewStatus(decision.status),
+        reviewed_at=decision.reviewed_at,
+        note=decision.note,
+        reviewer_id=decision.reviewer_id,
+    )
+
+
+def _workspace_entry_to_dto(entry) -> ObservationWorkspaceEntryDto | None:
+    if entry is None:
+        return None
+    return ObservationWorkspaceEntryDto(
+        raw_record_id=entry.raw_record_id,
+        record=entry.record,
+        decision=ObservationReviewDecisionDto(
+            raw_record_id=entry.decision.raw_record_id,
+            status=entry.decision.status.value,
+            reviewed_at=entry.decision.reviewed_at,
+            note=entry.decision.note,
+            reviewer_id=entry.decision.reviewer_id,
+        ),
+        summary=ObservationWorkspaceRecordSummaryDto(
+            raw_record_id=entry.summary.raw_record_id,
+            review_status=entry.summary.review_status.value,
+            action_id=entry.summary.action_id,
+            source_outcome_set_id=entry.summary.source_outcome_set_id,
+            outcome_id=entry.summary.outcome_id,
+            unclassified=entry.summary.unclassified,
+            synthetic=entry.summary.synthetic,
+            observed_at=entry.summary.observed_at,
+            classification_method=entry.summary.classification_method,
+            reviewer_id=entry.summary.reviewer_id,
+            reviewed_at=entry.summary.reviewed_at,
+            note=entry.summary.note,
+            warnings=list(entry.summary.warnings),
+        ),
+    )
+
+
+def _workspace_persistence_to_dto(status) -> ObservationWorkspacePersistenceStatusDto:
+    return ObservationWorkspacePersistenceStatusDto(
+        storage_version=status.storage_version,
+        storage_mode=status.storage_mode,
+        persistence_enabled=status.persistence_enabled,
+        loaded_record_count=status.loaded_record_count,
+        loaded_decision_count=status.loaded_decision_count,
+        skipped_entry_count=status.skipped_entry_count,
+        warnings=list(status.warnings),
     )
 
 

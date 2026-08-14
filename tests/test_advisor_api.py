@@ -39,7 +39,9 @@ def base_request(clipboard_text: str | None = None) -> dict:
 class AdvisorApiTests(unittest.TestCase):
     def setUp(self):
         self._previous_registry_path = os.environ.get("DCS_EMPIRICAL_REGISTRY_PATH")
+        self._previous_workspace_path = os.environ.get("DCS_OBSERVATION_WORKSPACE_PATH")
         os.environ["DCS_EMPIRICAL_REGISTRY_PATH"] = "disabled"
+        os.environ["DCS_OBSERVATION_WORKSPACE_PATH"] = "disabled"
         from fastapi.testclient import TestClient
         from services.api.app.dependencies import advisor as advisor_dependencies
         from services.api.app.main import app
@@ -59,6 +61,10 @@ class AdvisorApiTests(unittest.TestCase):
             os.environ.pop("DCS_EMPIRICAL_REGISTRY_PATH", None)
         else:
             os.environ["DCS_EMPIRICAL_REGISTRY_PATH"] = self._previous_registry_path
+        if self._previous_workspace_path is None:
+            os.environ.pop("DCS_OBSERVATION_WORKSPACE_PATH", None)
+        else:
+            os.environ["DCS_OBSERVATION_WORKSPACE_PATH"] = self._previous_workspace_path
 
     def test_health(self):
         response = self.client.get("/health")
@@ -794,6 +800,151 @@ class AdvisorApiTests(unittest.TestCase):
         self.assertTrue(any("storage_version" in warning for warning in body["warnings"]))
         self.assertEqual(after, before)
 
+    def test_observation_workspace_persistence_reloads_review_and_builds_only_accepted(self):
+        from services.api.app.dependencies import advisor as advisor_dependencies
+
+        previous = os.environ.get("DCS_OBSERVATION_WORKSPACE_PATH")
+        with tempfile.TemporaryDirectory() as directory:
+            os.environ["DCS_OBSERVATION_WORKSPACE_PATH"] = str(Path(directory) / "workspace.json")
+            try:
+                self._clear_dependency_caches(advisor_dependencies)
+                record = {
+                    "raw_record_id": "manual-craft-observation-api-workspace",
+                    "action_id": "dc:poe2:craft-action:orb-of-annulment",
+                    "source_outcome_set_id": "api-workspace-outcome-set",
+                    "item_class": "Quivers",
+                    "league": LEAGUE,
+                    "game": "Path of Exile 2",
+                    "observed_at": AS_OF,
+                    "source_id": "api-workspace-test",
+                    "source_type": "MANUAL_RESEARCH",
+                    "outcome_id": "outcome-1",
+                    "unclassified": False,
+                    "synthetic": False,
+                    "verification_status": "NEEDS_VERIFICATION",
+                    "classification_method": "MANUAL",
+                    "crafting_dataset_version": CRAFTING_DATASET_ID,
+                    "modifier_dataset_version": GAME_DATASET_ID,
+                }
+                saved = self.client.post("/api/v1/observations/workspace/records", json={"record": record})
+                self._clear_dependency_caches(advisor_dependencies)
+                listed = self.client.get("/api/v1/observations/workspace")
+                reviewed = self.client.post(
+                    "/api/v1/observations/workspace/reviews",
+                    json={
+                        "decisions": [
+                            {
+                                "raw_record_id": record["raw_record_id"],
+                                "status": "ACCEPTED",
+                                "reviewed_at": AS_OF,
+                                "note": "accepted in API test",
+                                "reviewer_id": "api-test-reviewer",
+                            }
+                        ]
+                    },
+                )
+                export = self.client.get("/api/v1/observations/workspace/accepted-export")
+                build = self.client.post(
+                    "/api/v1/observations/build-empirical-datasets",
+                    json={"accepted_export": export.json()["accepted_export"]},
+                )
+            finally:
+                if previous is None:
+                    os.environ.pop("DCS_OBSERVATION_WORKSPACE_PATH", None)
+                else:
+                    os.environ["DCS_OBSERVATION_WORKSPACE_PATH"] = previous
+                self._clear_dependency_caches(advisor_dependencies)
+
+        self.assertEqual(saved.status_code, 200)
+        self.assertEqual(saved.json()["status"], "SAVED")
+        self.assertEqual(listed.status_code, 200)
+        self.assertEqual(listed.json()["entries"][0]["raw_record_id"], record["raw_record_id"])
+        self.assertEqual(listed.json()["entries"][0]["summary"]["review_status"], "PENDING")
+        self.assertEqual(reviewed.status_code, 200)
+        self.assertEqual(reviewed.json()["entries"][0]["summary"]["review_status"], "ACCEPTED")
+        self.assertEqual(export.status_code, 200)
+        self.assertEqual(export.json()["accepted_export"]["observations"][0]["raw_record_id"], record["raw_record_id"])
+        self.assertEqual(build.status_code, 200)
+        self.assertEqual(build.json()["accepted_record_count"], 1)
+
+    def test_observation_workspace_persistence_failure_is_structured_rejection(self):
+        from packages.shared.donniecraftshell_contracts.observation_workspace import FileBackedObservationWorkspaceRepository
+        from services.api.app.dependencies import advisor as advisor_dependencies
+
+        with tempfile.TemporaryDirectory() as directory:
+            workspace = FileBackedObservationWorkspaceRepository(Path(directory) / "workspace.json")
+
+            def fail_persist() -> None:
+                raise OSError("synthetic disk failure")
+
+            workspace._persist = fail_persist
+            self.app.dependency_overrides[advisor_dependencies.get_observation_workspace] = lambda: workspace
+            record = {
+                "raw_record_id": "manual-craft-observation-api-workspace-failure",
+                "action_id": "dc:poe2:craft-action:orb-of-annulment",
+                "source_outcome_set_id": "api-workspace-outcome-set",
+                "item_class": "Quivers",
+                "league": LEAGUE,
+                "game": "Path of Exile 2",
+                "observed_at": AS_OF,
+                "source_id": "api-workspace-test",
+                "source_type": "MANUAL_RESEARCH",
+                "outcome_id": "outcome-1",
+                "unclassified": False,
+                "synthetic": False,
+                "verification_status": "NEEDS_VERIFICATION",
+                "classification_method": "MANUAL",
+                "crafting_dataset_version": CRAFTING_DATASET_ID,
+                "modifier_dataset_version": GAME_DATASET_ID,
+            }
+
+            saved = self.client.post("/api/v1/observations/workspace/records", json={"record": record})
+            listed = self.client.get("/api/v1/observations/workspace")
+
+        self.assertEqual(saved.status_code, 400)
+        self.assertEqual(saved.json()["detail"]["code"], "VALIDATION_ERROR")
+        self.assertTrue(any("persistence failed" in warning for warning in saved.json()["detail"]["warnings"]))
+        self.assertEqual(listed.status_code, 200)
+        self.assertEqual(listed.json()["entries"], [])
+
+    def test_observation_workspace_incompatible_version_surfaces_warning(self):
+        from packages.shared.donniecraftshell_contracts.observation_workspace import OBSERVATION_WORKSPACE_STORAGE_VERSION
+        from services.api.app.dependencies import advisor as advisor_dependencies
+
+        previous = os.environ.get("DCS_OBSERVATION_WORKSPACE_PATH")
+        with tempfile.TemporaryDirectory() as directory:
+            storage = Path(directory) / "workspace.json"
+            storage.write_text(
+                json.dumps(
+                    {
+                        "workspace_version": "future-workspace-version",
+                        "storage_version": OBSERVATION_WORKSPACE_STORAGE_VERSION,
+                        "records": [{"raw_record_id": "manual-craft-observation-skipped"}],
+                        "decisions": [],
+                    },
+                    sort_keys=True,
+                ),
+                encoding="utf-8",
+            )
+            before = storage.read_text(encoding="utf-8")
+            os.environ["DCS_OBSERVATION_WORKSPACE_PATH"] = str(storage)
+            try:
+                self._clear_dependency_caches(advisor_dependencies)
+                response = self.client.get("/api/v1/observations/workspace")
+                after = storage.read_text(encoding="utf-8")
+            finally:
+                if previous is None:
+                    os.environ.pop("DCS_OBSERVATION_WORKSPACE_PATH", None)
+                else:
+                    os.environ["DCS_OBSERVATION_WORKSPACE_PATH"] = previous
+                self._clear_dependency_caches(advisor_dependencies)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["entries"], [])
+        self.assertEqual(response.json()["persistence"]["skipped_entry_count"], 1)
+        self.assertTrue(any("workspace_version" in warning for warning in response.json()["warnings"]))
+        self.assertEqual(after, before)
+
     def test_wrong_crafting_dataset_version_is_rejected(self):
         response = self.client.post(
             "/api/v1/observations/record",
@@ -930,6 +1081,7 @@ class AdvisorApiTests(unittest.TestCase):
         advisor_dependencies.get_economy_repository.cache_clear()
         advisor_dependencies.get_probability_provider.cache_clear()
         advisor_dependencies.get_empirical_probability_registry.cache_clear()
+        advisor_dependencies.get_observation_workspace.cache_clear()
         advisor_dependencies.get_cached_settings.cache_clear()
 
     def _install_synthetic_dependencies(self):

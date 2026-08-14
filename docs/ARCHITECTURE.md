@@ -39,6 +39,7 @@ apps/web
 - **Affix Capacity Resolver**: derives open explicit prefix/suffix slots from parsed modifiers and source-backed capacity definitions.
 - **Craft Outcome Engine**: enumerates mechanically possible hypothetical item-state deltas without probability, valuation, or recommendations.
 - **Probability Evidence Layer**: attaches exact, derived, empirical, or unknown probabilities to outcome states only when provenance supports them. Task 15A adds an offline empirical observation pipeline; current real actions remain `UNKNOWN` unless context-compatible evidence is explicitly supplied.
+- **Observation Workspace**: persists raw manual craft observation records and separate review decisions locally before empirical aggregation. Storage is durable operator workspace state, not probability evidence activation.
 - **Observation Review Layer**: curates manual recorder exports before empirical import. Human decisions remain separate from raw observation records; only accepted non-duplicate records proceed to Task 15C-compatible imports.
 - **Curated Observation Import Layer**: builds raw empirical probability datasets from accepted review exports by delegating to Task 15C validation, deduplication, and context partitioning.
 - **Scenario Analysis Layer**: composes action candidates, outcome sets, probabilities, and valuations into descriptive readiness results without EV or ranking.
@@ -94,6 +95,13 @@ Task 17B keeps that safety model and adds optional local JSON persistence for
 registered empirical datasets. API startup reloads valid persisted datasets and
 surfaces corrupt-entry warnings while skipping malformed evidence. No persisted
 dataset is auto-activated for Advisor analysis.
+
+Task 18A adds [OBSERVATION_WORKSPACE.md](OBSERVATION_WORKSPACE.md). Raw Task
+16A recorder records and Task 16B review decisions persist to local JSON before
+aggregation. Review metadata remains separate from raw evidence, conflicting
+`raw_record_id` content is rejected, version-incompatible workspace files are
+skipped without startup rewrites, and only accepted records flow into Task 16C
+dataset builds.
 
 ## Item-Class Modularity
 
