@@ -89,6 +89,9 @@ class AdvisorApiTests(unittest.TestCase):
         schema_names = set(openapi["components"]["schemas"])
         self.assertIn("AdvisorAnalyzeRequestDto", schema_names)
         self.assertIn("AdvisorAnalyzeResponseDto", schema_names)
+        self.assertIn("ManualValuationPreviewRequestDto", schema_names)
+        self.assertIn("ManualValuationPreviewResponseDto", schema_names)
+        self.assertIn("/api/v1/advisor/manual-valuation/preview", openapi["paths"])
         self.assertIn("ProbabilitySummaryDto", schema_names)
         self.assertIn("CraftObservationRecordRequestDto", schema_names)
         self.assertIn("/api/v1/observations/review", openapi["paths"])
@@ -274,6 +277,122 @@ class AdvisorApiTests(unittest.TestCase):
         self.assertEqual(annulment["scenario"]["readiness"], "SCENARIO_ONLY")
         self.assertEqual(annulment["scenario"]["valued_outcome_count"], 6)
         self.assertEqual(body["decision"]["decision_type"], "NO_RECOMMENDATION")
+
+    def test_manual_valuation_preview_current_item_ready_with_normalized_values(self):
+        response = self.client.post(
+            "/api/v1/advisor/manual-valuation/preview",
+            json={
+                "subject_id": "current",
+                "subject_type": "CURRENT_ITEM",
+                "league": LEAGUE,
+                "as_of": AS_OF,
+                "evidence": self._valuation_evidence("100"),
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        body = response.json()
+        self.assertEqual(body["subject_id"], "current")
+        self.assertEqual(body["subject_type"], "CURRENT_ITEM")
+        self.assertEqual(body["readiness"], "READY")
+        self.assertEqual(body["observation_count"], 3)
+        self.assertEqual(body["usable_observation_count"], 3)
+        self.assertEqual(body["estimated_value"]["amount"], "100")
+        self.assertTrue(all(result["normalized_value"]["amount"] == "100" for result in body["comparable_results"]))
+        self.assertTrue(
+            any(
+                "listing price is not a realized sale" in warning
+                for result in body["comparable_results"]
+                for warning in result["warnings"]
+            )
+        )
+
+    def test_manual_valuation_preview_missing_conversion_is_unavailable_not_zero(self):
+        response = self.client.post(
+            "/api/v1/advisor/manual-valuation/preview",
+            json={
+                "subject_id": "current",
+                "subject_type": "CURRENT_ITEM",
+                "league": LEAGUE,
+                "as_of": AS_OF,
+                "evidence": {
+                    "strategy": "STRICT",
+                    "observations": [
+                        {
+                            "amount": "5",
+                            "currency_asset_id": "dc:poe2:economy-asset:currency:unknown-orb",
+                            "external_listing_id": "missing-conversion",
+                            "observed_at": AS_OF,
+                        }
+                    ],
+                },
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        body = response.json()
+        self.assertEqual(body["readiness"], "INSUFFICIENT_DATA")
+        self.assertEqual(body["usable_observation_count"], 0)
+        self.assertIsNone(body["estimated_value"])
+        self.assertIsNone(body["comparable_results"][0]["normalized_value"])
+        self.assertTrue(any("Missing economy conversion" in warning for warning in body["comparable_results"][0]["warnings"]))
+
+    def test_manual_outcome_valuation_preview_keeps_stable_outcome_identity(self):
+        response = self.client.post(
+            "/api/v1/advisor/manual-valuation/preview",
+            json={
+                "subject_id": "outcome:outcome-2",
+                "subject_type": "HYPOTHETICAL_OUTCOME",
+                "outcome_id": "outcome-2",
+                "league": LEAGUE,
+                "as_of": AS_OF,
+                "evidence": self._valuation_evidence("120"),
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        body = response.json()
+        self.assertEqual(body["subject_id"], "outcome:outcome-2")
+        self.assertEqual(body["subject_type"], "HYPOTHETICAL_OUTCOME")
+        self.assertEqual(body["outcome_id"], "outcome-2")
+        self.assertIn("outcome:outcome-2", body["evidence_set_id"])
+
+    def test_manual_valuation_preview_rejects_mismatched_outcome_subject_identity(self):
+        response = self.client.post(
+            "/api/v1/advisor/manual-valuation/preview",
+            json={
+                "subject_id": "outcome:outcome-1",
+                "subject_type": "HYPOTHETICAL_OUTCOME",
+                "outcome_id": "outcome-2",
+                "league": LEAGUE,
+                "as_of": AS_OF,
+                "evidence": self._valuation_evidence("120"),
+            },
+        )
+
+        self.assertEqual(response.status_code, 422)
+        self.assertIn(
+            "requires subject_id outcome:{outcome_id}",
+            str(response.json()["detail"]),
+        )
+
+    def test_manual_valuation_preview_rejects_noncanonical_current_subject_identity(self):
+        response = self.client.post(
+            "/api/v1/advisor/manual-valuation/preview",
+            json={
+                "subject_id": "outcome:outcome-2",
+                "subject_type": "CURRENT_ITEM",
+                "league": LEAGUE,
+                "as_of": AS_OF,
+                "evidence": self._valuation_evidence("100"),
+            },
+        )
+
+        self.assertEqual(response.status_code, 422)
+        self.assertIn(
+            "requires subject_id current",
+            str(response.json()["detail"]),
+        )
 
     def test_synthetic_full_pipeline_dependency_override_serializes_ev_and_risk(self):
         self._install_synthetic_dependencies()

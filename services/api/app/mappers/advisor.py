@@ -44,7 +44,10 @@ from services.api.app.schemas.advisor import (
     EnrichmentSummaryDto,
     ExpectedValueSummaryDto,
     ItemSummaryDto,
+    ComparableResultPreviewDto,
     ManualValuationEvidenceDto,
+    ManualValuationPreviewRequestDto,
+    ManualValuationPreviewResponseDto,
     MaterialCostDto,
     MaterialRequirementDto,
     MissingRequirementDto,
@@ -55,6 +58,7 @@ from services.api.app.schemas.advisor import (
     ProbabilitySummaryDto,
     RiskAdjustedDecisionDto,
     ScenarioSummaryDto,
+    ValuationConfidenceDto,
 )
 
 
@@ -138,6 +142,62 @@ def advisor_result_to_dto(result: AdvisorAnalysisResult) -> AdvisorAnalyzeRespon
     )
 
 
+def manual_valuation_preview_to_dto(
+    request: ManualValuationPreviewRequestDto,
+    economy_repository: EconomyRepository,
+) -> ManualValuationPreviewResponseDto:
+    as_of = request.as_of or datetime.now(timezone.utc)
+    evidence_set = _manual_evidence_set(
+        request.evidence,
+        request.subject_id,
+        request.league,
+        economy_repository,
+        as_of,
+    )
+    valuation = ValuationAggregator().aggregate(evidence_set)
+    return ManualValuationPreviewResponseDto(
+        subject_id=request.subject_id,
+        subject_type=request.subject_type,
+        outcome_id=request.outcome_id,
+        strategy=evidence_set.query.strategy.value,
+        evidence_set_id=evidence_set.evidence_set_id,
+        observation_count=len(evidence_set.results),
+        usable_observation_count=len(evidence_set.usable_results),
+        unusable_observation_count=evidence_set.unusable_result_count,
+        duplicate_listing_ids=list(evidence_set.duplicate_listing_ids),
+        readiness=valuation.readiness.value,
+        estimate_type=valuation.estimate_type.value,
+        estimated_value=economic_value_to_dto(valuation.estimated_value),
+        plausible_low=economic_value_to_dto(valuation.plausible_low),
+        plausible_high=economic_value_to_dto(valuation.plausible_high),
+        confidence=(
+            ValuationConfidenceDto(
+                level=valuation.confidence.level.value,
+                reasons=list(valuation.confidence.reasons),
+            )
+            if valuation.confidence
+            else None
+        ),
+        liquidity=valuation.liquidity.value,
+        economy_snapshot_ids=list(valuation.economy_snapshot_ids),
+        comparable_results=[
+            ComparableResultPreviewDto(
+                comparable_id=result.comparable_id,
+                external_listing_id=result.external_listing_id,
+                listing_price=str(result.listing_price),
+                listing_currency_asset_id=result.listing_currency_asset_id,
+                normalized_value=economic_value_to_dto(result.normalized_value),
+                economy_freshness=result.economy_freshness.value,
+                economy_snapshot_id=result.economy_snapshot_id,
+                observed_at=result.observed_at,
+                warnings=list(result.warnings),
+            )
+            for result in evidence_set.results
+        ],
+        warnings=list((*evidence_set.warnings, *valuation.warnings)),
+    )
+
+
 def _valuation_from_evidence(
     evidence: ManualValuationEvidenceDto | None,
     subject_id: str,
@@ -147,6 +207,17 @@ def _valuation_from_evidence(
 ) -> ValuationResult | None:
     if evidence is None:
         return None
+    evidence_set = _manual_evidence_set(evidence, subject_id, league, economy_repository, as_of)
+    return ValuationAggregator().aggregate(evidence_set)
+
+
+def _manual_evidence_set(
+    evidence: ManualValuationEvidenceDto,
+    subject_id: str,
+    league: str,
+    economy_repository: EconomyRepository,
+    as_of: datetime,
+):
     strategy = ComparableStrategy(evidence.strategy)
     query = ComparableQuery(
         query_id=f"api-manual-query:{subject_id}:{strategy.value.lower()}",
@@ -185,8 +256,7 @@ def _valuation_from_evidence(
         )
         for index, observation in enumerate(evidence.observations)
     )
-    evidence_set = evidence_set_from_results(query, provider.provider_name, results, ValuationEvidencePolicy())
-    return ValuationAggregator().aggregate(evidence_set)
+    return evidence_set_from_results(query, provider.provider_name, results, ValuationEvidencePolicy())
 
 
 def _risk_context(request: AdvisorAnalyzeRequestDto) -> AdvisorRiskContext | None:

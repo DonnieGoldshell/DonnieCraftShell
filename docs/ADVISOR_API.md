@@ -6,6 +6,7 @@ Task 13B exposes the framework-independent `CraftAdvisorOrchestrator` through Fa
 
 ```text
 POST /api/v1/advisor/analyze
+POST /api/v1/advisor/manual-valuation/preview
 ```
 
 The endpoint performs no external network calls. It uses configured local/offline repositories plus request-supplied manual valuation evidence.
@@ -80,6 +81,26 @@ Manual valuation input is listing-observation evidence, not a final price overri
 The API maps these observations through `ManualTradeProvider`, `EconomyRepository`, and `ValuationAggregator`. Missing currency conversion remains unavailable, never zero.
 
 Outcome valuation evidence is keyed by deterministic `outcome_id`.
+
+### Manual Valuation Preview
+
+`POST /api/v1/advisor/manual-valuation/preview` lets the frontend validate and
+preview manual comparable evidence before rerunning the full Advisor analysis.
+The request includes:
+
+- `subject_id`
+- `subject_type`: `CURRENT_ITEM` or `HYPOTHETICAL_OUTCOME`
+- optional `outcome_id`
+- explicit `league`
+- optional `as_of`
+- manual valuation evidence with Decimal amount strings
+
+The response returns the evidence-set identity, normalized comparable rows,
+usable/unusable counts, duplicate listing IDs, readiness, listing-derived
+estimate/range when available, confidence, liquidity, economy snapshot IDs, and
+warnings. The preview uses the same manual provider and aggregation path as
+Advisor analysis. It does not scrape Trade, fabricate prices, or accept a final
+price override.
 
 ## Empirical Probability Evidence
 

@@ -44,6 +44,33 @@ A manual observation preserves:
 
 Examples such as `5 Divine` or `2400 Exalted` can be normalized only when EconomyRepository has a usable quote or identity conversion. Invalid or unconvertible currency remains unavailable, not zero.
 
+## User-Facing Evidence Preview
+
+Task 19A adds the first operator-facing workflow in the web app. After running
+Advisor analysis, the user can enter comparable listing rows for either:
+
+- the current item, or
+- one deterministic hypothetical `outcome_id`.
+
+Rows can be added, edited, removed, previewed, and then included in a later
+`POST /api/v1/advisor/analyze` request. Current-item evidence and outcome
+evidence remain separate subjects. Outcome evidence is keyed by stable
+`outcome_id`; it must not be matched by display text or leak into current-item
+valuation.
+
+The preview call uses:
+
+```text
+POST /api/v1/advisor/manual-valuation/preview
+```
+
+It maps the manual rows through the existing `ManualTradeProvider`,
+`EconomyRepository`, `ComparableEvidenceSet`, and `ValuationAggregator`. The
+response shows normalized values when conversion exists, evidence readiness,
+listing-derived median/range when available, confidence, liquidity, warnings,
+and the subject/outcome identity. It performs no Trade requests and does not
+accept an arbitrary final valuation override.
+
 ## Evidence Limits
 
 Comparable evidence is not valuation. Listing price is not realized sale price.

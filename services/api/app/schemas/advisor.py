@@ -5,7 +5,7 @@ from __future__ import annotations
 from datetime import datetime
 from decimal import Decimal
 
-from pydantic import Field, field_validator
+from pydantic import Field, field_validator, model_validator
 
 from .common import ApiModel, EconomicValueDto, GameContextDto
 
@@ -34,6 +34,72 @@ class ManualValuationEvidenceDto(ApiModel):
 class OutcomeManualValuationEvidenceDto(ApiModel):
     outcome_id: str
     evidence: ManualValuationEvidenceDto
+
+
+class ManualValuationPreviewRequestDto(ApiModel):
+    subject_id: str = "current"
+    subject_type: str = "CURRENT_ITEM"
+    outcome_id: str | None = None
+    league: str
+    as_of: datetime | None = None
+    evidence: ManualValuationEvidenceDto
+
+    @model_validator(mode="after")
+    def subject_identity_is_consistent(self) -> "ManualValuationPreviewRequestDto":
+        allowed_subject_types = {"CURRENT_ITEM", "HYPOTHETICAL_OUTCOME"}
+        if self.subject_type not in allowed_subject_types:
+            raise ValueError("subject_type must be CURRENT_ITEM or HYPOTHETICAL_OUTCOME")
+        if self.subject_type == "CURRENT_ITEM" and self.subject_id != "current":
+            raise ValueError("current-item valuation evidence requires subject_id current")
+        if self.subject_type == "CURRENT_ITEM" and self.outcome_id is not None:
+            raise ValueError("current-item valuation evidence must not include outcome_id")
+        if self.subject_type == "HYPOTHETICAL_OUTCOME" and not self.outcome_id:
+            raise ValueError("hypothetical-outcome valuation evidence requires outcome_id")
+        if (
+            self.subject_type == "HYPOTHETICAL_OUTCOME"
+            and self.subject_id != f"outcome:{self.outcome_id}"
+        ):
+            raise ValueError("hypothetical-outcome valuation evidence requires subject_id outcome:{outcome_id}")
+        return self
+
+
+class ComparableResultPreviewDto(ApiModel):
+    comparable_id: str
+    external_listing_id: str | None = None
+    listing_price: str
+    listing_currency_asset_id: str
+    normalized_value: EconomicValueDto | None = None
+    economy_freshness: str
+    economy_snapshot_id: str | None = None
+    observed_at: datetime
+    warnings: list[str] = []
+
+
+class ValuationConfidenceDto(ApiModel):
+    level: str
+    reasons: list[str] = []
+
+
+class ManualValuationPreviewResponseDto(ApiModel):
+    subject_id: str
+    subject_type: str
+    outcome_id: str | None = None
+    strategy: str
+    evidence_set_id: str
+    observation_count: int
+    usable_observation_count: int
+    unusable_observation_count: int
+    duplicate_listing_ids: list[str] = []
+    readiness: str
+    estimate_type: str
+    estimated_value: EconomicValueDto | None = None
+    plausible_low: EconomicValueDto | None = None
+    plausible_high: EconomicValueDto | None = None
+    confidence: ValuationConfidenceDto | None = None
+    liquidity: str
+    economy_snapshot_ids: list[str] = []
+    comparable_results: list[ComparableResultPreviewDto] = []
+    warnings: list[str] = []
 
 
 class AdvisorAnalyzeRequestDto(ApiModel):

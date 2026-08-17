@@ -8,7 +8,8 @@ import {
   DEFAULT_LEAGUE,
   DIVINE_ASSET_ID,
   EXALTED_ASSET_ID,
-  type AdvisorAnalyzeResponse
+  type AdvisorAnalyzeResponse,
+  type ManualValuationPreviewResponse
 } from "@/api/advisor";
 import { AdvisorWorkbench } from "./AdvisorWorkbench";
 
@@ -212,6 +213,48 @@ const valuedQuiverResponse: AdvisorAnalyzeResponse = {
   )
 };
 
+function manualPreviewResponse(
+  overrides: Partial<ManualValuationPreviewResponse> = {}
+): ManualValuationPreviewResponse {
+  return {
+    subject_id: "current",
+    subject_type: "CURRENT_ITEM",
+    outcome_id: null,
+    strategy: "STRICT",
+    evidence_set_id: "manual-preview-current",
+    observation_count: 1,
+    usable_observation_count: 1,
+    unusable_observation_count: 0,
+    duplicate_listing_ids: [],
+    readiness: "READY",
+    estimate_type: "LISTING_DERIVED",
+    estimated_value: { amount: "120", unit: "EXALTED_ECONOMIC_UNIT" },
+    plausible_low: { amount: "120", unit: "EXALTED_ECONOMIC_UNIT" },
+    plausible_high: { amount: "120", unit: "EXALTED_ECONOMIC_UNIT" },
+    confidence: {
+      level: "MEDIUM",
+      reasons: ["Synthetic test preview."]
+    },
+    liquidity: "LOW",
+    economy_snapshot_ids: ["economy-snapshot-currency"],
+    comparable_results: [
+      {
+        comparable_id: "manual-preview-current:0",
+        external_listing_id: "edit-me",
+        listing_price: "120",
+        listing_currency_asset_id: EXALTED_ASSET_ID,
+        normalized_value: { amount: "120", unit: "EXALTED_ECONOMIC_UNIT" },
+        economy_freshness: "FRESH",
+        economy_snapshot_id: "economy-snapshot-currency",
+        observed_at: "2026-08-13T10:00:00Z",
+        warnings: ["Manual API observation; listing price is not a realized sale."]
+      }
+    ],
+    warnings: ["Manual API observation; listing price is not a realized sale."],
+    ...overrides
+  };
+}
+
 describe("AdvisorWorkbench", () => {
   afterEach(() => {
     vi.unstubAllGlobals();
@@ -257,7 +300,7 @@ describe("AdvisorWorkbench", () => {
     await user.type(screen.getByLabelText(/listing id/i), "current-listing-1");
     await user.type(screen.getByLabelText(/listing\/item note/i), "manual current comparable");
     await user.click(screen.getByRole("button", { name: /add observation/i }));
-    expect(screen.getByText("5.5 Divine Orb")).toBeInTheDocument();
+    expect(screen.getByLabelText(/current item observations amount 1/i)).toHaveValue("5.5");
 
     await user.type(screen.getByLabelText(/clipboard item text/i), "Item Class: Quivers\nRarity: Rare");
     await user.click(screen.getByRole("button", { name: /analyze quiver/i }));
@@ -277,6 +320,62 @@ describe("AdvisorWorkbench", () => {
       ]
     });
     expect(body.outcome_valuation_evidence).toEqual([]);
+  });
+
+  it("edits, removes, previews, and resubmits current-item manual valuation evidence", async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => manualPreviewResponse()
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => quiverResponse
+      });
+    vi.stubGlobal("fetch", fetchMock);
+    const user = userEvent.setup();
+
+    render(<AdvisorWorkbench />);
+    await user.type(screen.getByLabelText(/listing amount/i), "100");
+    await user.selectOptions(screen.getAllByLabelText(/^currency$/i)[0], EXALTED_ASSET_ID);
+    await user.type(screen.getByLabelText(/listing id/i), "edit-me");
+    await user.click(screen.getByRole("button", { name: /add observation/i }));
+
+    await user.clear(screen.getByLabelText(/listing amount/i));
+    await user.type(screen.getByLabelText(/listing amount/i), "200");
+    await user.selectOptions(screen.getAllByLabelText(/^currency$/i)[0], EXALTED_ASSET_ID);
+    await user.type(screen.getByLabelText(/listing id/i), "remove-me");
+    await user.click(screen.getByRole("button", { name: /add observation/i }));
+
+    await user.clear(screen.getByLabelText(/current item observations amount 1/i));
+    await user.type(screen.getByLabelText(/current item observations amount 1/i), "120");
+    await user.click(screen.getAllByRole("button", { name: /remove/i })[1]);
+    await user.click(screen.getByRole("button", { name: /preview valuation evidence/i }));
+
+    expect(await screen.findByText("Current Item Valuation")).toBeInTheDocument();
+    expect(screen.getByText("Ready")).toBeInTheDocument();
+    expect(screen.getAllByText("120 Ex").length).toBeGreaterThan(0);
+    const previewBody = JSON.parse(fetchMock.mock.calls[0][1].body as string);
+    expect(previewBody.league).toBe(DEFAULT_LEAGUE);
+    expect(previewBody.evidence.observations).toEqual([
+      expect.objectContaining({
+        amount: "120",
+        external_listing_id: "edit-me"
+      })
+    ]);
+
+    await user.type(screen.getByLabelText(/clipboard item text/i), "Item Class: Quivers\nRarity: Rare");
+    await user.click(screen.getByRole("button", { name: /analyze quiver/i }));
+    await screen.findByText("Primed Quiver");
+    const analyzeBody = JSON.parse(fetchMock.mock.calls[1][1].body as string);
+    expect(analyzeBody.current_valuation_evidence.observations).toEqual([
+      expect.objectContaining({
+        amount: "120",
+        external_listing_id: "edit-me"
+      })
+    ]);
+    expect(JSON.stringify(analyzeBody)).not.toContain("remove-me");
   });
 
   it("sends an explicit empirical dataset ID only when the operator supplies one", async () => {
@@ -345,6 +444,68 @@ describe("AdvisorWorkbench", () => {
           ]
         }
       }
+    ]);
+  });
+
+  it("previews outcome manual valuation evidence without leaking it to the current item subject", async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => quiverResponse
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () =>
+          manualPreviewResponse({
+            subject_id: "outcome:outcome-2",
+            subject_type: "HYPOTHETICAL_OUTCOME",
+            outcome_id: "outcome-2",
+            evidence_set_id: "manual-preview-outcome-2",
+            estimated_value: { amount: "110", unit: "EXALTED_ECONOMIC_UNIT" },
+            plausible_low: { amount: "110", unit: "EXALTED_ECONOMIC_UNIT" },
+            plausible_high: { amount: "110", unit: "EXALTED_ECONOMIC_UNIT" },
+            comparable_results: [
+              {
+                comparable_id: "manual-preview-outcome-2:0",
+                external_listing_id: null,
+                listing_price: "110",
+                listing_currency_asset_id: EXALTED_ASSET_ID,
+                normalized_value: { amount: "110", unit: "EXALTED_ECONOMIC_UNIT" },
+                economy_freshness: "FRESH",
+                economy_snapshot_id: "economy-snapshot-currency",
+                observed_at: "2026-08-13T10:00:00Z",
+                warnings: []
+              }
+            ]
+          })
+      });
+    vi.stubGlobal("fetch", fetchMock);
+    const user = userEvent.setup();
+
+    render(<AdvisorWorkbench />);
+    await user.type(screen.getByLabelText(/clipboard item text/i), "Item Class: Quivers\nRarity: Rare");
+    await user.click(screen.getByRole("button", { name: /analyze quiver/i }));
+    await screen.findByText("Primed Quiver");
+
+    await user.selectOptions(screen.getByLabelText(/evidence subject/i), "outcome");
+    await user.selectOptions(screen.getByLabelText(/^Outcome ID$/i), "outcome-2");
+    await user.clear(screen.getByLabelText(/listing amount/i));
+    await user.type(screen.getByLabelText(/listing amount/i), "110");
+    await user.selectOptions(screen.getAllByLabelText(/^currency$/i)[0], EXALTED_ASSET_ID);
+    await user.click(screen.getByRole("button", { name: /add observation/i }));
+    await user.click(screen.getByRole("button", { name: /preview valuation evidence/i }));
+
+    expect(await screen.findByText("Outcome outcome-2 Valuation")).toBeInTheDocument();
+    const previewBody = JSON.parse(fetchMock.mock.calls[1][1].body as string);
+    expect(previewBody.subject_id).toBe("outcome:outcome-2");
+    expect(previewBody.subject_type).toBe("HYPOTHETICAL_OUTCOME");
+    expect(previewBody.outcome_id).toBe("outcome-2");
+    expect(previewBody.evidence.observations).toEqual([
+      expect.objectContaining({
+        amount: "110",
+        currency_asset_id: EXALTED_ASSET_ID
+      })
     ]);
   });
 
