@@ -49,12 +49,17 @@ class ManualValuationPreviewRequestDto(ApiModel):
         allowed_subject_types = {"CURRENT_ITEM", "HYPOTHETICAL_OUTCOME"}
         if self.subject_type not in allowed_subject_types:
             raise ValueError("subject_type must be CURRENT_ITEM or HYPOTHETICAL_OUTCOME")
+        if self.subject_type == "CURRENT_ITEM" and self.subject_id != "current":
+            raise ValueError("current-item valuation evidence requires subject_id current")
         if self.subject_type == "CURRENT_ITEM" and self.outcome_id is not None:
             raise ValueError("current-item valuation evidence must not include outcome_id")
         if self.subject_type == "HYPOTHETICAL_OUTCOME" and not self.outcome_id:
             raise ValueError("hypothetical-outcome valuation evidence requires outcome_id")
-        if self.subject_type == "HYPOTHETICAL_OUTCOME" and self.subject_id == "current":
-            raise ValueError("hypothetical-outcome valuation evidence requires an outcome subject_id")
+        if (
+            self.subject_type == "HYPOTHETICAL_OUTCOME"
+            and self.subject_id != f"outcome:{self.outcome_id}"
+        ):
+            raise ValueError("hypothetical-outcome valuation evidence requires subject_id outcome:{outcome_id}")
         return self
 
 

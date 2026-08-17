@@ -357,6 +357,43 @@ class AdvisorApiTests(unittest.TestCase):
         self.assertEqual(body["outcome_id"], "outcome-2")
         self.assertIn("outcome:outcome-2", body["evidence_set_id"])
 
+    def test_manual_valuation_preview_rejects_mismatched_outcome_subject_identity(self):
+        response = self.client.post(
+            "/api/v1/advisor/manual-valuation/preview",
+            json={
+                "subject_id": "outcome:outcome-1",
+                "subject_type": "HYPOTHETICAL_OUTCOME",
+                "outcome_id": "outcome-2",
+                "league": LEAGUE,
+                "as_of": AS_OF,
+                "evidence": self._valuation_evidence("120"),
+            },
+        )
+
+        self.assertEqual(response.status_code, 422)
+        self.assertIn(
+            "requires subject_id outcome:{outcome_id}",
+            str(response.json()["detail"]),
+        )
+
+    def test_manual_valuation_preview_rejects_noncanonical_current_subject_identity(self):
+        response = self.client.post(
+            "/api/v1/advisor/manual-valuation/preview",
+            json={
+                "subject_id": "outcome:outcome-2",
+                "subject_type": "CURRENT_ITEM",
+                "league": LEAGUE,
+                "as_of": AS_OF,
+                "evidence": self._valuation_evidence("100"),
+            },
+        )
+
+        self.assertEqual(response.status_code, 422)
+        self.assertIn(
+            "requires subject_id current",
+            str(response.json()["detail"]),
+        )
+
     def test_synthetic_full_pipeline_dependency_override_serializes_ev_and_risk(self):
         self._install_synthetic_dependencies()
         initial = self.client.post("/api/v1/advisor/analyze", json=base_request()).json()
