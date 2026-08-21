@@ -64,6 +64,53 @@ textarea {
   gap: 14px;
 }
 
+.player-summary {
+  border-color: #9bc8c3;
+  box-shadow: 0 8px 24px rgba(17, 100, 102, 0.08);
+}
+
+.eyebrow {
+  margin: 0 0 4px;
+  color: var(--accent);
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.summary-facts {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin: 0 0 12px;
+}
+
+.player-reason {
+  margin: 0 0 12px;
+  font-weight: 700;
+}
+
+.player-blockers {
+  border-top: 1px solid var(--line);
+  padding-top: 12px;
+}
+
+.player-blockers ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  list-style: none;
+  margin: 10px 0 0;
+  padding: 0;
+}
+
+.player-blockers li {
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  display: inline-flex;
+  gap: 8px;
+  padding: 7px 10px;
+}
+
 .section-heading {
   display: flex;
   align-items: center;
@@ -149,6 +196,57 @@ button:disabled {
   margin: 14px 0;
 }
 
+.advanced-disclosure {
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  margin: 14px 0;
+  padding: 10px;
+}
+
+.advanced-disclosure summary,
+.advanced-tools > summary,
+.diagnostics-details summary,
+.inline-diagnostics summary {
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.advanced-tools {
+  border: 1px dashed var(--line);
+  border-radius: var(--radius);
+  padding: 14px;
+}
+
+.advanced-tools > summary {
+  align-items: center;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+}
+
+.advanced-tools > summary span:first-child {
+  display: grid;
+  gap: 4px;
+}
+
+.advanced-tools > summary strong {
+  color: var(--text);
+  font-size: 18px;
+}
+
+.advanced-tools > summary small {
+  color: var(--muted);
+  font-weight: 500;
+}
+
+.advanced-tools-body {
+  display: grid;
+  gap: 14px;
+  padding-top: 14px;
+}
+
 .facts-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -224,6 +322,24 @@ th {
   color: var(--muted);
   font-size: 12px;
   text-transform: uppercase;
+}
+
+.action-primary {
+  background: #fbfefd;
+}
+
+.action-secondary {
+  opacity: 0.72;
+}
+
+.inline-diagnostics {
+  margin-top: 4px;
+}
+
+.diagnostics-details {
+  border-top: 1px solid var(--line);
+  margin-top: 12px;
+  padding-top: 12px;
 }
 
 .status {
@@ -335,6 +451,7 @@ th {
   .workspace,
   .evidence-form,
   .recorder-form,
+  .summary-facts,
   .facts-grid,
   .mod-columns {
     grid-template-columns: 1fr;

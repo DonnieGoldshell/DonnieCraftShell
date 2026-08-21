@@ -10,12 +10,17 @@ export function ActionTable({ actions }: Props) {
   if (!actions.length) {
     return <section className="panel">No action candidates are available for this item.</section>;
   }
+  const prioritizedActions = [...actions].sort(actionSort);
+  const applicableCount = actions.filter((action) => action.applicability === "APPLICABLE").length;
 
   return (
     <section className="panel">
       <div className="section-heading">
-        <h2>Crafting Actions</h2>
-        <span className="count">{actions.length}</span>
+        <div>
+          <h2>Crafting Actions</h2>
+          <p className="muted">Applicable actions are shown first. Non-applicable actions remain visible for context.</p>
+        </div>
+        <span className="count">{applicableCount} applicable</span>
       </div>
       <div className="table-wrap">
         <table>
@@ -31,11 +36,14 @@ export function ActionTable({ actions }: Props) {
             </tr>
           </thead>
           <tbody>
-            {actions.map((action) => (
-              <tr key={action.action_id}>
+            {prioritizedActions.map((action) => (
+              <tr key={action.action_id} className={action.applicability === "APPLICABLE" ? "action-primary" : "action-secondary"}>
                 <td>
                   <strong>{action.display_name}</strong>
-                  <small>{action.action_id}</small>
+                  <details className="inline-diagnostics">
+                    <summary>Diagnostics</summary>
+                    <small>{action.action_id}</small>
+                  </details>
                 </td>
                 <td>
                   <StatusBadge value={action.applicability} />
@@ -77,4 +85,14 @@ export function ActionTable({ actions }: Props) {
       </div>
     </section>
   );
+}
+
+function actionSort(left: ActionAnalysis, right: ActionAnalysis): number {
+  return actionWeight(left) - actionWeight(right) || left.display_name.localeCompare(right.display_name);
+}
+
+function actionWeight(action: ActionAnalysis): number {
+  if (action.applicability === "APPLICABLE") return 0;
+  if (action.applicability === "UNKNOWN") return 1;
+  return 2;
 }
