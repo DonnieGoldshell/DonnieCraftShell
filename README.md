@@ -114,3 +114,7 @@ npm run typecheck
 npm test
 npm run build
 ```
+
+## Manual Valuation Workspace
+
+Manual comparable listing observations can be saved locally through the API and web Manual Valuation panel. The default workspace file is `.dcs/manual_valuation_workspace.json` and is ignored by git. Persistence is scoped by valuation subject (`current` or `outcome:{outcome_id}`) and does not automatically submit evidence to Advisor. See [docs/MANUAL_VALUATION_WORKSPACE.md](docs/MANUAL_VALUATION_WORKSPACE.md).

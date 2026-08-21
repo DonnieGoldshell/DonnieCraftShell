@@ -185,3 +185,7 @@ Do not use display names as identifiers. Keep external source IDs and canonical 
 ## SELL NOW
 
 `SELL_NOW` is a normal `CraftAction` category and must flow through candidate actions, simulations, and recommendations without special-case architecture.
+
+## Manual Valuation Workspace
+
+Task 19B adds local persistence endpoints for manual valuation evidence under `/api/v1/advisor/manual-valuation/workspace/*`. Records are stored by canonical subject identity (`current` or `outcome:{outcome_id}`), and persisted evidence is not automatically submitted to Advisor or converted into valuation readiness. See [MANUAL_VALUATION_WORKSPACE.md](MANUAL_VALUATION_WORKSPACE.md) for the storage envelope, save/update/delete behavior, and frontend workflow.

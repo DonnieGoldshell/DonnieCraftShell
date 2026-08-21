@@ -180,3 +180,7 @@ See [GAME_DATA_IMPORT.md](GAME_DATA_IMPORT.md) and [MODIFIER_RESOLUTION.md](MODI
 - Version game data imports and economy snapshots.
 - Keep raw source data separate from normalized domain data.
 - Model craft sessions from MVP 0.1, even if persistence starts minimal.
+
+## Manual Valuation Workspace
+
+The API includes a framework-independent manual valuation evidence workspace used by the Manual Valuation panel. It persists operator-entered listing observations locally, enforces canonical subject identity, and keeps persistence separate from valuation preview, Advisor analysis, and EV readiness. See [MANUAL_VALUATION_WORKSPACE.md](MANUAL_VALUATION_WORKSPACE.md).
