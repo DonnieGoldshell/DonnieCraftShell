@@ -511,9 +511,24 @@ def _economy_readiness(
     missing_requirements: tuple[MissingAnalysisRequirement, ...],
 ) -> EvidenceReadinessItem:
     diagnostics = _requirements_for(missing_requirements, MissingRequirementKind.ECONOMY_QUOTE_REQUIRED)
+    diagnostics_by_action = _requirements_by_action(diagnostics)
+    action_by_id = {result.action_id: result for result in action_results}
     targets: list[EvidenceReadinessTarget] = []
     seen: set[tuple[str, str | None]] = set()
-    for result in action_results:
+    for action_id, action_diagnostics in diagnostics_by_action.items():
+        result = action_by_id.get(action_id)
+        if result is None:
+            targets.append(
+                EvidenceReadinessTarget(
+                    target_type="ECONOMY_REQUIREMENT",
+                    target_id=action_id or "global",
+                    action_id=action_id,
+                    action_display_name=_action_display_name(action_results, action_id),
+                    reason=action_diagnostics[0].reason,
+                    blocks=_blocks_for(action_diagnostics),
+                )
+            )
+            continue
         for line in result.candidate.material_cost.lines:
             if line.quote is not None and line.unit_price is not None and line.subtotal is not None:
                 continue
@@ -529,7 +544,18 @@ def _economy_readiness(
                     action_display_name=result.candidate.action.display_name,
                     asset_id=line.asset_id,
                     reason=f"Missing economy quote for {_display_asset(line.asset_id)}.",
-                    blocks=_blocks_for(tuple(item for item in diagnostics if item.affected_action_id == result.action_id)),
+                    blocks=_blocks_for(action_diagnostics),
+                )
+            )
+        if not any(target.action_id == action_id for target in targets):
+            targets.append(
+                EvidenceReadinessTarget(
+                    target_type="ECONOMY_REQUIREMENT",
+                    target_id=action_id or "global",
+                    action_id=action_id,
+                    action_display_name=_action_display_name(action_results, action_id),
+                    reason=action_diagnostics[0].reason,
+                    blocks=_blocks_for(action_diagnostics),
                 )
             )
     status = EvidenceReadinessStatus.MISSING if targets else EvidenceReadinessStatus.READY if action_results else EvidenceReadinessStatus.UNKNOWN
@@ -556,26 +582,38 @@ def _probability_readiness(
     missing_requirements: tuple[MissingAnalysisRequirement, ...],
 ) -> EvidenceReadinessItem:
     diagnostics = _requirements_for(missing_requirements, MissingRequirementKind.PROBABILITY_EVIDENCE_REQUIRED)
+    diagnostics_by_action = _requirements_by_action(diagnostics)
+    action_by_id = {result.action_id: result for result in action_results}
     targets: list[EvidenceReadinessTarget] = []
-    for result in action_results:
-        model = result.probability_model
+    for action_id, action_diagnostics in diagnostics_by_action.items():
+        result = action_by_id.get(action_id)
+        model = result.probability_model if result is not None else None
+        display_name = result.candidate.action.display_name if result is not None else _action_display_name(action_results, action_id)
         if model is None:
+            targets.append(
+                EvidenceReadinessTarget(
+                    target_type="ACTION_PROBABILITY_MODEL",
+                    target_id=action_id or "global",
+                    action_id=action_id,
+                    action_display_name=display_name,
+                    reason=action_diagnostics[0].reason,
+                    blocks=_blocks_for(action_diagnostics),
+                )
+            )
             continue
         missing_outcomes = tuple(item.outcome_id for item in model.outcome_probabilities if item.probability is None)
-        if model.probability_completeness.value == "COMPLETE" and not missing_outcomes:
-            continue
         targets.append(
             EvidenceReadinessTarget(
                 target_type="ACTION_PROBABILITY_MODEL",
                 target_id=model.source_outcome_set_id,
-                action_id=result.action_id,
-                action_display_name=result.candidate.action.display_name,
+                action_id=action_id,
+                action_display_name=display_name,
                 outcome_ids=missing_outcomes,
                 reason=(
-                    f"{result.candidate.action.display_name} probability model is {model.probability_completeness.value}"
+                    f"{display_name or action_id or 'Action'} probability model is {model.probability_completeness.value}"
                     f" with {len(missing_outcomes)} unknown outcome probabilities."
                 ),
-                blocks=_blocks_for(tuple(item for item in diagnostics if item.affected_action_id == result.action_id)),
+                blocks=_blocks_for(action_diagnostics),
             )
         )
     status = EvidenceReadinessStatus.MISSING if targets else EvidenceReadinessStatus.READY if action_results else EvidenceReadinessStatus.UNKNOWN
@@ -603,31 +641,44 @@ def _outcome_valuation_readiness(
     missing_requirements: tuple[MissingAnalysisRequirement, ...],
 ) -> EvidenceReadinessItem:
     diagnostics = _requirements_for(missing_requirements, MissingRequirementKind.OUTCOME_VALUATION_EVIDENCE_REQUIRED)
+    diagnostics_by_action = _requirements_by_action(diagnostics)
+    action_by_id = {result.action_id: result for result in action_results}
     supplied = request.outcome_valuations_by_outcome_id or {}
     targets: list[EvidenceReadinessTarget] = []
     any_outcomes = False
-    any_valued = False
+    any_valued = bool(supplied)
     for result in action_results:
-        if result.outcome_set is None:
+        if result.outcome_set is not None:
+            any_outcomes = any_outcomes or bool(result.outcome_set.hypothetical_states)
+    for action_id, action_diagnostics in diagnostics_by_action.items():
+        result = action_by_id.get(action_id)
+        if result is None or result.outcome_set is None:
+            targets.append(
+                EvidenceReadinessTarget(
+                    target_type="OUTCOME_VALUATION",
+                    target_id=action_id or "global",
+                    action_id=action_id,
+                    action_display_name=_action_display_name(action_results, action_id),
+                    reason=action_diagnostics[0].reason,
+                    blocks=_blocks_for(action_diagnostics),
+                )
+            )
             continue
         outcome_ids = tuple(state.outcome_id for state in result.outcome_set.hypothetical_states)
-        any_outcomes = any_outcomes or bool(outcome_ids)
         missing_outcomes = tuple(outcome_id for outcome_id in outcome_ids if outcome_id not in supplied)
         any_valued = any_valued or len(missing_outcomes) < len(outcome_ids)
-        if not missing_outcomes:
-            continue
         targets.append(
             EvidenceReadinessTarget(
                 target_type="OUTCOME_VALUATION",
-                target_id=result.action_id,
-                action_id=result.action_id,
+                target_id=action_id or "global",
+                action_id=action_id,
                 action_display_name=result.candidate.action.display_name,
                 outcome_ids=missing_outcomes,
                 reason=(
                     f"{result.candidate.action.display_name} has valuation coverage "
                     f"{len(outcome_ids) - len(missing_outcomes)}/{len(outcome_ids)}."
                 ),
-                blocks=_blocks_for(tuple(item for item in diagnostics if item.affected_action_id == result.action_id)),
+                blocks=_blocks_for(action_diagnostics),
             )
         )
     if targets and any_valued:
@@ -696,6 +747,15 @@ def _requirements_for(
     kind: MissingRequirementKind,
 ) -> tuple[MissingAnalysisRequirement, ...]:
     return tuple(requirement for requirement in requirements if requirement.kind == kind)
+
+
+def _requirements_by_action(
+    requirements: tuple[MissingAnalysisRequirement, ...],
+) -> dict[str | None, tuple[MissingAnalysisRequirement, ...]]:
+    grouped: dict[str | None, list[MissingAnalysisRequirement]] = {}
+    for requirement in requirements:
+        grouped.setdefault(requirement.affected_action_id, []).append(requirement)
+    return {action_id: tuple(items) for action_id, items in grouped.items()}
 
 
 def _blocks_for(requirements: tuple[MissingAnalysisRequirement, ...]) -> tuple[str, ...]:

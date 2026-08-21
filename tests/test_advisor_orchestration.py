@@ -14,6 +14,7 @@ from packages.shared.donniecraftshell_contracts.advisor_orchestration import (
     EvidenceReadinessCategory,
     EvidenceReadinessStatus,
     MissingRequirementKind,
+    _evidence_readiness,
 )
 from packages.shared.donniecraftshell_contracts.advisor_risk import AdvisorRiskContext, RiskProfile
 from packages.shared.donniecraftshell_contracts.affix_capacity import AffixStateResolver, load_affix_capacity_dataset
@@ -29,6 +30,7 @@ from packages.shared.donniecraftshell_contracts.economy import (
     FreshnessState,
     normalized_exalted_value,
 )
+from packages.shared.donniecraftshell_contracts.economy_costs import CraftMaterialCost, CraftMaterialCostLine
 from packages.shared.donniecraftshell_contracts.economy_repository import EconomyRepository
 from packages.shared.donniecraftshell_contracts.expected_value import ExpectedValueStatus
 from packages.shared.donniecraftshell_contracts.game_data_repository import GameDataRepository
@@ -121,8 +123,10 @@ class AdvisorOrchestrationTests(unittest.TestCase):
         self.assertTrue(any(target.asset_id == ORB_OF_ANNULMENT_ASSET_ID for target in economy_targets))
         probability_targets = readiness[EvidenceReadinessCategory.PROBABILITY].targets
         self.assertTrue(any(target.action_id == "dc:poe2:craft-action:orb-of-annulment" for target in probability_targets))
+        self.assertFalse(any(target.action_id == "dc:poe2:craft-action:exalted-orb" for target in probability_targets))
         outcome_targets = readiness[EvidenceReadinessCategory.OUTCOME_VALUATION].targets
         self.assertEqual(len(outcome_targets[0].outcome_ids), 6)
+        self.assertFalse(any(target.action_id == "dc:poe2:craft-action:exalted-orb" for target in outcome_targets))
 
     def test_real_quiver_6_with_synthetic_valuation_remains_scenario_only(self):
         orchestrator = self._orchestrator(parser=self._fixed_parser())
@@ -181,6 +185,40 @@ class AdvisorOrchestrationTests(unittest.TestCase):
         self.assertIsNone(annulment.candidate.material_cost.total)
         self.assertEqual(annulment.expected_value_result.status, ExpectedValueStatus.NOT_AVAILABLE)
         self.assertTrue(any(item.kind == MissingRequirementKind.ECONOMY_QUOTE_REQUIRED for item in annulment.missing_requirements))
+
+    def test_evidence_readiness_ignores_non_applicable_non_blocking_action_state(self):
+        result = self._orchestrator(parser=self._fixed_parser()).analyze(self._request())
+        exalted = self._action(result, "dc:poe2:craft-action:exalted-orb")
+        non_blocking_cost = CraftMaterialCost(
+            lines=(
+                CraftMaterialCostLine(
+                    asset_id="dc:poe2:economy-asset:currency:missing-test-only",
+                    quantity=Decimal("1"),
+                    quote=None,
+                    unit_price=None,
+                    subtotal=None,
+                    warnings=("synthetic missing quote",),
+                ),
+            ),
+            total=None,
+            complete=False,
+            freshness=FreshnessState.UNAVAILABLE,
+            warnings=("synthetic missing quote",),
+        )
+        non_blocking_exalted = replace(
+            exalted,
+            candidate=replace(exalted.candidate, material_cost=non_blocking_cost, cost_complete=False),
+        )
+
+        synthetic_readiness = _evidence_readiness(self._request(), (non_blocking_exalted,), ())
+        readiness = {item.category: item for item in synthetic_readiness.items}
+
+        self.assertNotEqual(readiness[EvidenceReadinessCategory.ECONOMY_CRAFTING_COST].status, EvidenceReadinessStatus.MISSING)
+        self.assertNotEqual(readiness[EvidenceReadinessCategory.PROBABILITY].status, EvidenceReadinessStatus.MISSING)
+        self.assertNotEqual(readiness[EvidenceReadinessCategory.OUTCOME_VALUATION].status, EvidenceReadinessStatus.MISSING)
+        self.assertEqual(readiness[EvidenceReadinessCategory.ECONOMY_CRAFTING_COST].targets, ())
+        self.assertEqual(readiness[EvidenceReadinessCategory.PROBABILITY].targets, ())
+        self.assertEqual(readiness[EvidenceReadinessCategory.OUTCOME_VALUATION].targets, ())
 
     def test_unsupported_rarity_and_item_class_are_structured_results(self):
         rarity_result = self._orchestrator().analyze(self._request(raw=self.raw_normal_quiver))
