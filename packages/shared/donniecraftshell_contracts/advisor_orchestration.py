@@ -182,6 +182,22 @@ class CraftAdvisorOrchestrator:
         self.risk_policy_engine = risk_policy_engine or AdvisorRiskPolicyEngine()
         self.parser = parser or parse_clipboard_item
 
+    def with_economy_repository(self, economy_repository: EconomyRepository) -> "CraftAdvisorOrchestrator":
+        """Return an equivalent orchestrator using a request-scoped economy repository."""
+        return CraftAdvisorOrchestrator(
+            game_data_repository=self.game_data_repository,
+            affix_state_resolver=self.affix_state_resolver,
+            craft_action_engine=self.craft_action_engine,
+            economy_repository=economy_repository,
+            outcome_engine=self.outcome_engine,
+            probability_provider=self.probability_provider,
+            scenario_service=self.scenario_service,
+            expected_value_engine=self.expected_value_engine,
+            advisor_decision_engine=self.advisor_decision_engine,
+            risk_policy_engine=self.risk_policy_engine,
+            parser=self.parser,
+        )
+
     def analyze(self, request: AdvisorAnalysisRequest) -> AdvisorAnalysisResult:
         as_of = request.as_of or datetime.now(timezone.utc)
         analysis_id = _analysis_id()
@@ -305,14 +321,13 @@ class CraftAdvisorOrchestrator:
         request: AdvisorAnalysisRequest,
         as_of: datetime,
     ) -> ActionAnalysisResult:
-        missing = list(_cost_missing(candidate))
         if candidate.applicability.status == CraftApplicabilityStatus.NOT_APPLICABLE:
             return ActionAnalysisResult(
                 action_id=candidate.action.action_id,
                 candidate=candidate,
-                missing_requirements=tuple(missing),
                 warnings=candidate.warnings,
             )
+        missing = list(_cost_missing(candidate))
         outcome_set = self.outcome_engine.enumerate_outcomes(
             item,
             affix_state,
@@ -572,7 +587,7 @@ def _economy_readiness(
         status=status,
         summary=summary,
         targets=tuple(targets),
-        evidence_tool="economy-data-import",
+        evidence_tool="local-economy-quotes",
         diagnostics=diagnostics,
     )
 

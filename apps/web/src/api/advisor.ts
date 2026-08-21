@@ -18,6 +18,11 @@ export type ManualValuationWorkspaceSaveRequest = components["schemas"]["ManualV
 export type ManualValuationWorkspaceSaveResponse = components["schemas"]["ManualValuationWorkspaceSaveResponseDto"];
 export type ManualValuationWorkspaceListResponse = components["schemas"]["ManualValuationWorkspaceListResponseDto"];
 export type ManualValuationWorkspaceDeleteResponse = components["schemas"]["ManualValuationWorkspaceDeleteResponseDto"];
+export type EconomyQuoteWorkspaceRecord = components["schemas"]["EconomyQuoteWorkspaceRecordDto"];
+export type EconomyQuoteWorkspaceSaveRequest = components["schemas"]["EconomyQuoteWorkspaceSaveRequestDto"];
+export type EconomyQuoteWorkspaceSaveResponse = components["schemas"]["EconomyQuoteWorkspaceSaveResponseDto"];
+export type EconomyQuoteWorkspaceListResponse = components["schemas"]["EconomyQuoteWorkspaceListResponseDto"];
+export type EconomyQuoteWorkspaceDeleteResponse = components["schemas"]["EconomyQuoteWorkspaceDeleteResponseDto"];
 export type OutcomeManualValuationEvidence = components["schemas"]["OutcomeManualValuationEvidenceDto"];
 export type CraftObservationRecordRequest = components["schemas"]["CraftObservationRecordRequestDto"];
 export type CraftObservationRecordResponse = components["schemas"]["CraftObservationRecordResponseDto"];
@@ -215,6 +220,125 @@ export async function clearManualValuationWorkspaceSubject(
   }
 
   return response.json() as Promise<ManualValuationWorkspaceDeleteResponse>;
+}
+
+export async function saveEconomyQuoteWorkspaceQuote(
+  request: EconomyQuoteWorkspaceSaveRequest
+): Promise<EconomyQuoteWorkspaceSaveResponse> {
+  const response = await fetch(`${API_BASE_URL}/api/v1/advisor/economy-quotes/workspace/quotes`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(request)
+  });
+
+  if (!response.ok) {
+    let message = `Economy quote workspace save API returned ${response.status}`;
+    try {
+      const payload = await response.json();
+      message = payload?.detail?.message ?? payload?.detail ?? message;
+    } catch {
+      // Keep the status-based message.
+    }
+    throw new Error(message);
+  }
+
+  return response.json() as Promise<EconomyQuoteWorkspaceSaveResponse>;
+}
+
+export async function updateEconomyQuoteWorkspaceQuote(
+  evidenceId: string,
+  request: EconomyQuoteWorkspaceSaveRequest
+): Promise<EconomyQuoteWorkspaceSaveResponse> {
+  const response = await fetch(
+    `${API_BASE_URL}/api/v1/advisor/economy-quotes/workspace/quotes/${encodeURIComponent(evidenceId)}`,
+    {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(request)
+    }
+  );
+
+  if (!response.ok) {
+    let message = `Economy quote workspace update API returned ${response.status}`;
+    try {
+      const payload = await response.json();
+      message = payload?.detail?.message ?? payload?.detail ?? message;
+    } catch {
+      // Keep the status-based message.
+    }
+    throw new Error(message);
+  }
+
+  return response.json() as Promise<EconomyQuoteWorkspaceSaveResponse>;
+}
+
+export async function listEconomyQuoteWorkspaceQuotes(
+  league?: string,
+  assetId?: string
+): Promise<EconomyQuoteWorkspaceListResponse> {
+  const query = new URLSearchParams();
+  if (league) query.set("league", league);
+  if (assetId) query.set("asset_id", assetId);
+  const suffix = query.toString() ? `?${query.toString()}` : "";
+  const response = await fetch(`${API_BASE_URL}/api/v1/advisor/economy-quotes/workspace/quotes${suffix}`);
+
+  if (!response.ok) {
+    throw new Error(`Economy quote workspace list API returned ${response.status}`);
+  }
+
+  return response.json() as Promise<EconomyQuoteWorkspaceListResponse>;
+}
+
+export async function deleteEconomyQuoteWorkspaceQuote(
+  evidenceId: string
+): Promise<EconomyQuoteWorkspaceDeleteResponse> {
+  const response = await fetch(
+    `${API_BASE_URL}/api/v1/advisor/economy-quotes/workspace/quotes/${encodeURIComponent(evidenceId)}`,
+    { method: "DELETE" }
+  );
+
+  if (!response.ok) {
+    let message = `Economy quote workspace delete API returned ${response.status}`;
+    try {
+      const payload = await response.json();
+      message = payload?.detail?.message ?? payload?.detail ?? message;
+    } catch {
+      // Keep the status-based message.
+    }
+    throw new Error(message);
+  }
+
+  return response.json() as Promise<EconomyQuoteWorkspaceDeleteResponse>;
+}
+
+export async function clearEconomyQuoteWorkspaceQuotes(
+  league?: string,
+  assetId?: string
+): Promise<EconomyQuoteWorkspaceDeleteResponse> {
+  const query = new URLSearchParams();
+  if (league) query.set("league", league);
+  if (assetId) query.set("asset_id", assetId);
+  const suffix = query.toString() ? `?${query.toString()}` : "";
+  const response = await fetch(`${API_BASE_URL}/api/v1/advisor/economy-quotes/workspace/quotes${suffix}`, {
+    method: "DELETE"
+  });
+
+  if (!response.ok) {
+    let message = `Economy quote workspace clear API returned ${response.status}`;
+    try {
+      const payload = await response.json();
+      message = payload?.detail?.message ?? payload?.detail ?? message;
+    } catch {
+      // Keep the status-based message.
+    }
+    throw new Error(message);
+  }
+
+  return response.json() as Promise<EconomyQuoteWorkspaceDeleteResponse>;
 }
 
 export async function recordCraftObservation(

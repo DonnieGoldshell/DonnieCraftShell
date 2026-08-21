@@ -85,7 +85,7 @@ const quiverResponse: AdvisorAnalyzeResponse = {
       applicability_reasons: ["Rare item has eligible explicit modifiers."],
       failed_preconditions: [],
       unknown_preconditions: [],
-      required_materials: [{ asset_id: "dc:poe2:economy-asset:orb-of-annulment", quantity: "1" }],
+      required_materials: [{ asset_id: "dc:poe2:economy-asset:currency:orb-of-annulment", quantity: "1" }],
       material_cost: {
         complete: false,
         freshness: "UNAVAILABLE",
@@ -140,7 +140,7 @@ const quiverResponse: AdvisorAnalyzeResponse = {
       applicability_reasons: [],
       failed_preconditions: ["No open explicit affix slot"],
       unknown_preconditions: [],
-      required_materials: [{ asset_id: "dc:poe2:economy-asset:exalted-orb", quantity: "1" }],
+      required_materials: [{ asset_id: "dc:poe2:economy-asset:currency:exalted-orb", quantity: "1" }],
       material_cost: {
         complete: true,
         freshness: "FRESH",
@@ -194,16 +194,16 @@ const quiverResponse: AdvisorAnalyzeResponse = {
         targets: [
           {
             target_type: "ECONOMY_ASSET",
-            target_id: "dc:poe2:economy-asset:orb-of-annulment",
+            target_id: "dc:poe2:economy-asset:currency:orb-of-annulment",
             action_id: "dc:poe2:craft-action:orb-of-annulment",
             action_display_name: "Orb of Annulment",
-            asset_id: "dc:poe2:economy-asset:orb-of-annulment",
+            asset_id: "dc:poe2:economy-asset:currency:orb-of-annulment",
             reason: "Missing economy quote for Orb Of Annulment.",
             outcome_ids: [],
             blocks: ["Craft material cost", "Expected Value"]
           }
         ],
-        evidence_tool: "economy-data-import",
+        evidence_tool: "local-economy-quotes",
         diagnostics: []
       },
       {
@@ -408,6 +408,91 @@ describe("AdvisorWorkbench", () => {
 
     expect(screen.getByText(/listing-derived estimates are not guaranteed sale prices/i)).toBeVisible();
     expect(screen.getByRole("button", { name: /add observation/i })).toBeVisible();
+  });
+
+  it("opens local economy quote workflow from readiness without rerunning analysis on save", async () => {
+    const quoteRecord = {
+      evidence_id: "local-annulment",
+      league: DEFAULT_LEAGUE,
+      asset_id: "dc:poe2:economy-asset:currency:orb-of-annulment",
+      amount: "7.5",
+      currency_asset_id: EXALTED_ASSET_ID,
+      observed_at: "2026-08-21T12:00:00+00:00",
+      source_type: "MANUAL_RESEARCH",
+      source_reference: "operator note",
+      notes: "Synthetic frontend test quote.",
+      created_at: "2026-08-21T12:00:00+00:00",
+      updated_at: "2026-08-21T12:00:00+00:00"
+    };
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => quiverResponse
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          workspace_version: "dc-economy-quote-workspace-v1",
+          status: "SAVED",
+          evidence_id: "local-annulment",
+          record: quoteRecord,
+          persistence: {
+            storage_version: "dc-economy-quote-workspace-storage-v1",
+            storage_mode: "IN_MEMORY",
+            persistence_enabled: false,
+            loaded_quote_count: 1,
+            skipped_quote_count: 0,
+            warnings: []
+          },
+          warnings: ["Stored local economy quote evidence applies only after Advisor analysis is re-run."]
+        })
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          workspace_version: "dc-economy-quote-workspace-v1",
+          records: [quoteRecord],
+          persistence: {
+            storage_version: "dc-economy-quote-workspace-storage-v1",
+            storage_mode: "IN_MEMORY",
+            persistence_enabled: false,
+            loaded_quote_count: 1,
+            skipped_quote_count: 0,
+            warnings: []
+          },
+          warnings: []
+        })
+      });
+    vi.stubGlobal("fetch", fetchMock);
+    const user = userEvent.setup();
+
+    render(<AdvisorWorkbench />);
+    await user.type(screen.getByLabelText(/clipboard item text/i), "Item Class: Quivers\nRarity: Rare");
+    await user.click(screen.getByRole("button", { name: /analyze quiver/i }));
+    await screen.findByText("Primed Quiver");
+    await user.click(screen.getByRole("button", { name: /open economy quote workflow/i }));
+
+    expect(screen.getByRole("region", { name: /local economy quote workflow/i })).toBeVisible();
+    expect(screen.getByLabelText(/needed asset/i)).toHaveValue("dc:poe2:economy-asset:currency:orb-of-annulment");
+
+    await user.type(screen.getByLabelText(/quote in exalted units/i), "7.5");
+    await user.type(screen.getByLabelText(/source reference/i), "operator note");
+    await user.click(screen.getByRole("button", { name: /save local quote/i }));
+
+    await screen.findByText(/re-run analysis to apply it/i);
+    expect(fetchMock.mock.calls.filter((call) => String(call[0]).includes("/api/v1/advisor/analyze"))).toHaveLength(1);
+    expect(fetchMock.mock.calls[1][0]).toContain("/api/v1/advisor/economy-quotes/workspace/quotes");
+    const saveBody = JSON.parse(fetchMock.mock.calls[1][1].body as string);
+    expect(saveBody.record).toEqual(
+      expect.objectContaining({
+        league: DEFAULT_LEAGUE,
+        asset_id: "dc:poe2:economy-asset:currency:orb-of-annulment",
+        amount: "7.5",
+        currency_asset_id: EXALTED_ASSET_ID,
+        source_reference: "operator note"
+      })
+    );
   });
 
   it("adds current-item manual comparable observations to the next advisor request", async () => {
