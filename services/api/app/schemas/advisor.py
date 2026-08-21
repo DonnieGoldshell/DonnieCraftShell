@@ -102,6 +102,83 @@ class ManualValuationPreviewResponseDto(ApiModel):
     warnings: list[str] = []
 
 
+class ManualValuationWorkspaceRecordDto(ApiModel):
+    evidence_id: str | None = None
+    subject_id: str
+    subject_type: str
+    outcome_id: str | None = None
+    league: str
+    strategy: str = "STRICT"
+    amount: str = Field(description="Decimal listing amount encoded as string.")
+    currency_asset_id: str
+    external_listing_id: str | None = None
+    observed_at: datetime | None = None
+    item_summary: str | None = None
+    notes: str | None = None
+    created_at: datetime | None = None
+    updated_at: datetime | None = None
+
+    @field_validator("amount")
+    @classmethod
+    def workspace_amount_is_decimal(cls, value: str) -> str:
+        Decimal(value)
+        return value
+
+    @model_validator(mode="after")
+    def workspace_subject_identity_is_consistent(self) -> "ManualValuationWorkspaceRecordDto":
+        if self.subject_type == "CURRENT_ITEM":
+            if self.subject_id != "current":
+                raise ValueError("current-item valuation evidence requires subject_id current")
+            if self.outcome_id is not None:
+                raise ValueError("current-item valuation evidence must not include outcome_id")
+            return self
+        if self.subject_type == "HYPOTHETICAL_OUTCOME":
+            if not self.outcome_id:
+                raise ValueError("hypothetical-outcome valuation evidence requires outcome_id")
+            if self.subject_id != f"outcome:{self.outcome_id}":
+                raise ValueError("hypothetical-outcome valuation evidence requires subject_id outcome:{outcome_id}")
+            return self
+        raise ValueError("subject_type must be CURRENT_ITEM or HYPOTHETICAL_OUTCOME")
+
+
+class ManualValuationWorkspacePersistenceStatusDto(ApiModel):
+    storage_version: str
+    storage_mode: str
+    persistence_enabled: bool
+    loaded_evidence_count: int
+    skipped_evidence_count: int = 0
+    warnings: list[str] = []
+
+
+class ManualValuationWorkspaceSaveRequestDto(ApiModel):
+    record: ManualValuationWorkspaceRecordDto
+
+
+class ManualValuationWorkspaceSaveResponseDto(ApiModel):
+    workspace_version: str
+    status: str
+    evidence_id: str | None = None
+    record: ManualValuationWorkspaceRecordDto | None = None
+    persistence: ManualValuationWorkspacePersistenceStatusDto
+    warnings: list[str] = []
+
+
+class ManualValuationWorkspaceListResponseDto(ApiModel):
+    workspace_version: str
+    records: list[ManualValuationWorkspaceRecordDto]
+    persistence: ManualValuationWorkspacePersistenceStatusDto
+    warnings: list[str] = []
+
+
+class ManualValuationWorkspaceDeleteResponseDto(ApiModel):
+    workspace_version: str
+    status: str
+    evidence_id: str | None = None
+    deleted_count: int = 0
+    persistence: ManualValuationWorkspacePersistenceStatusDto
+    warnings: list[str] = []
+
+
 class AdvisorAnalyzeRequestDto(ApiModel):
     clipboard_text: str
     league: str

@@ -33,8 +33,8 @@ export function AdvisorWorkbench() {
   const [craftingDataset, setCraftingDataset] = useState(DEFAULT_CRAFTING_DATASET);
   const [affixDataset, setAffixDataset] = useState(DEFAULT_AFFIX_CAPACITY_DATASET);
   const [empiricalDataset, setEmpiricalDataset] = useState("");
-  const [currentObservations, setCurrentObservations] = useState<ManualListingObservation[]>([]);
-  const [outcomeObservations, setOutcomeObservations] = useState<Record<string, ManualListingObservation[]>>({});
+  const [currentObservations, setCurrentObservations] = useState<EditableManualListingObservation[]>([]);
+  const [outcomeObservations, setOutcomeObservations] = useState<Record<string, EditableManualListingObservation[]>>({});
   const [analysis, setAnalysis] = useState<AdvisorAnalyzeResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -157,6 +157,13 @@ export function AdvisorWorkbench() {
                 return next;
               })
             }
+            onReplaceCurrentObservations={setCurrentObservations}
+            onReplaceOutcomeObservations={(outcomeId, observations) =>
+              setOutcomeObservations((groups) => ({
+                ...groups,
+                [outcomeId]: observations
+              }))
+            }
           />
           {analysis ? (
             <>
@@ -188,17 +195,21 @@ export function AdvisorWorkbench() {
   );
 }
 
-function buildManualEvidence(observations: ManualListingObservation[]): ManualValuationEvidence | null {
+export type EditableManualListingObservation = ManualListingObservation & {
+  evidence_id?: string | null;
+};
+
+function buildManualEvidence(observations: EditableManualListingObservation[]): ManualValuationEvidence | null {
   if (!observations.length) return null;
   return {
     strategy: "STRICT",
-    observations,
+    observations: observations.map(withoutWorkspaceFields),
     notes: "User-entered manual comparable listing evidence. Listing-derived estimate is not a realized sale price."
   };
 }
 
 function buildOutcomeEvidence(
-  groupedObservations: Record<string, ManualListingObservation[]>
+  groupedObservations: Record<string, EditableManualListingObservation[]>
 ): OutcomeManualValuationEvidence[] {
   return Object.entries(groupedObservations)
     .filter(([, observations]) => observations.length > 0)
@@ -206,8 +217,14 @@ function buildOutcomeEvidence(
       outcome_id,
       evidence: {
         strategy: "STRICT",
-        observations,
+        observations: observations.map(withoutWorkspaceFields),
         notes: "User-entered manual outcome comparable listing evidence."
       }
     }));
+}
+
+function withoutWorkspaceFields(observation: EditableManualListingObservation): ManualListingObservation {
+  const { evidence_id, ...manualObservation } = observation;
+  void evidence_id;
+  return manualObservation;
 }

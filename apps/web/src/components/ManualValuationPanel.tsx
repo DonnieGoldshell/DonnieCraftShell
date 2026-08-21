@@ -3,10 +3,17 @@ import {
   DIVINE_ASSET_ID,
   EXALTED_ASSET_ID,
   type ActionAnalysis,
+  clearManualValuationWorkspaceSubject,
+  deleteManualValuationWorkspaceEvidence,
+  listManualValuationWorkspaceEvidence,
   previewManualValuation,
+  saveManualValuationWorkspaceEvidence,
   type ManualListingObservation,
-  type ManualValuationPreviewResponse
+  type ManualValuationPreviewResponse,
+  type ManualValuationWorkspaceRecord,
+  updateManualValuationWorkspaceEvidence
 } from "@/api/advisor";
+import type { EditableManualListingObservation } from "./AdvisorWorkbench";
 
 type OutcomeOption = {
   actionId: string;
@@ -17,16 +24,18 @@ type OutcomeOption = {
 type Props = {
   actions: ActionAnalysis[];
   league: string;
-  currentObservations: ManualListingObservation[];
-  outcomeObservations: Record<string, ManualListingObservation[]>;
-  onAddCurrentObservation: (observation: ManualListingObservation) => void;
-  onAddOutcomeObservation: (outcomeId: string, observation: ManualListingObservation) => void;
-  onUpdateCurrentObservation: (index: number, observation: ManualListingObservation) => void;
-  onUpdateOutcomeObservation: (outcomeId: string, index: number, observation: ManualListingObservation) => void;
+  currentObservations: EditableManualListingObservation[];
+  outcomeObservations: Record<string, EditableManualListingObservation[]>;
+  onAddCurrentObservation: (observation: EditableManualListingObservation) => void;
+  onAddOutcomeObservation: (outcomeId: string, observation: EditableManualListingObservation) => void;
+  onUpdateCurrentObservation: (index: number, observation: EditableManualListingObservation) => void;
+  onUpdateOutcomeObservation: (outcomeId: string, index: number, observation: EditableManualListingObservation) => void;
   onRemoveCurrentObservation: (index: number) => void;
   onRemoveOutcomeObservation: (outcomeId: string, index: number) => void;
   onClearCurrentObservations: () => void;
   onClearOutcomeObservations: (outcomeId: string) => void;
+  onReplaceCurrentObservations: (observations: EditableManualListingObservation[]) => void;
+  onReplaceOutcomeObservations: (outcomeId: string, observations: EditableManualListingObservation[]) => void;
 };
 
 const CURRENCY_OPTIONS = [
@@ -55,7 +64,9 @@ export function ManualValuationPanel({
   onRemoveCurrentObservation,
   onRemoveOutcomeObservation,
   onClearCurrentObservations,
-  onClearOutcomeObservations
+  onClearOutcomeObservations,
+  onReplaceCurrentObservations,
+  onReplaceOutcomeObservations
 }: Props) {
   const outcomeOptions = useMemo(
     () =>
@@ -74,6 +85,8 @@ export function ManualValuationPanel({
   const [error, setError] = useState<string | null>(null);
   const [preview, setPreview] = useState<ManualValuationPreviewResponse | null>(null);
   const [previewBusy, setPreviewBusy] = useState(false);
+  const [persistenceStatus, setPersistenceStatus] = useState<string | null>(null);
+  const [persistenceBusy, setPersistenceBusy] = useState(false);
 
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -102,6 +115,99 @@ export function ManualValuationPanel({
       onAddOutcomeObservation(outcomeId, observation);
     }
     setDraft({ ...emptyObservation, currency_asset_id: draft.currency_asset_id });
+  }
+
+  async function loadPersistedEvidence() {
+    setError(null);
+    setPersistenceStatus(null);
+    if (target === "outcome" && !outcomeId) {
+      setError("Choose an outcome ID before loading persisted evidence.");
+      return;
+    }
+    setPersistenceBusy(true);
+    try {
+      const subjectId = currentSubjectId(target, outcomeId);
+      const result = await listManualValuationWorkspaceEvidence(subjectId);
+      const observations = result.records.map(workspaceRecordToObservation);
+      if (target === "current") {
+        onReplaceCurrentObservations(observations);
+      } else {
+        onReplaceOutcomeObservations(outcomeId, observations);
+      }
+      setPersistenceStatus(
+        `Loaded ${observations.length} persisted observation${observations.length === 1 ? "" : "s"} from ${
+          result.persistence.storage_mode
+        } workspace.`
+      );
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Unable to load persisted valuation evidence.");
+    } finally {
+      setPersistenceBusy(false);
+    }
+  }
+
+  async function savePersistedEvidence() {
+    setError(null);
+    setPersistenceStatus(null);
+    if (target === "outcome" && !outcomeId) {
+      setError("Choose an outcome ID before saving persisted evidence.");
+      return;
+    }
+    const observations = target === "current" ? currentObservations : outcomeObservations[outcomeId] ?? [];
+    if (!observations.length) {
+      setError("Add or load at least one observation before saving persisted evidence.");
+      return;
+    }
+
+    setPersistenceBusy(true);
+    try {
+      const saved = await Promise.all(
+        observations.map((observation) => {
+          const record = observationToWorkspaceRecord(observation, target, outcomeId, league);
+          return observation.evidence_id
+            ? updateManualValuationWorkspaceEvidence(observation.evidence_id, { record })
+            : saveManualValuationWorkspaceEvidence({ record });
+        })
+      );
+      const records = saved.map((result) => result.record);
+      if (records.some((record) => !record)) {
+        throw new Error("Manual valuation workspace save response did not include all saved records.");
+      }
+      const persisted = records.map((record) => workspaceRecordToObservation(record as ManualValuationWorkspaceRecord));
+      if (target === "current") {
+        onReplaceCurrentObservations(persisted);
+      } else {
+        onReplaceOutcomeObservations(outcomeId, persisted);
+      }
+      setPersistenceStatus(`Saved ${persisted.length} observation${persisted.length === 1 ? "" : "s"} locally.`);
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Unable to save persisted valuation evidence.");
+    } finally {
+      setPersistenceBusy(false);
+    }
+  }
+
+  async function clearPersistedSubject() {
+    setError(null);
+    setPersistenceStatus(null);
+    if (target === "outcome" && !outcomeId) {
+      setError("Choose an outcome ID before clearing persisted evidence.");
+      return;
+    }
+    setPersistenceBusy(true);
+    try {
+      const result = await clearManualValuationWorkspaceSubject(currentSubjectId(target, outcomeId));
+      if (target === "current") {
+        onClearCurrentObservations();
+      } else {
+        onClearOutcomeObservations(outcomeId);
+      }
+      setPersistenceStatus(`Cleared ${result.deleted_count} persisted observation${result.deleted_count === 1 ? "" : "s"}.`);
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Unable to clear persisted valuation evidence.");
+    } finally {
+      setPersistenceBusy(false);
+    }
   }
 
   async function previewEvidence() {
@@ -234,14 +340,24 @@ export function ManualValuationPanel({
         <button className="secondary-button" type="button" onClick={previewEvidence} disabled={previewBusy}>
           {previewBusy ? "Previewing..." : "Preview Valuation Evidence"}
         </button>
+        <button className="secondary-button" type="button" onClick={loadPersistedEvidence} disabled={persistenceBusy}>
+          Load Persisted Evidence
+        </button>
+        <button className="secondary-button" type="button" onClick={savePersistedEvidence} disabled={persistenceBusy}>
+          Save Subject Evidence
+        </button>
+        <button className="secondary-button" type="button" onClick={clearPersistedSubject} disabled={persistenceBusy}>
+          Clear Persisted Subject
+        </button>
         {error && <p className="error-message compact">{error}</p>}
+        {persistenceStatus && <p className="muted compact">{persistenceStatus}</p>}
       </form>
 
       <EvidenceList
         title="Current item observations"
         observations={currentObservations}
         onUpdate={onUpdateCurrentObservation}
-        onRemove={onRemoveCurrentObservation}
+        onRemove={(index) => removePersistedCurrent(index, currentObservations[index], onRemoveCurrentObservation, setError)}
         onClear={currentObservations.length ? onClearCurrentObservations : undefined}
       />
       {Object.entries(outcomeObservations).map(([id, observations]) => (
@@ -250,7 +366,9 @@ export function ManualValuationPanel({
           title={`Outcome ${shortId(id)} observations`}
           observations={observations}
           onUpdate={(index, observation) => onUpdateOutcomeObservation(id, index, observation)}
-          onRemove={(index) => onRemoveOutcomeObservation(id, index)}
+          onRemove={(index) =>
+            removePersistedOutcome(id, index, observations[index], onRemoveOutcomeObservation, setError)
+          }
           onClear={() => onClearOutcomeObservations(id)}
         />
       ))}
@@ -267,8 +385,8 @@ function EvidenceList({
   onClear
 }: {
   title: string;
-  observations: ManualListingObservation[];
-  onUpdate: (index: number, observation: ManualListingObservation) => void;
+  observations: EditableManualListingObservation[];
+  onUpdate: (index: number, observation: EditableManualListingObservation) => void;
   onRemove: (index: number) => void;
   onClear?: () => void;
 }) {
@@ -394,6 +512,87 @@ function ValuationPreview({ preview }: { preview: ManualValuationPreviewResponse
 function optionalText(value: string): string | null {
   const trimmed = value.trim();
   return trimmed ? trimmed : null;
+}
+
+function currentSubjectId(target: "current" | "outcome", outcomeId: string): string {
+  return target === "current" ? "current" : `outcome:${outcomeId}`;
+}
+
+function workspaceRecordToObservation(record: ManualValuationWorkspaceRecord): EditableManualListingObservation {
+  return {
+    evidence_id: record.evidence_id,
+    amount: record.amount,
+    currency_asset_id: record.currency_asset_id,
+    external_listing_id: record.external_listing_id,
+    observed_at: record.observed_at,
+    item_summary: record.item_summary,
+    notes: record.notes
+  };
+}
+
+function observationToWorkspaceRecord(
+  observation: EditableManualListingObservation,
+  target: "current" | "outcome",
+  outcomeId: string,
+  league: string
+): ManualValuationWorkspaceRecord {
+  return {
+    evidence_id: observation.evidence_id,
+    subject_id: currentSubjectId(target, outcomeId),
+    subject_type: target === "current" ? "CURRENT_ITEM" : "HYPOTHETICAL_OUTCOME",
+    outcome_id: target === "current" ? null : outcomeId,
+    league,
+    strategy: "STRICT",
+    amount: observation.amount,
+    currency_asset_id: observation.currency_asset_id,
+    external_listing_id: observation.external_listing_id ?? null,
+    observed_at: observation.observed_at ?? null,
+    item_summary: observation.item_summary ?? null,
+    notes: observation.notes ?? null,
+    created_at: null,
+    updated_at: null
+  };
+}
+
+async function removePersistedCurrent(
+  index: number,
+  observation: EditableManualListingObservation | undefined,
+  removeLocal: (index: number) => void,
+  setError: (message: string | null) => void
+) {
+  await removePersistedObservation(index, observation, removeLocal, setError);
+}
+
+async function removePersistedOutcome(
+  outcomeId: string,
+  index: number,
+  observation: EditableManualListingObservation | undefined,
+  removeLocal: (outcomeId: string, index: number) => void,
+  setError: (message: string | null) => void
+) {
+  await removePersistedObservation(
+    index,
+    observation,
+    (removedIndex) => removeLocal(outcomeId, removedIndex),
+    setError
+  );
+}
+
+async function removePersistedObservation(
+  index: number,
+  observation: EditableManualListingObservation | undefined,
+  removeLocal: (index: number) => void,
+  setError: (message: string | null) => void
+) {
+  setError(null);
+  try {
+    if (observation?.evidence_id) {
+      await deleteManualValuationWorkspaceEvidence(observation.evidence_id);
+    }
+    removeLocal(index);
+  } catch (caught) {
+    setError(caught instanceof Error ? caught.message : "Unable to remove persisted valuation evidence.");
+  }
 }
 
 function formatEconomicValue(value: { amount: string; unit: string }): string {

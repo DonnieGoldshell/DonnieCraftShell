@@ -1981,6 +1981,319 @@
         "title": "ManualValuationPreviewResponseDto",
         "type": "object"
       },
+      "ManualValuationWorkspaceDeleteResponseDto": {
+        "properties": {
+          "deleted_count": {
+            "default": 0,
+            "title": "Deleted Count",
+            "type": "integer"
+          },
+          "evidence_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Evidence Id"
+          },
+          "persistence": {
+            "$ref": "#/components/schemas/ManualValuationWorkspacePersistenceStatusDto"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "warnings": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Warnings",
+            "type": "array"
+          },
+          "workspace_version": {
+            "title": "Workspace Version",
+            "type": "string"
+          }
+        },
+        "required": [
+          "workspace_version",
+          "status",
+          "persistence"
+        ],
+        "title": "ManualValuationWorkspaceDeleteResponseDto",
+        "type": "object"
+      },
+      "ManualValuationWorkspaceListResponseDto": {
+        "properties": {
+          "persistence": {
+            "$ref": "#/components/schemas/ManualValuationWorkspacePersistenceStatusDto"
+          },
+          "records": {
+            "items": {
+              "$ref": "#/components/schemas/ManualValuationWorkspaceRecordDto"
+            },
+            "title": "Records",
+            "type": "array"
+          },
+          "warnings": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Warnings",
+            "type": "array"
+          },
+          "workspace_version": {
+            "title": "Workspace Version",
+            "type": "string"
+          }
+        },
+        "required": [
+          "workspace_version",
+          "records",
+          "persistence"
+        ],
+        "title": "ManualValuationWorkspaceListResponseDto",
+        "type": "object"
+      },
+      "ManualValuationWorkspacePersistenceStatusDto": {
+        "properties": {
+          "loaded_evidence_count": {
+            "title": "Loaded Evidence Count",
+            "type": "integer"
+          },
+          "persistence_enabled": {
+            "title": "Persistence Enabled",
+            "type": "boolean"
+          },
+          "skipped_evidence_count": {
+            "default": 0,
+            "title": "Skipped Evidence Count",
+            "type": "integer"
+          },
+          "storage_mode": {
+            "title": "Storage Mode",
+            "type": "string"
+          },
+          "storage_version": {
+            "title": "Storage Version",
+            "type": "string"
+          },
+          "warnings": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Warnings",
+            "type": "array"
+          }
+        },
+        "required": [
+          "storage_version",
+          "storage_mode",
+          "persistence_enabled",
+          "loaded_evidence_count"
+        ],
+        "title": "ManualValuationWorkspacePersistenceStatusDto",
+        "type": "object"
+      },
+      "ManualValuationWorkspaceRecordDto": {
+        "properties": {
+          "amount": {
+            "description": "Decimal listing amount encoded as string.",
+            "title": "Amount",
+            "type": "string"
+          },
+          "created_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Created At"
+          },
+          "currency_asset_id": {
+            "title": "Currency Asset Id",
+            "type": "string"
+          },
+          "evidence_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Evidence Id"
+          },
+          "external_listing_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "External Listing Id"
+          },
+          "item_summary": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Item Summary"
+          },
+          "league": {
+            "title": "League",
+            "type": "string"
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notes"
+          },
+          "observed_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Observed At"
+          },
+          "outcome_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Outcome Id"
+          },
+          "strategy": {
+            "default": "STRICT",
+            "title": "Strategy",
+            "type": "string"
+          },
+          "subject_id": {
+            "title": "Subject Id",
+            "type": "string"
+          },
+          "subject_type": {
+            "title": "Subject Type",
+            "type": "string"
+          },
+          "updated_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Updated At"
+          }
+        },
+        "required": [
+          "subject_id",
+          "subject_type",
+          "league",
+          "amount",
+          "currency_asset_id"
+        ],
+        "title": "ManualValuationWorkspaceRecordDto",
+        "type": "object"
+      },
+      "ManualValuationWorkspaceSaveRequestDto": {
+        "properties": {
+          "record": {
+            "$ref": "#/components/schemas/ManualValuationWorkspaceRecordDto"
+          }
+        },
+        "required": [
+          "record"
+        ],
+        "title": "ManualValuationWorkspaceSaveRequestDto",
+        "type": "object"
+      },
+      "ManualValuationWorkspaceSaveResponseDto": {
+        "properties": {
+          "evidence_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Evidence Id"
+          },
+          "persistence": {
+            "$ref": "#/components/schemas/ManualValuationWorkspacePersistenceStatusDto"
+          },
+          "record": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ManualValuationWorkspaceRecordDto"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "warnings": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Warnings",
+            "type": "array"
+          },
+          "workspace_version": {
+            "title": "Workspace Version",
+            "type": "string"
+          }
+        },
+        "required": [
+          "workspace_version",
+          "status",
+          "persistence"
+        ],
+        "title": "ManualValuationWorkspaceSaveResponseDto",
+        "type": "object"
+      },
       "MaterialCostDto": {
         "properties": {
           "complete": {
@@ -3649,6 +3962,228 @@
           }
         },
         "summary": "Preview Manual Valuation",
+        "tags": [
+          "advisor"
+        ]
+      }
+    },
+    "/api/v1/advisor/manual-valuation/workspace/evidence": {
+      "get": {
+        "operationId": "list_manual_valuation_evidence_api_v1_advisor_manual_valuation_workspace_evidence_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "subject_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Subject Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ManualValuationWorkspaceListResponseDto"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Manual Valuation Evidence",
+        "tags": [
+          "advisor"
+        ]
+      },
+      "post": {
+        "operationId": "save_manual_valuation_evidence_api_v1_advisor_manual_valuation_workspace_evidence_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManualValuationWorkspaceSaveRequestDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ManualValuationWorkspaceSaveResponseDto"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Save Manual Valuation Evidence",
+        "tags": [
+          "advisor"
+        ]
+      }
+    },
+    "/api/v1/advisor/manual-valuation/workspace/evidence/{evidence_id}": {
+      "delete": {
+        "operationId": "delete_manual_valuation_evidence_api_v1_advisor_manual_valuation_workspace_evidence__evidence_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "evidence_id",
+            "required": true,
+            "schema": {
+              "title": "Evidence Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ManualValuationWorkspaceDeleteResponseDto"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Delete Manual Valuation Evidence",
+        "tags": [
+          "advisor"
+        ]
+      },
+      "put": {
+        "operationId": "update_manual_valuation_evidence_api_v1_advisor_manual_valuation_workspace_evidence__evidence_id__put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "evidence_id",
+            "required": true,
+            "schema": {
+              "title": "Evidence Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManualValuationWorkspaceSaveRequestDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ManualValuationWorkspaceSaveResponseDto"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Update Manual Valuation Evidence",
+        "tags": [
+          "advisor"
+        ]
+      }
+    },
+    "/api/v1/advisor/manual-valuation/workspace/subject": {
+      "delete": {
+        "operationId": "clear_manual_valuation_subject_api_v1_advisor_manual_valuation_workspace_subject_delete",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "subject_id",
+            "required": true,
+            "schema": {
+              "title": "Subject Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ManualValuationWorkspaceDeleteResponseDto"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Clear Manual Valuation Subject",
         "tags": [
           "advisor"
         ]

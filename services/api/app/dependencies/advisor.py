@@ -15,6 +15,10 @@ from packages.shared.donniecraftshell_contracts.empirical_probability import (
     FileBackedEmpiricalProbabilityDatasetRegistry,
 )
 from packages.shared.donniecraftshell_contracts.game_data_repository import GameDataRepository
+from packages.shared.donniecraftshell_contracts.manual_valuation_workspace import (
+    FileBackedManualValuationWorkspaceRepository,
+    ManualValuationWorkspaceRepository,
+)
 from packages.shared.donniecraftshell_contracts.observation_workspace import (
     FileBackedObservationWorkspaceRepository,
     ObservationWorkspaceRepository,
@@ -57,6 +61,14 @@ def get_observation_workspace() -> ObservationWorkspaceRepository:
     if settings.observation_workspace_storage_path is not None:
         return FileBackedObservationWorkspaceRepository(settings.observation_workspace_storage_path)
     return ObservationWorkspaceRepository()
+
+
+@lru_cache(maxsize=1)
+def get_manual_valuation_workspace() -> ManualValuationWorkspaceRepository:
+    settings = get_cached_settings()
+    if settings.manual_valuation_workspace_storage_path is not None:
+        return FileBackedManualValuationWorkspaceRepository(settings.manual_valuation_workspace_storage_path)
+    return ManualValuationWorkspaceRepository()
 
 
 @lru_cache(maxsize=1)

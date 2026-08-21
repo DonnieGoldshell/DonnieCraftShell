@@ -378,6 +378,173 @@ describe("AdvisorWorkbench", () => {
     expect(JSON.stringify(analyzeBody)).not.toContain("remove-me");
   });
 
+  it("loads and saves persisted current-item valuation evidence without auto-submitting it", async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          workspace_version: "dc-manual-valuation-workspace-v1",
+          records: [
+            {
+              evidence_id: "persisted-current-listing",
+              subject_id: "current",
+              subject_type: "CURRENT_ITEM",
+              outcome_id: null,
+              league: DEFAULT_LEAGUE,
+              strategy: "STRICT",
+              amount: "140",
+              currency_asset_id: EXALTED_ASSET_ID,
+              external_listing_id: "persisted-current-listing",
+              observed_at: "2026-08-13T10:00:00Z",
+              item_summary: "synthetic persisted current comparable",
+              notes: "synthetic test-only persisted valuation evidence",
+              created_at: "2026-08-13T10:00:00Z",
+              updated_at: "2026-08-13T10:00:00Z"
+            }
+          ],
+          persistence: {
+            storage_version: "dc-manual-valuation-workspace-storage-v1",
+            storage_mode: "FILE",
+            persistence_enabled: true,
+            loaded_record_count: 1,
+            skipped_record_count: 0,
+            warnings: []
+          },
+          warnings: []
+        })
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => quiverResponse
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          workspace_version: "dc-manual-valuation-workspace-v1",
+          status: "UPDATED",
+          record: {
+            evidence_id: "persisted-current-listing",
+            subject_id: "current",
+            subject_type: "CURRENT_ITEM",
+            outcome_id: null,
+            league: DEFAULT_LEAGUE,
+            strategy: "STRICT",
+            amount: "145",
+            currency_asset_id: EXALTED_ASSET_ID,
+            external_listing_id: "persisted-current-listing",
+            observed_at: "2026-08-13T10:00:00Z",
+            item_summary: "synthetic persisted current comparable",
+            notes: "synthetic test-only persisted valuation evidence",
+            created_at: "2026-08-13T10:00:00Z",
+            updated_at: "2026-08-13T10:01:00Z"
+          },
+          persistence: {
+            storage_version: "dc-manual-valuation-workspace-storage-v1",
+            storage_mode: "FILE",
+            persistence_enabled: true,
+            loaded_record_count: 1,
+            skipped_record_count: 0,
+            warnings: []
+          },
+          warnings: []
+        })
+      });
+    vi.stubGlobal("fetch", fetchMock);
+    const user = userEvent.setup();
+
+    render(<AdvisorWorkbench />);
+    await user.click(screen.getByRole("button", { name: /load persisted evidence/i }));
+    expect(await screen.findByText(/loaded 1 persisted observation/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/current item observations amount 1/i)).toHaveValue("140");
+
+    await user.type(screen.getByLabelText(/clipboard item text/i), "Item Class: Quivers\nRarity: Rare");
+    await user.click(screen.getByRole("button", { name: /analyze quiver/i }));
+    await screen.findByText("Primed Quiver");
+    const analyzeBody = JSON.parse(fetchMock.mock.calls[1][1].body as string);
+    expect(analyzeBody.current_valuation_evidence.observations).toEqual([
+      expect.objectContaining({
+        amount: "140",
+        external_listing_id: "persisted-current-listing"
+      })
+    ]);
+    expect(JSON.stringify(analyzeBody)).not.toContain("evidence_id");
+
+    await user.clear(screen.getByLabelText(/current item observations amount 1/i));
+    await user.type(screen.getByLabelText(/current item observations amount 1/i), "145");
+    await user.click(screen.getByRole("button", { name: /save subject evidence/i }));
+    await screen.findByText(/saved 1 observation locally/i);
+    expect(fetchMock.mock.calls[2][0]).toContain(
+      "/api/v1/advisor/manual-valuation/workspace/evidence/persisted-current-listing"
+    );
+    const updateBody = JSON.parse(fetchMock.mock.calls[2][1].body as string);
+    expect(updateBody.record).toEqual(expect.objectContaining({ subject_id: "current", amount: "145" }));
+  });
+
+  it("keeps persisted outcome valuation evidence isolated from current-item evidence", async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => quiverResponse
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          workspace_version: "dc-manual-valuation-workspace-v1",
+          records: [
+            {
+              evidence_id: "persisted-outcome-2",
+              subject_id: "outcome:outcome-2",
+              subject_type: "HYPOTHETICAL_OUTCOME",
+              outcome_id: "outcome-2",
+              league: DEFAULT_LEAGUE,
+              strategy: "STRICT",
+              amount: "155",
+              currency_asset_id: EXALTED_ASSET_ID,
+              external_listing_id: "persisted-outcome-2",
+              observed_at: "2026-08-13T10:00:00Z",
+              item_summary: "synthetic persisted outcome comparable",
+              notes: "synthetic test-only persisted valuation evidence",
+              created_at: "2026-08-13T10:00:00Z",
+              updated_at: "2026-08-13T10:00:00Z"
+            }
+          ],
+          persistence: {
+            storage_version: "dc-manual-valuation-workspace-storage-v1",
+            storage_mode: "FILE",
+            persistence_enabled: true,
+            loaded_record_count: 1,
+            skipped_record_count: 0,
+            warnings: []
+          },
+          warnings: []
+        })
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ status: "DELETED", deleted_count: 1, warnings: [] })
+      });
+    vi.stubGlobal("fetch", fetchMock);
+    const user = userEvent.setup();
+
+    render(<AdvisorWorkbench />);
+    await user.type(screen.getByLabelText(/clipboard item text/i), "Item Class: Quivers\nRarity: Rare");
+    await user.click(screen.getByRole("button", { name: /analyze quiver/i }));
+    await screen.findByText("Primed Quiver");
+
+    await user.selectOptions(screen.getByLabelText(/evidence subject/i), "outcome");
+    await user.selectOptions(screen.getByLabelText(/^Outcome ID$/i), "outcome-2");
+    await user.click(screen.getByRole("button", { name: /load persisted evidence/i }));
+    expect(await screen.findByText(/loaded 1 persisted observation/i)).toBeInTheDocument();
+    expect(screen.queryByText("Current item observations amount 1")).not.toBeInTheDocument();
+    expect(screen.getByLabelText(/outcome outcome-2 observations amount 1/i)).toHaveValue("155");
+    expect(fetchMock.mock.calls[1][0]).toContain("subject_id=outcome%3Aoutcome-2");
+
+    await user.click(screen.getByRole("button", { name: /remove/i }));
+    await waitFor(() => expect(fetchMock.mock.calls[2][0]).toContain("persisted-outcome-2"));
+  });
+
   it("sends an explicit empirical dataset ID only when the operator supplies one", async () => {
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,

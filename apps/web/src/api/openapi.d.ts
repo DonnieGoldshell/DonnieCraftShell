@@ -38,6 +38,59 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/advisor/manual-valuation/workspace/evidence": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Manual Valuation Evidence */
+        get: operations["list_manual_valuation_evidence_api_v1_advisor_manual_valuation_workspace_evidence_get"];
+        put?: never;
+        /** Save Manual Valuation Evidence */
+        post: operations["save_manual_valuation_evidence_api_v1_advisor_manual_valuation_workspace_evidence_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/advisor/manual-valuation/workspace/evidence/{evidence_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Update Manual Valuation Evidence */
+        put: operations["update_manual_valuation_evidence_api_v1_advisor_manual_valuation_workspace_evidence__evidence_id__put"];
+        post?: never;
+        /** Delete Manual Valuation Evidence */
+        delete: operations["delete_manual_valuation_evidence_api_v1_advisor_manual_valuation_workspace_evidence__evidence_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/advisor/manual-valuation/workspace/subject": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Clear Manual Valuation Subject */
+        delete: operations["clear_manual_valuation_subject_api_v1_advisor_manual_valuation_workspace_subject_delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/health": {
         parameters: {
             query?: never;
@@ -1024,6 +1077,117 @@ export interface components {
              */
             warnings: string[];
         };
+        /** ManualValuationWorkspaceDeleteResponseDto */
+        ManualValuationWorkspaceDeleteResponseDto: {
+            /**
+             * Deleted Count
+             * @default 0
+             */
+            deleted_count: number;
+            /** Evidence Id */
+            evidence_id?: string | null;
+            persistence: components["schemas"]["ManualValuationWorkspacePersistenceStatusDto"];
+            /** Status */
+            status: string;
+            /**
+             * Warnings
+             * @default []
+             */
+            warnings: string[];
+            /** Workspace Version */
+            workspace_version: string;
+        };
+        /** ManualValuationWorkspaceListResponseDto */
+        ManualValuationWorkspaceListResponseDto: {
+            persistence: components["schemas"]["ManualValuationWorkspacePersistenceStatusDto"];
+            /** Records */
+            records: components["schemas"]["ManualValuationWorkspaceRecordDto"][];
+            /**
+             * Warnings
+             * @default []
+             */
+            warnings: string[];
+            /** Workspace Version */
+            workspace_version: string;
+        };
+        /** ManualValuationWorkspacePersistenceStatusDto */
+        ManualValuationWorkspacePersistenceStatusDto: {
+            /** Loaded Evidence Count */
+            loaded_evidence_count: number;
+            /** Persistence Enabled */
+            persistence_enabled: boolean;
+            /**
+             * Skipped Evidence Count
+             * @default 0
+             */
+            skipped_evidence_count: number;
+            /** Storage Mode */
+            storage_mode: string;
+            /** Storage Version */
+            storage_version: string;
+            /**
+             * Warnings
+             * @default []
+             */
+            warnings: string[];
+        };
+        /** ManualValuationWorkspaceRecordDto */
+        ManualValuationWorkspaceRecordDto: {
+            /**
+             * Amount
+             * @description Decimal listing amount encoded as string.
+             */
+            amount: string;
+            /** Created At */
+            created_at?: string | null;
+            /** Currency Asset Id */
+            currency_asset_id: string;
+            /** Evidence Id */
+            evidence_id?: string | null;
+            /** External Listing Id */
+            external_listing_id?: string | null;
+            /** Item Summary */
+            item_summary?: string | null;
+            /** League */
+            league: string;
+            /** Notes */
+            notes?: string | null;
+            /** Observed At */
+            observed_at?: string | null;
+            /** Outcome Id */
+            outcome_id?: string | null;
+            /**
+             * Strategy
+             * @default STRICT
+             */
+            strategy: string;
+            /** Subject Id */
+            subject_id: string;
+            /** Subject Type */
+            subject_type: string;
+            /** Updated At */
+            updated_at?: string | null;
+        };
+        /** ManualValuationWorkspaceSaveRequestDto */
+        ManualValuationWorkspaceSaveRequestDto: {
+            record: components["schemas"]["ManualValuationWorkspaceRecordDto"];
+        };
+        /** ManualValuationWorkspaceSaveResponseDto */
+        ManualValuationWorkspaceSaveResponseDto: {
+            /** Evidence Id */
+            evidence_id?: string | null;
+            persistence: components["schemas"]["ManualValuationWorkspacePersistenceStatusDto"];
+            record?: components["schemas"]["ManualValuationWorkspaceRecordDto"] | null;
+            /** Status */
+            status: string;
+            /**
+             * Warnings
+             * @default []
+             */
+            warnings: string[];
+            /** Workspace Version */
+            workspace_version: string;
+        };
         /** MaterialCostDto */
         MaterialCostDto: {
             /** Complete */
@@ -1674,6 +1838,167 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ManualValuationPreviewResponseDto"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_manual_valuation_evidence_api_v1_advisor_manual_valuation_workspace_evidence_get: {
+        parameters: {
+            query?: {
+                subject_id?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManualValuationWorkspaceListResponseDto"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    save_manual_valuation_evidence_api_v1_advisor_manual_valuation_workspace_evidence_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ManualValuationWorkspaceSaveRequestDto"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManualValuationWorkspaceSaveResponseDto"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_manual_valuation_evidence_api_v1_advisor_manual_valuation_workspace_evidence__evidence_id__put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                evidence_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ManualValuationWorkspaceSaveRequestDto"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManualValuationWorkspaceSaveResponseDto"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_manual_valuation_evidence_api_v1_advisor_manual_valuation_workspace_evidence__evidence_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                evidence_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManualValuationWorkspaceDeleteResponseDto"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    clear_manual_valuation_subject_api_v1_advisor_manual_valuation_workspace_subject_delete: {
+        parameters: {
+            query: {
+                subject_id: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManualValuationWorkspaceDeleteResponseDto"];
                 };
             };
             /** @description Validation Error */

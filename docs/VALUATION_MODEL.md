@@ -77,3 +77,7 @@ Duplicate listing IDs are detected in `ComparableEvidenceSet` when supplied. Man
 The central estimate is the Decimal median. Plausible low/high values use deterministic nearest-lower-index quantiles. Duplicate listing IDs and outlier exclusions are retained in the result with explicit reasons. Arithmetic mean is not the primary estimator.
 
 `ValuationResult` preserves used comparable IDs, excluded comparables, strategy composition, economy snapshot IDs, policy ID, methodology, league, warnings, confidence, and listing-evidence liquidity.
+
+## Manual Evidence Persistence Boundary
+
+Persisted manual valuation evidence remains comparable-listing evidence, not a valuation result. The workspace stores operator-entered observations by `current` or `outcome:{outcome_id}` subject identity so current-item and hypothetical-outcome evidence stay isolated across API/browser restarts. Preview and Advisor valuation readiness still come from the valuation evidence/aggregation path. See [MANUAL_VALUATION_WORKSPACE.md](MANUAL_VALUATION_WORKSPACE.md).

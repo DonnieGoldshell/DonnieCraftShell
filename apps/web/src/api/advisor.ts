@@ -13,6 +13,11 @@ export type ManualListingObservation = components["schemas"]["ManualListingObser
 export type ManualValuationEvidence = components["schemas"]["ManualValuationEvidenceDto"];
 export type ManualValuationPreviewRequest = components["schemas"]["ManualValuationPreviewRequestDto"];
 export type ManualValuationPreviewResponse = components["schemas"]["ManualValuationPreviewResponseDto"];
+export type ManualValuationWorkspaceRecord = components["schemas"]["ManualValuationWorkspaceRecordDto"];
+export type ManualValuationWorkspaceSaveRequest = components["schemas"]["ManualValuationWorkspaceSaveRequestDto"];
+export type ManualValuationWorkspaceSaveResponse = components["schemas"]["ManualValuationWorkspaceSaveResponseDto"];
+export type ManualValuationWorkspaceListResponse = components["schemas"]["ManualValuationWorkspaceListResponseDto"];
+export type ManualValuationWorkspaceDeleteResponse = components["schemas"]["ManualValuationWorkspaceDeleteResponseDto"];
 export type OutcomeManualValuationEvidence = components["schemas"]["OutcomeManualValuationEvidenceDto"];
 export type CraftObservationRecordRequest = components["schemas"]["CraftObservationRecordRequestDto"];
 export type CraftObservationRecordResponse = components["schemas"]["CraftObservationRecordResponseDto"];
@@ -99,6 +104,117 @@ export async function previewManualValuation(
   }
 
   return response.json() as Promise<ManualValuationPreviewResponse>;
+}
+
+export async function saveManualValuationWorkspaceEvidence(
+  request: ManualValuationWorkspaceSaveRequest
+): Promise<ManualValuationWorkspaceSaveResponse> {
+  const response = await fetch(`${API_BASE_URL}/api/v1/advisor/manual-valuation/workspace/evidence`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(request)
+  });
+
+  if (!response.ok) {
+    let message = `Manual valuation workspace save API returned ${response.status}`;
+    try {
+      const payload = await response.json();
+      message = payload?.detail?.message ?? payload?.detail ?? message;
+    } catch {
+      // Keep the status-based message.
+    }
+    throw new Error(message);
+  }
+
+  return response.json() as Promise<ManualValuationWorkspaceSaveResponse>;
+}
+
+export async function updateManualValuationWorkspaceEvidence(
+  evidenceId: string,
+  request: ManualValuationWorkspaceSaveRequest
+): Promise<ManualValuationWorkspaceSaveResponse> {
+  const response = await fetch(
+    `${API_BASE_URL}/api/v1/advisor/manual-valuation/workspace/evidence/${encodeURIComponent(evidenceId)}`,
+    {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(request)
+    }
+  );
+
+  if (!response.ok) {
+    let message = `Manual valuation workspace update API returned ${response.status}`;
+    try {
+      const payload = await response.json();
+      message = payload?.detail?.message ?? payload?.detail ?? message;
+    } catch {
+      // Keep the status-based message.
+    }
+    throw new Error(message);
+  }
+
+  return response.json() as Promise<ManualValuationWorkspaceSaveResponse>;
+}
+
+export async function listManualValuationWorkspaceEvidence(
+  subjectId?: string
+): Promise<ManualValuationWorkspaceListResponse> {
+  const query = subjectId ? `?subject_id=${encodeURIComponent(subjectId)}` : "";
+  const response = await fetch(`${API_BASE_URL}/api/v1/advisor/manual-valuation/workspace/evidence${query}`);
+
+  if (!response.ok) {
+    throw new Error(`Manual valuation workspace list API returned ${response.status}`);
+  }
+
+  return response.json() as Promise<ManualValuationWorkspaceListResponse>;
+}
+
+export async function deleteManualValuationWorkspaceEvidence(
+  evidenceId: string
+): Promise<ManualValuationWorkspaceDeleteResponse> {
+  const response = await fetch(
+    `${API_BASE_URL}/api/v1/advisor/manual-valuation/workspace/evidence/${encodeURIComponent(evidenceId)}`,
+    { method: "DELETE" }
+  );
+
+  if (!response.ok) {
+    let message = `Manual valuation workspace delete API returned ${response.status}`;
+    try {
+      const payload = await response.json();
+      message = payload?.detail?.message ?? payload?.detail ?? message;
+    } catch {
+      // Keep the status-based message.
+    }
+    throw new Error(message);
+  }
+
+  return response.json() as Promise<ManualValuationWorkspaceDeleteResponse>;
+}
+
+export async function clearManualValuationWorkspaceSubject(
+  subjectId: string
+): Promise<ManualValuationWorkspaceDeleteResponse> {
+  const response = await fetch(
+    `${API_BASE_URL}/api/v1/advisor/manual-valuation/workspace/subject?subject_id=${encodeURIComponent(subjectId)}`,
+    { method: "DELETE" }
+  );
+
+  if (!response.ok) {
+    let message = `Manual valuation workspace clear API returned ${response.status}`;
+    try {
+      const payload = await response.json();
+      message = payload?.detail?.message ?? payload?.detail ?? message;
+    } catch {
+      // Keep the status-based message.
+    }
+    throw new Error(message);
+  }
+
+  return response.json() as Promise<ManualValuationWorkspaceDeleteResponse>;
 }
 
 export async function recordCraftObservation(

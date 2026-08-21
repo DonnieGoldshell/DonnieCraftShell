@@ -40,8 +40,10 @@ class AdvisorApiTests(unittest.TestCase):
     def setUp(self):
         self._previous_registry_path = os.environ.get("DCS_EMPIRICAL_REGISTRY_PATH")
         self._previous_workspace_path = os.environ.get("DCS_OBSERVATION_WORKSPACE_PATH")
+        self._previous_manual_valuation_workspace_path = os.environ.get("DCS_MANUAL_VALUATION_WORKSPACE_PATH")
         os.environ["DCS_EMPIRICAL_REGISTRY_PATH"] = "disabled"
         os.environ["DCS_OBSERVATION_WORKSPACE_PATH"] = "disabled"
+        os.environ["DCS_MANUAL_VALUATION_WORKSPACE_PATH"] = "disabled"
         from fastapi.testclient import TestClient
         from services.api.app.dependencies import advisor as advisor_dependencies
         from services.api.app.main import app
@@ -51,6 +53,7 @@ class AdvisorApiTests(unittest.TestCase):
         advisor_dependencies.get_economy_repository.cache_clear()
         advisor_dependencies.get_probability_provider.cache_clear()
         advisor_dependencies.get_empirical_probability_registry.cache_clear()
+        advisor_dependencies.get_manual_valuation_workspace.cache_clear()
         advisor_dependencies.get_cached_settings.cache_clear()
         self.app = app
         self.client = TestClient(app)
@@ -65,6 +68,10 @@ class AdvisorApiTests(unittest.TestCase):
             os.environ.pop("DCS_OBSERVATION_WORKSPACE_PATH", None)
         else:
             os.environ["DCS_OBSERVATION_WORKSPACE_PATH"] = self._previous_workspace_path
+        if self._previous_manual_valuation_workspace_path is None:
+            os.environ.pop("DCS_MANUAL_VALUATION_WORKSPACE_PATH", None)
+        else:
+            os.environ["DCS_MANUAL_VALUATION_WORKSPACE_PATH"] = self._previous_manual_valuation_workspace_path
 
     def test_health(self):
         response = self.client.get("/health")
@@ -92,6 +99,12 @@ class AdvisorApiTests(unittest.TestCase):
         self.assertIn("ManualValuationPreviewRequestDto", schema_names)
         self.assertIn("ManualValuationPreviewResponseDto", schema_names)
         self.assertIn("/api/v1/advisor/manual-valuation/preview", openapi["paths"])
+        self.assertIn("/api/v1/advisor/manual-valuation/workspace/evidence", openapi["paths"])
+        self.assertIn("/api/v1/advisor/manual-valuation/workspace/evidence/{evidence_id}", openapi["paths"])
+        self.assertIn("/api/v1/advisor/manual-valuation/workspace/subject", openapi["paths"])
+        self.assertIn("ManualValuationWorkspaceRecordDto", schema_names)
+        self.assertIn("ManualValuationWorkspaceSaveResponseDto", schema_names)
+        self.assertIn("ManualValuationWorkspaceListResponseDto", schema_names)
         self.assertIn("ProbabilitySummaryDto", schema_names)
         self.assertIn("CraftObservationRecordRequestDto", schema_names)
         self.assertIn("/api/v1/observations/review", openapi["paths"])
@@ -356,6 +369,229 @@ class AdvisorApiTests(unittest.TestCase):
         self.assertEqual(body["subject_type"], "HYPOTHETICAL_OUTCOME")
         self.assertEqual(body["outcome_id"], "outcome-2")
         self.assertIn("outcome:outcome-2", body["evidence_set_id"])
+
+    def test_manual_valuation_workspace_current_evidence_survives_restart(self):
+        from services.api.app.dependencies import advisor as advisor_dependencies
+
+        with tempfile.TemporaryDirectory() as tmp:
+            os.environ["DCS_MANUAL_VALUATION_WORKSPACE_PATH"] = str(Path(tmp) / "manual_valuation_workspace.json")
+            self._clear_dependency_caches(advisor_dependencies)
+            saved = self.client.post(
+                "/api/v1/advisor/manual-valuation/workspace/evidence",
+                json={"record": self._manual_workspace_record(evidence_id="current-listing")},
+            )
+            self._clear_dependency_caches(advisor_dependencies)
+            listed = self.client.get(
+                "/api/v1/advisor/manual-valuation/workspace/evidence",
+                params={"subject_id": "current"},
+            )
+            outcome_listed = self.client.get(
+                "/api/v1/advisor/manual-valuation/workspace/evidence",
+                params={"subject_id": "outcome:outcome-1"},
+            )
+
+        self.assertEqual(saved.status_code, 200)
+        self.assertEqual(saved.json()["status"], "SAVED")
+        self.assertEqual(listed.status_code, 200)
+        self.assertEqual(len(listed.json()["records"]), 1)
+        self.assertEqual(listed.json()["records"][0]["subject_id"], "current")
+        self.assertEqual(outcome_listed.json()["records"], [])
+        self.assertEqual(listed.json()["persistence"]["storage_mode"], "FILE")
+
+    def test_manual_valuation_workspace_outcome_evidence_isolated_by_subject(self):
+        from services.api.app.dependencies import advisor as advisor_dependencies
+
+        with tempfile.TemporaryDirectory() as tmp:
+            os.environ["DCS_MANUAL_VALUATION_WORKSPACE_PATH"] = str(Path(tmp) / "manual_valuation_workspace.json")
+            self._clear_dependency_caches(advisor_dependencies)
+            saved = self.client.post(
+                "/api/v1/advisor/manual-valuation/workspace/evidence",
+                json={
+                    "record": self._manual_workspace_record(
+                        evidence_id="outcome-listing",
+                        subject_id="outcome:outcome-2",
+                        subject_type="HYPOTHETICAL_OUTCOME",
+                        outcome_id="outcome-2",
+                        amount="120",
+                    )
+                },
+            )
+            self._clear_dependency_caches(advisor_dependencies)
+            outcome_two = self.client.get(
+                "/api/v1/advisor/manual-valuation/workspace/evidence",
+                params={"subject_id": "outcome:outcome-2"},
+            )
+            outcome_one = self.client.get(
+                "/api/v1/advisor/manual-valuation/workspace/evidence",
+                params={"subject_id": "outcome:outcome-1"},
+            )
+            current = self.client.get(
+                "/api/v1/advisor/manual-valuation/workspace/evidence",
+                params={"subject_id": "current"},
+            )
+
+        self.assertEqual(saved.status_code, 200)
+        self.assertEqual(len(outcome_two.json()["records"]), 1)
+        self.assertEqual(outcome_two.json()["records"][0]["outcome_id"], "outcome-2")
+        self.assertEqual(outcome_one.json()["records"], [])
+        self.assertEqual(current.json()["records"], [])
+
+    def test_manual_valuation_workspace_rejects_mismatched_subject_outcome_identity(self):
+        response = self.client.post(
+            "/api/v1/advisor/manual-valuation/workspace/evidence",
+            json={
+                "record": self._manual_workspace_record(
+                    subject_id="outcome:outcome-1",
+                    subject_type="HYPOTHETICAL_OUTCOME",
+                    outcome_id="outcome-2",
+                )
+            },
+        )
+
+        self.assertEqual(response.status_code, 422)
+        self.assertIn("requires subject_id outcome:{outcome_id}", str(response.json()["detail"]))
+
+    def test_manual_valuation_workspace_idempotent_save_and_conflict(self):
+        payload = {"record": self._manual_workspace_record(evidence_id="manual-listing")}
+        saved = self.client.post("/api/v1/advisor/manual-valuation/workspace/evidence", json=payload)
+        identical = self.client.post("/api/v1/advisor/manual-valuation/workspace/evidence", json=payload)
+        conflict_payload = {"record": self._manual_workspace_record(evidence_id="manual-listing", amount="101")}
+        conflict = self.client.post("/api/v1/advisor/manual-valuation/workspace/evidence", json=conflict_payload)
+
+        self.assertEqual(saved.status_code, 200)
+        self.assertEqual(saved.json()["status"], "SAVED")
+        self.assertEqual(identical.status_code, 200)
+        self.assertEqual(identical.json()["status"], "ALREADY_EXISTS")
+        self.assertEqual(conflict.status_code, 400)
+        self.assertIn("Conflicting manual valuation evidence", conflict.json()["detail"]["warnings"][0])
+
+    def test_manual_valuation_workspace_update_delete_and_clear_are_explicit(self):
+        current = {"record": self._manual_workspace_record(evidence_id="current-listing")}
+        outcome = {
+            "record": self._manual_workspace_record(
+                evidence_id="outcome-listing",
+                subject_id="outcome:outcome-2",
+                subject_type="HYPOTHETICAL_OUTCOME",
+                outcome_id="outcome-2",
+                amount="120",
+            )
+        }
+        self.client.post("/api/v1/advisor/manual-valuation/workspace/evidence", json=current)
+        self.client.post("/api/v1/advisor/manual-valuation/workspace/evidence", json=outcome)
+
+        updated = self.client.put(
+            "/api/v1/advisor/manual-valuation/workspace/evidence/current-listing",
+            json={"record": self._manual_workspace_record(evidence_id="current-listing", amount="130")},
+        )
+        deleted = self.client.delete("/api/v1/advisor/manual-valuation/workspace/evidence/current-listing")
+        cleared = self.client.delete(
+            "/api/v1/advisor/manual-valuation/workspace/subject",
+            params={"subject_id": "outcome:outcome-2"},
+        )
+        listed = self.client.get("/api/v1/advisor/manual-valuation/workspace/evidence")
+
+        self.assertEqual(updated.status_code, 200)
+        self.assertEqual(updated.json()["status"], "UPDATED")
+        self.assertEqual(updated.json()["record"]["amount"], "130")
+        self.assertEqual(deleted.status_code, 200)
+        self.assertEqual(deleted.json()["status"], "DELETED")
+        self.assertEqual(cleared.status_code, 200)
+        self.assertEqual(cleared.json()["deleted_count"], 1)
+        self.assertEqual(listed.json()["records"], [])
+
+    def test_manual_valuation_workspace_update_rejects_cross_subject_move(self):
+        self.client.post(
+            "/api/v1/advisor/manual-valuation/workspace/evidence",
+            json={"record": self._manual_workspace_record(evidence_id="current-listing")},
+        )
+
+        moved = self.client.put(
+            "/api/v1/advisor/manual-valuation/workspace/evidence/current-listing",
+            json={
+                "record": self._manual_workspace_record(
+                    evidence_id="current-listing",
+                    subject_id="outcome:outcome-2",
+                    subject_type="HYPOTHETICAL_OUTCOME",
+                    outcome_id="outcome-2",
+                    external_listing_id="outcome-listing",
+                )
+            },
+        )
+        current = self.client.get(
+            "/api/v1/advisor/manual-valuation/workspace/evidence",
+            params={"subject_id": "current"},
+        )
+        outcome = self.client.get(
+            "/api/v1/advisor/manual-valuation/workspace/evidence",
+            params={"subject_id": "outcome:outcome-2"},
+        )
+
+        self.assertEqual(moved.status_code, 400)
+        self.assertIn("different subject_type/subject_id/outcome_id", moved.json()["detail"]["warnings"][0])
+        self.assertEqual(len(current.json()["records"]), 1)
+        self.assertEqual(outcome.json()["records"], [])
+
+    def test_manual_valuation_workspace_update_rejects_cross_league_move(self):
+        self.client.post(
+            "/api/v1/advisor/manual-valuation/workspace/evidence",
+            json={"record": self._manual_workspace_record(evidence_id="current-listing")},
+        )
+        changed = self._manual_workspace_record(evidence_id="current-listing", amount="130")
+        changed["league"] = "Different League"
+
+        response = self.client.put(
+            "/api/v1/advisor/manual-valuation/workspace/evidence/current-listing",
+            json={"record": changed},
+        )
+        current = self.client.get(
+            "/api/v1/advisor/manual-valuation/workspace/evidence",
+            params={"subject_id": "current"},
+        )
+
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("different league", response.json()["detail"]["warnings"][0])
+        self.assertEqual(current.json()["records"][0]["league"], LEAGUE)
+        self.assertEqual(current.json()["records"][0]["amount"], "100")
+
+    def test_manual_valuation_workspace_list_rejects_noncanonical_subject(self):
+        response = self.client.get(
+            "/api/v1/advisor/manual-valuation/workspace/evidence",
+            params={"subject_id": "outcome:"},
+        )
+
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("subject_id must be current", response.json()["detail"]["warnings"][0])
+
+    def test_manual_valuation_workspace_clear_rejects_noncanonical_subject_without_mutation(self):
+        self.client.post(
+            "/api/v1/advisor/manual-valuation/workspace/evidence",
+            json={"record": self._manual_workspace_record(evidence_id="current-listing")},
+        )
+
+        response = self.client.delete(
+            "/api/v1/advisor/manual-valuation/workspace/subject",
+            params={"subject_id": "not-a-canonical-subject"},
+        )
+        current = self.client.get(
+            "/api/v1/advisor/manual-valuation/workspace/evidence",
+            params={"subject_id": "current"},
+        )
+
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("subject_id must be current", response.json()["detail"]["warnings"][0])
+        self.assertEqual(len(current.json()["records"]), 1)
+
+    def test_manual_valuation_workspace_persistence_does_not_auto_submit_to_advisor(self):
+        self.client.post(
+            "/api/v1/advisor/manual-valuation/workspace/evidence",
+            json={"record": self._manual_workspace_record(evidence_id="current-listing")},
+        )
+
+        response = self.client.post("/api/v1/advisor/analyze", json=base_request())
+
+        self.assertEqual(response.status_code, 200)
+        missing = {item["type"] for item in response.json()["missing_requirements"]}
+        self.assertIn("CURRENT_VALUATION_EVIDENCE_REQUIRED", missing)
 
     def test_manual_valuation_preview_rejects_mismatched_outcome_subject_identity(self):
         response = self.client.post(
@@ -1316,12 +1552,42 @@ class AdvisorApiTests(unittest.TestCase):
             "notes": "synthetic test-only valuation evidence",
         }
 
+    def _manual_workspace_record(
+        self,
+        *,
+        evidence_id: str | None = "manual-workspace-listing",
+        subject_id: str = "current",
+        subject_type: str = "CURRENT_ITEM",
+        outcome_id: str | None = None,
+        amount: str = "100",
+        currency_asset_id: str = "dc:poe2:economy-asset:currency:exalted-orb",
+        external_listing_id: str = "manual-workspace-listing",
+    ) -> dict:
+        record = {
+            "subject_id": subject_id,
+            "subject_type": subject_type,
+            "league": LEAGUE,
+            "strategy": "STRICT",
+            "amount": amount,
+            "currency_asset_id": currency_asset_id,
+            "external_listing_id": external_listing_id,
+            "observed_at": AS_OF,
+            "item_summary": "synthetic test-only manual workspace comparable",
+            "notes": "synthetic test-only persisted manual valuation evidence",
+        }
+        if evidence_id is not None:
+            record["evidence_id"] = evidence_id
+        if outcome_id is not None:
+            record["outcome_id"] = outcome_id
+        return record
+
     def _clear_dependency_caches(self, advisor_dependencies) -> None:
         advisor_dependencies.get_advisor_orchestrator.cache_clear()
         advisor_dependencies.get_economy_repository.cache_clear()
         advisor_dependencies.get_probability_provider.cache_clear()
         advisor_dependencies.get_empirical_probability_registry.cache_clear()
         advisor_dependencies.get_observation_workspace.cache_clear()
+        advisor_dependencies.get_manual_valuation_workspace.cache_clear()
         advisor_dependencies.get_cached_settings.cache_clear()
 
     def _install_synthetic_dependencies(self):
