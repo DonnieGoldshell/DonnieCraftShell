@@ -275,7 +275,12 @@ describe("AdvisorWorkbench", () => {
     await user.click(screen.getByRole("button", { name: /analyze quiver/i }));
 
     expect(await screen.findByText("Primed Quiver")).toBeInTheDocument();
-    expect(screen.getByText("3/3 prefixes, 3/3 suffixes")).toBeInTheDocument();
+    expect(screen.getByRole("region", { name: /player advisor summary/i })).toBeInTheDocument();
+    expect(screen.getByText("Advisor for Primed Quiver")).toBeInTheDocument();
+    expect(screen.getAllByText("3/3 prefixes, 3/3 suffixes").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getByText("What is blocking a stronger recommendation?")).toBeInTheDocument();
+    expect(screen.getAllByText("Valuation evidence").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Probability evidence").length).toBeGreaterThan(0);
     expect(screen.getByText("Advisor Decision")).toBeInTheDocument();
     expect(screen.getAllByText("No Recommendation").length).toBeGreaterThan(0);
     expect(screen.getAllByText("Orb of Annulment").length).toBeGreaterThan(0);
@@ -284,6 +289,8 @@ describe("AdvisorWorkbench", () => {
     expect(screen.getByText("No open explicit affix slot")).toBeInTheDocument();
     expect(screen.getByText("Current Valuation Evidence Required")).toBeInTheDocument();
     expect(screen.getAllByText("Probability Evidence Required").length).toBeGreaterThan(0);
+    expect(screen.getByText(/advanced diagnostics: raw missing requirements/i)).toBeInTheDocument();
+    expect(screen.getByText(/advanced evidence & diagnostics/i)).toBeInTheDocument();
     expect(screen.getByText(/listing-derived estimates are not guaranteed sale prices/i)).toBeInTheDocument();
   });
 

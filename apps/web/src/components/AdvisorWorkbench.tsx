@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, type Dispatch, type SetStateAction, useState } from "react";
 import {
   DEFAULT_AFFIX_CAPACITY_DATASET,
   DEFAULT_CRAFTING_DATASET,
@@ -20,6 +20,7 @@ import { ItemSummary } from "./ItemSummary";
 import { ManualValuationPanel } from "./ManualValuationPanel";
 import { MissingRequirements } from "./MissingRequirements";
 import { ObservationReviewPanel } from "./ObservationReviewPanel";
+import { PlayerSummary } from "./PlayerSummary";
 import { StatusBadge } from "./StatusBadge";
 
 const PLACEHOLDER = `Item Class: Quivers
@@ -80,32 +81,35 @@ export function AdvisorWorkbench() {
               rows={16}
             />
           </label>
-          <div className="context-grid">
-            <label>
-              League
-              <input value={league} onChange={(event) => setLeague(event.target.value)} />
-            </label>
-            <label>
-              Game data
-              <input value={gameDataDataset} onChange={(event) => setGameDataDataset(event.target.value)} />
-            </label>
-            <label>
-              Crafting actions
-              <input value={craftingDataset} onChange={(event) => setCraftingDataset(event.target.value)} />
-            </label>
-            <label>
-              Affix capacity
-              <input value={affixDataset} onChange={(event) => setAffixDataset(event.target.value)} />
-            </label>
-            <label>
-              Empirical evidence dataset
-              <input
-                value={empiricalDataset}
-                onChange={(event) => setEmpiricalDataset(event.target.value)}
-                placeholder="optional explicit dataset ID"
-              />
-            </label>
-          </div>
+          <details className="advanced-disclosure">
+            <summary>Advanced dataset and evidence context</summary>
+            <div className="context-grid">
+              <label>
+                League
+                <input value={league} onChange={(event) => setLeague(event.target.value)} />
+              </label>
+              <label>
+                Game data
+                <input value={gameDataDataset} onChange={(event) => setGameDataDataset(event.target.value)} />
+              </label>
+              <label>
+                Crafting actions
+                <input value={craftingDataset} onChange={(event) => setCraftingDataset(event.target.value)} />
+              </label>
+              <label>
+                Affix capacity
+                <input value={affixDataset} onChange={(event) => setAffixDataset(event.target.value)} />
+              </label>
+              <label>
+                Empirical evidence dataset
+                <input
+                  value={empiricalDataset}
+                  onChange={(event) => setEmpiricalDataset(event.target.value)}
+                  placeholder="optional explicit dataset ID"
+                />
+              </label>
+            </div>
+          </details>
           <button type="submit" disabled={loading || !clipboardText.trim()}>
             {loading ? "Analyzing..." : analysis ? "Re-run Analysis" : "Analyze Quiver"}
           </button>
@@ -113,85 +117,149 @@ export function AdvisorWorkbench() {
         </form>
 
         <section className="results-column">
-          <ManualValuationPanel
-            actions={analysis?.actions ?? []}
-            league={league}
-            currentObservations={currentObservations}
-            outcomeObservations={outcomeObservations}
-            onAddCurrentObservation={(observation) =>
-              setCurrentObservations((observations) => [...observations, observation])
-            }
-            onAddOutcomeObservation={(outcomeId, observation) =>
-              setOutcomeObservations((groups) => ({
-                ...groups,
-                [outcomeId]: [...(groups[outcomeId] ?? []), observation]
-              }))
-            }
-            onUpdateCurrentObservation={(index, observation) =>
-              setCurrentObservations((observations) =>
-                observations.map((existing, existingIndex) => (existingIndex === index ? observation : existing))
-              )
-            }
-            onUpdateOutcomeObservation={(outcomeId, index, observation) =>
-              setOutcomeObservations((groups) => ({
-                ...groups,
-                [outcomeId]: (groups[outcomeId] ?? []).map((existing, existingIndex) =>
-                  existingIndex === index ? observation : existing
-                )
-              }))
-            }
-            onRemoveCurrentObservation={(index) =>
-              setCurrentObservations((observations) => observations.filter((_, existingIndex) => existingIndex !== index))
-            }
-            onRemoveOutcomeObservation={(outcomeId, index) =>
-              setOutcomeObservations((groups) => ({
-                ...groups,
-                [outcomeId]: (groups[outcomeId] ?? []).filter((_, existingIndex) => existingIndex !== index)
-              }))
-            }
-            onClearCurrentObservations={() => setCurrentObservations([])}
-            onClearOutcomeObservations={(outcomeId) =>
-              setOutcomeObservations((groups) => {
-                const next = { ...groups };
-                delete next[outcomeId];
-                return next;
-              })
-            }
-            onReplaceCurrentObservations={setCurrentObservations}
-            onReplaceOutcomeObservations={(outcomeId, observations) =>
-              setOutcomeObservations((groups) => ({
-                ...groups,
-                [outcomeId]: observations
-              }))
-            }
-          />
           {analysis ? (
             <>
+              <PlayerSummary analysis={analysis} />
               <ItemSummary item={analysis.item} affixState={analysis.affix_state} />
               <DecisionPanel decision={analysis.decision} riskDecision={analysis.risk_adjusted_decision} />
               <ActionTable actions={analysis.actions} />
-              <CraftObservationRecorderPanel
-                actions={analysis.actions}
-                defaultBeforeText={clipboardText}
-                league={league}
-                craftingDatasetVersion={craftingDataset}
-                modifierDatasetVersion={gameDataDataset}
-              />
-              <ObservationReviewPanel />
               <MissingRequirements requirements={analysis.missing_requirements} warnings={analysis.warnings} />
+              <AdvancedTools
+                analysis={analysis}
+                clipboardText={clipboardText}
+                league={league}
+                craftingDataset={craftingDataset}
+                gameDataDataset={gameDataDataset}
+                currentObservations={currentObservations}
+                outcomeObservations={outcomeObservations}
+                setCurrentObservations={setCurrentObservations}
+                setOutcomeObservations={setOutcomeObservations}
+              />
             </>
           ) : (
-            <section className="panel empty-state">
-              <h2>Paste a Quiver to begin</h2>
-              <p>
-                The first slice calls the FastAPI Advisor endpoint and displays the analysis exactly as far as
-                current evidence allows.
-              </p>
-            </section>
+            <>
+              <section className="panel empty-state">
+                <h2>Paste a Quiver to begin</h2>
+                <p>
+                  The first slice calls the FastAPI Advisor endpoint and displays the analysis exactly as far as
+                  current evidence allows.
+                </p>
+              </section>
+              <AdvancedTools
+                analysis={analysis}
+                clipboardText={clipboardText}
+                league={league}
+                craftingDataset={craftingDataset}
+                gameDataDataset={gameDataDataset}
+                currentObservations={currentObservations}
+                outcomeObservations={outcomeObservations}
+                setCurrentObservations={setCurrentObservations}
+                setOutcomeObservations={setOutcomeObservations}
+              />
+            </>
           )}
         </section>
       </section>
     </main>
+  );
+}
+
+function AdvancedTools({
+  analysis,
+  clipboardText,
+  league,
+  craftingDataset,
+  gameDataDataset,
+  currentObservations,
+  outcomeObservations,
+  setCurrentObservations,
+  setOutcomeObservations
+}: {
+  analysis: AdvisorAnalyzeResponse | null;
+  clipboardText: string;
+  league: string;
+  craftingDataset: string;
+  gameDataDataset: string;
+  currentObservations: EditableManualListingObservation[];
+  outcomeObservations: Record<string, EditableManualListingObservation[]>;
+  setCurrentObservations: Dispatch<SetStateAction<EditableManualListingObservation[]>>;
+  setOutcomeObservations: Dispatch<SetStateAction<Record<string, EditableManualListingObservation[]>>>;
+}) {
+  return (
+    <section className="advanced-tools">
+      <div className="section-heading">
+        <h2>Advanced Evidence & Diagnostics</h2>
+        <span className="count">Optional</span>
+      </div>
+      <p className="muted">
+        These tools preserve manual evidence, observation recording, dataset IDs, and raw diagnostics. They do not
+        change Advisor recommendations unless their evidence is explicitly submitted.
+      </p>
+      <ManualValuationPanel
+        actions={analysis?.actions ?? []}
+        league={league}
+        currentObservations={currentObservations}
+        outcomeObservations={outcomeObservations}
+        onAddCurrentObservation={(observation) =>
+          setCurrentObservations((observations) => [...observations, observation])
+        }
+        onAddOutcomeObservation={(outcomeId, observation) =>
+          setOutcomeObservations((groups) => ({
+            ...groups,
+            [outcomeId]: [...(groups[outcomeId] ?? []), observation]
+          }))
+        }
+        onUpdateCurrentObservation={(index, observation) =>
+          setCurrentObservations((observations) =>
+            observations.map((existing, existingIndex) => (existingIndex === index ? observation : existing))
+          )
+        }
+        onUpdateOutcomeObservation={(outcomeId, index, observation) =>
+          setOutcomeObservations((groups) => ({
+            ...groups,
+            [outcomeId]: (groups[outcomeId] ?? []).map((existing, existingIndex) =>
+              existingIndex === index ? observation : existing
+            )
+          }))
+        }
+        onRemoveCurrentObservation={(index) =>
+          setCurrentObservations((observations) => observations.filter((_, existingIndex) => existingIndex !== index))
+        }
+        onRemoveOutcomeObservation={(outcomeId, index) =>
+          setOutcomeObservations((groups) => ({
+            ...groups,
+            [outcomeId]: (groups[outcomeId] ?? []).filter((_, existingIndex) => existingIndex !== index)
+          }))
+        }
+        onClearCurrentObservations={() => setCurrentObservations([])}
+        onClearOutcomeObservations={(outcomeId) =>
+          setOutcomeObservations((groups) => {
+            const next = { ...groups };
+            delete next[outcomeId];
+            return next;
+          })
+        }
+        onReplaceCurrentObservations={setCurrentObservations}
+        onReplaceOutcomeObservations={(outcomeId, observations) =>
+          setOutcomeObservations((groups) => ({
+            ...groups,
+            [outcomeId]: observations
+          }))
+        }
+      />
+      {analysis && (
+        <>
+          <CraftObservationRecorderPanel
+            actions={analysis.actions}
+            defaultBeforeText={clipboardText}
+            league={league}
+            craftingDatasetVersion={craftingDataset}
+            modifierDatasetVersion={gameDataDataset}
+          />
+          <ObservationReviewPanel />
+        </>
+      )}
+    </section>
   );
 }
 
