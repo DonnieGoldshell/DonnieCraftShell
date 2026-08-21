@@ -43,12 +43,56 @@ class MissingRequirementKind(str, Enum):
     VERIFIED_MECHANIC_REQUIRED = "VERIFIED_MECHANIC_REQUIRED"
 
 
+class EvidenceReadinessCategory(str, Enum):
+    CURRENT_ITEM_VALUATION = "CURRENT_ITEM_VALUATION"
+    ECONOMY_CRAFTING_COST = "ECONOMY_CRAFTING_COST"
+    PROBABILITY = "PROBABILITY"
+    OUTCOME_VALUATION = "OUTCOME_VALUATION"
+    VERIFIED_MECHANICS = "VERIFIED_MECHANICS"
+
+
+class EvidenceReadinessStatus(str, Enum):
+    READY = "READY"
+    PARTIAL = "PARTIAL"
+    MISSING = "MISSING"
+    UNKNOWN = "UNKNOWN"
+
+
 @dataclass(frozen=True)
 class MissingAnalysisRequirement:
     kind: MissingRequirementKind
     affected_action_id: str | None
     reason: str
     blocks: str
+
+
+@dataclass(frozen=True)
+class EvidenceReadinessTarget:
+    target_type: str
+    target_id: str
+    reason: str
+    action_id: str | None = None
+    action_display_name: str | None = None
+    asset_id: str | None = None
+    outcome_ids: tuple[str, ...] = ()
+    blocks: tuple[str, ...] = ()
+
+
+@dataclass(frozen=True)
+class EvidenceReadinessItem:
+    category: EvidenceReadinessCategory
+    label: str
+    status: EvidenceReadinessStatus
+    summary: str
+    targets: tuple[EvidenceReadinessTarget, ...] = ()
+    evidence_tool: str | None = None
+    diagnostics: tuple[MissingAnalysisRequirement, ...] = ()
+
+
+@dataclass(frozen=True)
+class AdvisorEvidenceReadiness:
+    items: tuple[EvidenceReadinessItem, ...]
+    warnings: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -99,6 +143,7 @@ class AdvisorAnalysisResult:
     action_results: tuple[ActionAnalysisResult, ...] = ()
     raw_advisor_decision: AdvisorDecision | None = None
     risk_adjusted_decision: RiskAdjustedAdvisorDecision | None = None
+    evidence_readiness: AdvisorEvidenceReadiness | None = None
     missing_requirements: tuple[MissingAnalysisRequirement, ...] = ()
     warnings: tuple[str, ...] = ()
     dataset_versions: tuple[str, ...] = ()
@@ -199,6 +244,7 @@ class CraftAdvisorOrchestrator:
         )
         missing = _top_level_missing_requirements(request, action_results)
         status = _overall_status(action_results, raw_decision, request.current_valuation)
+        evidence_readiness = _evidence_readiness(request, action_results, missing)
         return AdvisorAnalysisResult(
             analysis_id=analysis_id,
             status=status,
@@ -209,6 +255,7 @@ class CraftAdvisorOrchestrator:
             action_results=action_results,
             raw_advisor_decision=raw_decision,
             risk_adjusted_decision=risk_decision,
+            evidence_readiness=evidence_readiness,
             missing_requirements=missing,
             warnings=_warnings(parse_result, enrichment, action_results, raw_decision),
             dataset_versions=_dataset_versions(request),
@@ -399,6 +446,278 @@ def _top_level_missing_requirements(
     for result in action_results:
         missing.extend(result.missing_requirements)
     return tuple(missing)
+
+
+def _evidence_readiness(
+    request: AdvisorAnalysisRequest,
+    action_results: tuple[ActionAnalysisResult, ...],
+    missing_requirements: tuple[MissingAnalysisRequirement, ...],
+) -> AdvisorEvidenceReadiness:
+    return AdvisorEvidenceReadiness(
+        items=(
+            _current_valuation_readiness(request, missing_requirements),
+            _economy_readiness(action_results, missing_requirements),
+            _probability_readiness(action_results, missing_requirements),
+            _outcome_valuation_readiness(request, action_results, missing_requirements),
+            _verified_mechanics_readiness(action_results, missing_requirements),
+        ),
+        warnings=(
+            "Evidence readiness is derived from explicit Advisor inputs, action analysis, and missing requirements; it does not fabricate confidence or recommendation eligibility.",
+        ),
+    )
+
+
+def _current_valuation_readiness(
+    request: AdvisorAnalysisRequest,
+    missing_requirements: tuple[MissingAnalysisRequirement, ...],
+) -> EvidenceReadinessItem:
+    diagnostics = _requirements_for(missing_requirements, MissingRequirementKind.CURRENT_VALUATION_EVIDENCE_REQUIRED)
+    if request.current_valuation is None:
+        return EvidenceReadinessItem(
+            category=EvidenceReadinessCategory.CURRENT_ITEM_VALUATION,
+            label="Current item valuation",
+            status=EvidenceReadinessStatus.MISSING,
+            summary="Manual comparable listing evidence is needed for the SELL NOW baseline.",
+            targets=(
+                EvidenceReadinessTarget(
+                    target_type="CURRENT_ITEM",
+                    target_id="current",
+                    reason="Current item valuation evidence is missing.",
+                    blocks=_blocks_for(diagnostics),
+                ),
+            ),
+            evidence_tool="manual-current-valuation",
+            diagnostics=diagnostics,
+        )
+    status = (
+        EvidenceReadinessStatus.READY
+        if request.current_valuation.readiness.value == "READY"
+        else EvidenceReadinessStatus.PARTIAL
+        if request.current_valuation.readiness.value == "PARTIAL"
+        else EvidenceReadinessStatus.MISSING
+    )
+    return EvidenceReadinessItem(
+        category=EvidenceReadinessCategory.CURRENT_ITEM_VALUATION,
+        label="Current item valuation",
+        status=status,
+        summary=f"Current item valuation evidence is {request.current_valuation.readiness.value}.",
+        evidence_tool="manual-current-valuation",
+        diagnostics=diagnostics,
+    )
+
+
+def _economy_readiness(
+    action_results: tuple[ActionAnalysisResult, ...],
+    missing_requirements: tuple[MissingAnalysisRequirement, ...],
+) -> EvidenceReadinessItem:
+    diagnostics = _requirements_for(missing_requirements, MissingRequirementKind.ECONOMY_QUOTE_REQUIRED)
+    targets: list[EvidenceReadinessTarget] = []
+    seen: set[tuple[str, str | None]] = set()
+    for result in action_results:
+        for line in result.candidate.material_cost.lines:
+            if line.quote is not None and line.unit_price is not None and line.subtotal is not None:
+                continue
+            key = (line.asset_id, result.action_id)
+            if key in seen:
+                continue
+            seen.add(key)
+            targets.append(
+                EvidenceReadinessTarget(
+                    target_type="ECONOMY_ASSET",
+                    target_id=line.asset_id,
+                    action_id=result.action_id,
+                    action_display_name=result.candidate.action.display_name,
+                    asset_id=line.asset_id,
+                    reason=f"Missing economy quote for {_display_asset(line.asset_id)}.",
+                    blocks=_blocks_for(tuple(item for item in diagnostics if item.affected_action_id == result.action_id)),
+                )
+            )
+    status = EvidenceReadinessStatus.MISSING if targets else EvidenceReadinessStatus.READY if action_results else EvidenceReadinessStatus.UNKNOWN
+    summary = (
+        f"{len(targets)} crafting material price target{' is' if len(targets) == 1 else 's are'} missing."
+        if targets
+        else "Required crafting material prices are available for analyzed actions."
+        if action_results
+        else "No action cost evidence was analyzed."
+    )
+    return EvidenceReadinessItem(
+        category=EvidenceReadinessCategory.ECONOMY_CRAFTING_COST,
+        label="Economy prices",
+        status=status,
+        summary=summary,
+        targets=tuple(targets),
+        evidence_tool="economy-data-import",
+        diagnostics=diagnostics,
+    )
+
+
+def _probability_readiness(
+    action_results: tuple[ActionAnalysisResult, ...],
+    missing_requirements: tuple[MissingAnalysisRequirement, ...],
+) -> EvidenceReadinessItem:
+    diagnostics = _requirements_for(missing_requirements, MissingRequirementKind.PROBABILITY_EVIDENCE_REQUIRED)
+    targets: list[EvidenceReadinessTarget] = []
+    for result in action_results:
+        model = result.probability_model
+        if model is None:
+            continue
+        missing_outcomes = tuple(item.outcome_id for item in model.outcome_probabilities if item.probability is None)
+        if model.probability_completeness.value == "COMPLETE" and not missing_outcomes:
+            continue
+        targets.append(
+            EvidenceReadinessTarget(
+                target_type="ACTION_PROBABILITY_MODEL",
+                target_id=model.source_outcome_set_id,
+                action_id=result.action_id,
+                action_display_name=result.candidate.action.display_name,
+                outcome_ids=missing_outcomes,
+                reason=(
+                    f"{result.candidate.action.display_name} probability model is {model.probability_completeness.value}"
+                    f" with {len(missing_outcomes)} unknown outcome probabilities."
+                ),
+                blocks=_blocks_for(tuple(item for item in diagnostics if item.affected_action_id == result.action_id)),
+            )
+        )
+    status = EvidenceReadinessStatus.MISSING if targets else EvidenceReadinessStatus.READY if action_results else EvidenceReadinessStatus.UNKNOWN
+    summary = (
+        f"{len(targets)} action probability model{' needs' if len(targets) == 1 else 's need'} evidence."
+        if targets
+        else "Probability evidence is complete for analyzed outcome sets."
+        if action_results
+        else "No outcome probability evidence was analyzed."
+    )
+    return EvidenceReadinessItem(
+        category=EvidenceReadinessCategory.PROBABILITY,
+        label="Probability evidence",
+        status=status,
+        summary=summary,
+        targets=tuple(targets),
+        evidence_tool="observation-recorder-review-import",
+        diagnostics=diagnostics,
+    )
+
+
+def _outcome_valuation_readiness(
+    request: AdvisorAnalysisRequest,
+    action_results: tuple[ActionAnalysisResult, ...],
+    missing_requirements: tuple[MissingAnalysisRequirement, ...],
+) -> EvidenceReadinessItem:
+    diagnostics = _requirements_for(missing_requirements, MissingRequirementKind.OUTCOME_VALUATION_EVIDENCE_REQUIRED)
+    supplied = request.outcome_valuations_by_outcome_id or {}
+    targets: list[EvidenceReadinessTarget] = []
+    any_outcomes = False
+    any_valued = False
+    for result in action_results:
+        if result.outcome_set is None:
+            continue
+        outcome_ids = tuple(state.outcome_id for state in result.outcome_set.hypothetical_states)
+        any_outcomes = any_outcomes or bool(outcome_ids)
+        missing_outcomes = tuple(outcome_id for outcome_id in outcome_ids if outcome_id not in supplied)
+        any_valued = any_valued or len(missing_outcomes) < len(outcome_ids)
+        if not missing_outcomes:
+            continue
+        targets.append(
+            EvidenceReadinessTarget(
+                target_type="OUTCOME_VALUATION",
+                target_id=result.action_id,
+                action_id=result.action_id,
+                action_display_name=result.candidate.action.display_name,
+                outcome_ids=missing_outcomes,
+                reason=(
+                    f"{result.candidate.action.display_name} has valuation coverage "
+                    f"{len(outcome_ids) - len(missing_outcomes)}/{len(outcome_ids)}."
+                ),
+                blocks=_blocks_for(tuple(item for item in diagnostics if item.affected_action_id == result.action_id)),
+            )
+        )
+    if targets and any_valued:
+        status = EvidenceReadinessStatus.PARTIAL
+    elif targets:
+        status = EvidenceReadinessStatus.MISSING
+    elif any_outcomes:
+        status = EvidenceReadinessStatus.READY
+    else:
+        status = EvidenceReadinessStatus.UNKNOWN
+    summary = (
+        f"{len(targets)} action outcome set{' has' if len(targets) == 1 else 's have'} missing outcome valuations."
+        if targets
+        else "Outcome valuation evidence covers analyzed outcome sets."
+        if any_outcomes
+        else "No outcome valuation targets were available."
+    )
+    return EvidenceReadinessItem(
+        category=EvidenceReadinessCategory.OUTCOME_VALUATION,
+        label="Outcome valuation",
+        status=status,
+        summary=summary,
+        targets=tuple(targets),
+        evidence_tool="manual-outcome-valuation",
+        diagnostics=diagnostics,
+    )
+
+
+def _verified_mechanics_readiness(
+    action_results: tuple[ActionAnalysisResult, ...],
+    missing_requirements: tuple[MissingAnalysisRequirement, ...],
+) -> EvidenceReadinessItem:
+    diagnostics = _requirements_for(missing_requirements, MissingRequirementKind.VERIFIED_MECHANIC_REQUIRED)
+    targets = tuple(
+        EvidenceReadinessTarget(
+            target_type="VERIFIED_MECHANIC",
+            target_id=f"{requirement.affected_action_id or 'global'}:{index}",
+            action_id=requirement.affected_action_id,
+            action_display_name=_action_display_name(action_results, requirement.affected_action_id),
+            reason=requirement.reason,
+            blocks=_split_blocks(requirement.blocks),
+        )
+        for index, requirement in enumerate(diagnostics)
+    )
+    status = EvidenceReadinessStatus.MISSING if targets else EvidenceReadinessStatus.READY if action_results else EvidenceReadinessStatus.UNKNOWN
+    summary = (
+        f"{len(targets)} verified mechanic question{' remains' if len(targets) == 1 else 's remain'}."
+        if targets
+        else "No verified mechanic blockers were reported for analyzed actions."
+        if action_results
+        else "No mechanic evidence was analyzed."
+    )
+    return EvidenceReadinessItem(
+        category=EvidenceReadinessCategory.VERIFIED_MECHANICS,
+        label="Verified mechanics",
+        status=status,
+        summary=summary,
+        targets=targets,
+        evidence_tool="mechanic-research",
+        diagnostics=diagnostics,
+    )
+
+
+def _requirements_for(
+    requirements: tuple[MissingAnalysisRequirement, ...],
+    kind: MissingRequirementKind,
+) -> tuple[MissingAnalysisRequirement, ...]:
+    return tuple(requirement for requirement in requirements if requirement.kind == kind)
+
+
+def _blocks_for(requirements: tuple[MissingAnalysisRequirement, ...]) -> tuple[str, ...]:
+    return tuple(sorted({block for requirement in requirements for block in _split_blocks(requirement.blocks)}))
+
+
+def _split_blocks(blocks: str) -> tuple[str, ...]:
+    return tuple(part.strip() for part in blocks.replace("/", ",").split(",") if part.strip())
+
+
+def _action_display_name(action_results: tuple[ActionAnalysisResult, ...], action_id: str | None) -> str | None:
+    if action_id is None:
+        return None
+    for result in action_results:
+        if result.action_id == action_id:
+            return result.candidate.action.display_name
+    return None
+
+
+def _display_asset(asset_id: str) -> str:
+    name = asset_id.rsplit(":", 1)[-1].replace("-", " ")
+    return name.title()
 
 
 def _overall_status(

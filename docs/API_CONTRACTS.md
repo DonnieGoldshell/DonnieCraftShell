@@ -100,6 +100,17 @@ Advisor request DTOs may later include risk fields from [RISK_AND_BANKROLL.md](R
 
 Task 13B implements `POST /api/v1/advisor/analyze`. See [ADVISOR_API.md](ADVISOR_API.md). Requests include clipboard text, explicit league, selected dataset versions, optional manual current valuation evidence, optional manual outcome valuation evidence keyed by deterministic outcome ID, and optional risk context. Responses preserve partial results per action, missing requirements, raw Advisor decision, optional risk-adjusted decision, and all relevant evidence references. The endpoint does not fetch external data at request time or fabricate valuations/probabilities.
 
+Task 21 adds an `evidence_readiness` response object to
+`POST /api/v1/advisor/analyze`. It groups existing analysis blockers into
+current-item valuation, economy/crafting-cost, probability, outcome valuation,
+and verified-mechanic readiness. Each item exposes a status, summary,
+diagnostic missing requirements, and actionable targets such as missing economy
+asset IDs, action IDs without probability evidence, outcome IDs without
+valuation coverage, and unverified mechanics. This object is explanatory only:
+it must not weaken fail-closed Advisor behavior, imply that checklist
+completion guarantees a recommendation, or replace the underlying missing
+requirements and per-action diagnostics.
+
 Task 19A implements `POST /api/v1/advisor/manual-valuation/preview` for the
 user-facing manual valuation workflow. The request contains an explicit league,
 subject identity (`CURRENT_ITEM` or `HYPOTHETICAL_OUTCOME`), optional

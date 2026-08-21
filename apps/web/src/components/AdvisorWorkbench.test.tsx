@@ -167,6 +167,97 @@ const quiverResponse: AdvisorAnalyzeResponse = {
     algorithm_version: "dc-advisor-v1"
   },
   risk_adjusted_decision: null,
+  evidence_readiness: {
+    items: [
+      {
+        category: "CURRENT_ITEM_VALUATION",
+        label: "Current item valuation",
+        status: "MISSING",
+        summary: "Manual comparable listing evidence is needed for the SELL NOW baseline.",
+        targets: [
+          {
+            target_type: "CURRENT_ITEM",
+            target_id: "current",
+            reason: "Current item valuation evidence is missing.",
+            outcome_ids: [],
+            blocks: ["Advisor decision"]
+          }
+        ],
+        evidence_tool: "manual-current-valuation",
+        diagnostics: []
+      },
+      {
+        category: "ECONOMY_CRAFTING_COST",
+        label: "Economy prices",
+        status: "MISSING",
+        summary: "1 crafting material price target is missing.",
+        targets: [
+          {
+            target_type: "ECONOMY_ASSET",
+            target_id: "dc:poe2:economy-asset:orb-of-annulment",
+            action_id: "dc:poe2:craft-action:orb-of-annulment",
+            action_display_name: "Orb of Annulment",
+            asset_id: "dc:poe2:economy-asset:orb-of-annulment",
+            reason: "Missing economy quote for Orb Of Annulment.",
+            outcome_ids: [],
+            blocks: ["Craft material cost", "Expected Value"]
+          }
+        ],
+        evidence_tool: "economy-data-import",
+        diagnostics: []
+      },
+      {
+        category: "PROBABILITY",
+        label: "Probability evidence",
+        status: "MISSING",
+        summary: "1 action probability model needs evidence.",
+        targets: [
+          {
+            target_type: "ACTION_PROBABILITY_MODEL",
+            target_id: "outcome-set:annulment",
+            action_id: "dc:poe2:craft-action:orb-of-annulment",
+            action_display_name: "Orb of Annulment",
+            outcome_ids: ["outcome-1", "outcome-2", "outcome-3", "outcome-4", "outcome-5", "outcome-6"],
+            reason: "Orb of Annulment probability model is UNKNOWN with 6 unknown outcome probabilities.",
+            blocks: ["Expected Value"]
+          }
+        ],
+        evidence_tool: "observation-recorder-review-import",
+        diagnostics: []
+      },
+      {
+        category: "OUTCOME_VALUATION",
+        label: "Outcome valuation",
+        status: "MISSING",
+        summary: "1 action outcome set has missing outcome valuations.",
+        targets: [
+          {
+            target_type: "OUTCOME_VALUATION",
+            target_id: "dc:poe2:craft-action:orb-of-annulment",
+            action_id: "dc:poe2:craft-action:orb-of-annulment",
+            action_display_name: "Orb of Annulment",
+            outcome_ids: ["outcome-1", "outcome-2", "outcome-3", "outcome-4", "outcome-5", "outcome-6"],
+            reason: "Orb of Annulment has valuation coverage 0/6.",
+            blocks: ["Scenario", "Expected Value"]
+          }
+        ],
+        evidence_tool: "manual-outcome-valuation",
+        diagnostics: []
+      },
+      {
+        category: "VERIFIED_MECHANICS",
+        label: "Verified mechanics",
+        status: "READY",
+        summary: "No verified mechanic blockers were reported for analyzed actions.",
+        targets: [],
+        evidence_tool: "mechanic-research",
+        diagnostics: []
+      }
+    ],
+    warnings: [
+      "Evidence readiness is derived from explicit Advisor inputs, action analysis, and missing requirements; it does not fabricate confidence or recommendation eligibility."
+    ]
+  },
   missing_requirements: [
     {
       type: "CURRENT_VALUATION_EVIDENCE_REQUIRED",
@@ -261,6 +352,9 @@ describe("AdvisorWorkbench", () => {
   });
 
   async function openAdvancedTools(user: ReturnType<typeof userEvent.setup>) {
+    if (screen.queryByRole("button", { name: /add observation/i })) {
+      return;
+    }
     await user.click(screen.getByText(/advanced evidence & diagnostics/i));
   }
 
@@ -285,6 +379,12 @@ describe("AdvisorWorkbench", () => {
     expect(screen.getByText("What is blocking a stronger recommendation?")).toBeInTheDocument();
     expect(screen.getAllByText("Valuation evidence").length).toBeGreaterThan(0);
     expect(screen.getAllByText("Probability evidence").length).toBeGreaterThan(0);
+    expect(screen.getByRole("region", { name: /evidence readiness/i })).toBeInTheDocument();
+    expect(screen.getByText("Evidence Readiness")).toBeInTheDocument();
+    expect(screen.getByText("Manual comparable listing evidence is needed for the SELL NOW baseline.")).toBeInTheDocument();
+    expect(screen.getByText("1 action probability model needs evidence.")).toBeInTheDocument();
+    expect(screen.getAllByText(/6 outcomes need evidence/i).length).toBeGreaterThan(0);
+    expect(screen.getByText(/does not guarantee a craft recommendation/i)).toBeInTheDocument();
     expect(screen.getByText("Advisor Decision")).toBeInTheDocument();
     expect(screen.getAllByText("No Recommendation").length).toBeGreaterThan(0);
     expect(screen.getAllByText("Orb of Annulment").length).toBeGreaterThan(0);
@@ -297,6 +397,13 @@ describe("AdvisorWorkbench", () => {
     expect(screen.getByText(/advanced evidence & diagnostics/i)).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /add observation/i })).not.toBeInTheDocument();
 
+    await user.click(screen.getByRole("button", { name: /open manual valuation evidence/i }));
+
+    expect(screen.getByRole("button", { name: /add observation/i })).toBeVisible();
+    expect(fetch).toHaveBeenCalledTimes(1);
+
+    await user.click(screen.getByText(/advanced evidence & diagnostics/i));
+    expect(screen.queryByRole("button", { name: /add observation/i })).not.toBeInTheDocument();
     await openAdvancedTools(user);
 
     expect(screen.getByText(/listing-derived estimates are not guaranteed sale prices/i)).toBeVisible();

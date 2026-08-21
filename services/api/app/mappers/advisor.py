@@ -40,8 +40,11 @@ from services.api.app.schemas.advisor import (
     AdvisorAnalyzeResponseDto,
     AdvisorContextDto,
     AdvisorDecisionDto,
+    AdvisorEvidenceReadinessDto,
     AffixStateDto,
     EnrichmentSummaryDto,
+    EvidenceReadinessItemDto,
+    EvidenceReadinessTargetDto,
     ExpectedValueSummaryDto,
     ItemSummaryDto,
     ComparableResultPreviewDto,
@@ -136,6 +139,7 @@ def advisor_result_to_dto(result: AdvisorAnalysisResult) -> AdvisorAnalyzeRespon
         ],
         decision=_decision_to_dto(result.raw_advisor_decision),
         risk_adjusted_decision=_risk_decision_to_dto(result.risk_adjusted_decision),
+        evidence_readiness=_evidence_readiness_to_dto(result.evidence_readiness),
         missing_requirements=[_missing_to_dto(item) for item in result.missing_requirements],
         warnings=list(result.warnings),
         provenance=[to_jsonable(item) for item in result.provenance],
@@ -540,6 +544,38 @@ def _missing_to_dto(requirement) -> MissingRequirementDto:
         action_id=requirement.affected_action_id,
         blocks=[part for part in requirement.blocks.replace("/", ",").split(",") if part],
         reason=requirement.reason,
+    )
+
+
+def _evidence_readiness_to_dto(readiness) -> AdvisorEvidenceReadinessDto | None:
+    if readiness is None:
+        return None
+    return AdvisorEvidenceReadinessDto(
+        items=[
+            EvidenceReadinessItemDto(
+                category=item.category.value,
+                label=item.label,
+                status=item.status.value,
+                summary=item.summary,
+                targets=[
+                    EvidenceReadinessTargetDto(
+                        target_type=target.target_type,
+                        target_id=target.target_id,
+                        reason=target.reason,
+                        action_id=target.action_id,
+                        action_display_name=target.action_display_name,
+                        asset_id=target.asset_id,
+                        outcome_ids=list(target.outcome_ids),
+                        blocks=list(target.blocks),
+                    )
+                    for target in item.targets
+                ],
+                evidence_tool=item.evidence_tool,
+                diagnostics=[_missing_to_dto(requirement) for requirement in item.diagnostics],
+            )
+            for item in readiness.items
+        ],
+        warnings=list(readiness.warnings),
     )
 
 

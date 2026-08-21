@@ -96,6 +96,9 @@ class AdvisorApiTests(unittest.TestCase):
         schema_names = set(openapi["components"]["schemas"])
         self.assertIn("AdvisorAnalyzeRequestDto", schema_names)
         self.assertIn("AdvisorAnalyzeResponseDto", schema_names)
+        self.assertIn("AdvisorEvidenceReadinessDto", schema_names)
+        self.assertIn("EvidenceReadinessItemDto", schema_names)
+        self.assertIn("EvidenceReadinessTargetDto", schema_names)
         self.assertIn("ManualValuationPreviewRequestDto", schema_names)
         self.assertIn("ManualValuationPreviewResponseDto", schema_names)
         self.assertIn("/api/v1/advisor/manual-valuation/preview", openapi["paths"])
@@ -153,6 +156,22 @@ class AdvisorApiTests(unittest.TestCase):
         missing = {item["type"] for item in body["missing_requirements"]}
         self.assertIn("CURRENT_VALUATION_EVIDENCE_REQUIRED", missing)
         self.assertIn("PROBABILITY_EVIDENCE_REQUIRED", missing)
+        readiness = {item["category"]: item for item in body["evidence_readiness"]["items"]}
+        self.assertEqual(readiness["CURRENT_ITEM_VALUATION"]["status"], "MISSING")
+        self.assertEqual(readiness["ECONOMY_CRAFTING_COST"]["status"], "MISSING")
+        self.assertEqual(readiness["PROBABILITY"]["status"], "MISSING")
+        self.assertEqual(readiness["OUTCOME_VALUATION"]["status"], "MISSING")
+        economy_targets = readiness["ECONOMY_CRAFTING_COST"]["targets"]
+        self.assertTrue(
+            any(target["asset_id"] == "dc:poe2:economy-asset:currency:orb-of-annulment" for target in economy_targets)
+        )
+        probability_targets = readiness["PROBABILITY"]["targets"]
+        self.assertTrue(
+            any(target["action_display_name"] == "Orb of Annulment" for target in probability_targets)
+        )
+        outcome_targets = readiness["OUTCOME_VALUATION"]["targets"]
+        self.assertEqual(len(outcome_targets[0]["outcome_ids"]), 6)
+        self.assertEqual(readiness["CURRENT_ITEM_VALUATION"]["evidence_tool"], "manual-current-valuation")
 
     def test_unsupported_item_response_is_successful(self):
         response = self.client.post("/api/v1/advisor/analyze", json=base_request(fixture("quiver_3_normal_advanced.txt")))
