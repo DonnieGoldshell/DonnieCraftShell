@@ -24,6 +24,7 @@ class ApiSettings:
     empirical_registry_storage_path: Path | None
     observation_workspace_storage_path: Path | None
     manual_valuation_workspace_storage_path: Path | None
+    economy_quote_workspace_storage_path: Path | None
     supported_leagues: tuple[str, ...]
     cors_allowed_origins: tuple[str, ...]
 
@@ -55,6 +56,15 @@ def get_settings() -> ApiSettings:
         if manual_valuation_path_value.lower() in {"", "disabled", "memory", ":memory:"}
         else Path(manual_valuation_path_value)
     )
+    economy_quote_path_value = os.getenv(
+        "DCS_ECONOMY_QUOTE_WORKSPACE_PATH",
+        str(ROOT / ".dcs" / "economy_quote_workspace.json"),
+    ).strip()
+    economy_quote_workspace_storage_path = (
+        None
+        if economy_quote_path_value.lower() in {"", "disabled", "memory", ":memory:"}
+        else Path(economy_quote_path_value)
+    )
     return ApiSettings(
         environment=os.getenv("DCS_ENVIRONMENT", "local-offline"),
         default_game_data_dataset_id=game_data_id,
@@ -68,6 +78,7 @@ def get_settings() -> ApiSettings:
         empirical_registry_storage_path=empirical_registry_storage_path,
         observation_workspace_storage_path=observation_workspace_storage_path,
         manual_valuation_workspace_storage_path=manual_valuation_workspace_storage_path,
+        economy_quote_workspace_storage_path=economy_quote_workspace_storage_path,
         supported_leagues=tuple(
             league.strip()
             for league in os.getenv("DCS_SUPPORTED_LEAGUES", "Runes of Aldur").split(",")

@@ -36,6 +36,8 @@ POST /api/v1/crafts/expected-value
 POST /api/v1/advisor
 POST /api/v1/advisor/analyze
 POST /api/v1/advisor/manual-valuation/preview
+POST /api/v1/advisor/economy-quotes/workspace/quotes
+GET  /api/v1/advisor/economy-quotes/workspace/quotes
 POST /api/v1/observations/workspace/records
 GET  /api/v1/observations/workspace
 POST /api/v1/observations/workspace/reviews
@@ -200,3 +202,7 @@ Do not use display names as identifiers. Keep external source IDs and canonical 
 ## Manual Valuation Workspace
 
 Task 19B adds local persistence endpoints for manual valuation evidence under `/api/v1/advisor/manual-valuation/workspace/*`. Records are stored by canonical subject identity (`current` or `outcome:{outcome_id}`), and persisted evidence is not automatically submitted to Advisor or converted into valuation readiness. See [MANUAL_VALUATION_WORKSPACE.md](MANUAL_VALUATION_WORKSPACE.md) for the storage envelope, save/update/delete behavior, and frontend workflow.
+
+## Local Economy Quote Workspace
+
+Task 22A adds local persistence endpoints for operator-supplied economy quote evidence under `/api/v1/advisor/economy-quotes/workspace/*`. Records are stored by exact league, economy asset ID, and Exalted-unit quote currency. Advisor analysis composes matching local quotes into a request-scoped economy repository only when analysis is run; saving a quote alone does not fabricate probability evidence, valuation evidence, or a recommendation. See [LOCAL_ECONOMY_QUOTES.md](LOCAL_ECONOMY_QUOTES.md).

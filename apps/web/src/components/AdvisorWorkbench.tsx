@@ -17,6 +17,7 @@ import { ActionTable } from "./ActionTable";
 import { CraftObservationRecorderPanel } from "./CraftObservationRecorderPanel";
 import { DecisionPanel } from "./DecisionPanel";
 import { EvidenceReadinessPanel } from "./EvidenceReadinessPanel";
+import { EconomyQuotePanel } from "./EconomyQuotePanel";
 import { ItemSummary } from "./ItemSummary";
 import { ManualValuationPanel } from "./ManualValuationPanel";
 import { MissingRequirements } from "./MissingRequirements";
@@ -269,6 +270,7 @@ function AdvancedTools({
             }))
           }
         />
+        <EconomyQuotePanel analysis={analysis} league={league} />
         {analysis && (
           <>
             <CraftObservationRecorderPanel

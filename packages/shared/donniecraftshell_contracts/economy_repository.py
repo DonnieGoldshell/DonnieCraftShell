@@ -11,6 +11,13 @@ class EconomyRepository:
     def __init__(self, snapshots: tuple[EconomySnapshot, ...]):
         self._snapshots = {snapshot.snapshot_id: snapshot for snapshot in snapshots}
 
+    def snapshots(self) -> tuple[EconomySnapshot, ...]:
+        """Return repository snapshots for request-scoped composition.
+
+        Callers must treat the returned snapshots as immutable domain objects.
+        """
+        return tuple(self._snapshots.values())
+
     def get_snapshot(self, snapshot_id: str) -> EconomySnapshot:
         try:
             return self._snapshots[snapshot_id]

@@ -464,6 +464,19 @@ def _material_cost_to_dto(cost) -> MaterialCostDto:
                 "subtotal": economic_value_to_dto(line.subtotal).model_dump() if line.subtotal else None,
                 "freshness": line.freshness.value,
                 "snapshot_id": line.quote.snapshot_id if line.quote else None,
+                "source": line.quote.source if line.quote else None,
+                "provenance": [
+                    {
+                        "source_id": provenance.source_id,
+                        "source_type": provenance.source_type.value,
+                        "source_uri": provenance.source_uri,
+                        "retrieved_at": provenance.retrieved_at.isoformat() if provenance.retrieved_at else None,
+                        "league": provenance.league,
+                        "verification_status": provenance.verification_status.value,
+                        "notes": provenance.notes,
+                    }
+                    for provenance in (line.quote.provenance if line.quote else ())
+                ],
                 "warnings": list(line.warnings),
             }
             for line in cost.lines

@@ -1075,6 +1075,314 @@
         "title": "EconomicValueDto",
         "type": "object"
       },
+      "EconomyQuoteWorkspaceDeleteResponseDto": {
+        "properties": {
+          "deleted_count": {
+            "default": 0,
+            "title": "Deleted Count",
+            "type": "integer"
+          },
+          "evidence_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Evidence Id"
+          },
+          "persistence": {
+            "$ref": "#/components/schemas/EconomyQuoteWorkspacePersistenceStatusDto"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "warnings": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Warnings",
+            "type": "array"
+          },
+          "workspace_version": {
+            "title": "Workspace Version",
+            "type": "string"
+          }
+        },
+        "required": [
+          "workspace_version",
+          "status",
+          "persistence"
+        ],
+        "title": "EconomyQuoteWorkspaceDeleteResponseDto",
+        "type": "object"
+      },
+      "EconomyQuoteWorkspaceListResponseDto": {
+        "properties": {
+          "persistence": {
+            "$ref": "#/components/schemas/EconomyQuoteWorkspacePersistenceStatusDto"
+          },
+          "records": {
+            "items": {
+              "$ref": "#/components/schemas/EconomyQuoteWorkspaceRecordDto"
+            },
+            "title": "Records",
+            "type": "array"
+          },
+          "warnings": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Warnings",
+            "type": "array"
+          },
+          "workspace_version": {
+            "title": "Workspace Version",
+            "type": "string"
+          }
+        },
+        "required": [
+          "workspace_version",
+          "records",
+          "persistence"
+        ],
+        "title": "EconomyQuoteWorkspaceListResponseDto",
+        "type": "object"
+      },
+      "EconomyQuoteWorkspacePersistenceStatusDto": {
+        "properties": {
+          "loaded_quote_count": {
+            "title": "Loaded Quote Count",
+            "type": "integer"
+          },
+          "persistence_enabled": {
+            "title": "Persistence Enabled",
+            "type": "boolean"
+          },
+          "skipped_quote_count": {
+            "default": 0,
+            "title": "Skipped Quote Count",
+            "type": "integer"
+          },
+          "storage_mode": {
+            "title": "Storage Mode",
+            "type": "string"
+          },
+          "storage_version": {
+            "title": "Storage Version",
+            "type": "string"
+          },
+          "warnings": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Warnings",
+            "type": "array"
+          }
+        },
+        "required": [
+          "storage_version",
+          "storage_mode",
+          "persistence_enabled",
+          "loaded_quote_count"
+        ],
+        "title": "EconomyQuoteWorkspacePersistenceStatusDto",
+        "type": "object"
+      },
+      "EconomyQuoteWorkspaceRecordDto": {
+        "properties": {
+          "amount": {
+            "description": "Decimal quote amount in Exalted economic units encoded as string.",
+            "title": "Amount",
+            "type": "string"
+          },
+          "asset_id": {
+            "title": "Asset Id",
+            "type": "string"
+          },
+          "created_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Created At"
+          },
+          "currency_asset_id": {
+            "default": "dc:poe2:economy-asset:currency:exalted-orb",
+            "title": "Currency Asset Id",
+            "type": "string"
+          },
+          "evidence_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Evidence Id"
+          },
+          "freshness": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Freshness"
+          },
+          "league": {
+            "title": "League",
+            "type": "string"
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notes"
+          },
+          "observed_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Observed At"
+          },
+          "source_reference": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Reference"
+          },
+          "source_type": {
+            "default": "MANUAL_RESEARCH",
+            "title": "Source Type",
+            "type": "string"
+          },
+          "updated_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Updated At"
+          },
+          "usable": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Usable"
+          }
+        },
+        "required": [
+          "league",
+          "asset_id",
+          "amount"
+        ],
+        "title": "EconomyQuoteWorkspaceRecordDto",
+        "type": "object"
+      },
+      "EconomyQuoteWorkspaceSaveRequestDto": {
+        "properties": {
+          "record": {
+            "$ref": "#/components/schemas/EconomyQuoteWorkspaceRecordDto"
+          }
+        },
+        "required": [
+          "record"
+        ],
+        "title": "EconomyQuoteWorkspaceSaveRequestDto",
+        "type": "object"
+      },
+      "EconomyQuoteWorkspaceSaveResponseDto": {
+        "properties": {
+          "evidence_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Evidence Id"
+          },
+          "persistence": {
+            "$ref": "#/components/schemas/EconomyQuoteWorkspacePersistenceStatusDto"
+          },
+          "record": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/EconomyQuoteWorkspaceRecordDto"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "warnings": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Warnings",
+            "type": "array"
+          },
+          "workspace_version": {
+            "title": "Workspace Version",
+            "type": "string"
+          }
+        },
+        "required": [
+          "workspace_version",
+          "status",
+          "persistence"
+        ],
+        "title": "EconomyQuoteWorkspaceSaveResponseDto",
+        "type": "object"
+      },
       "EmpiricalDatasetListResponseDto": {
         "properties": {
           "datasets": {
@@ -4080,6 +4388,265 @@
           }
         },
         "summary": "Analyze Advisor",
+        "tags": [
+          "advisor"
+        ]
+      }
+    },
+    "/api/v1/advisor/economy-quotes/workspace/quotes": {
+      "delete": {
+        "operationId": "clear_economy_quotes_api_v1_advisor_economy_quotes_workspace_quotes_delete",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "league",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "League"
+            }
+          },
+          {
+            "in": "query",
+            "name": "asset_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Asset Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EconomyQuoteWorkspaceDeleteResponseDto"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Clear Economy Quotes",
+        "tags": [
+          "advisor"
+        ]
+      },
+      "get": {
+        "operationId": "list_economy_quotes_api_v1_advisor_economy_quotes_workspace_quotes_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "league",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "League"
+            }
+          },
+          {
+            "in": "query",
+            "name": "asset_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Asset Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EconomyQuoteWorkspaceListResponseDto"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Economy Quotes",
+        "tags": [
+          "advisor"
+        ]
+      },
+      "post": {
+        "operationId": "save_economy_quote_api_v1_advisor_economy_quotes_workspace_quotes_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EconomyQuoteWorkspaceSaveRequestDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EconomyQuoteWorkspaceSaveResponseDto"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Save Economy Quote",
+        "tags": [
+          "advisor"
+        ]
+      }
+    },
+    "/api/v1/advisor/economy-quotes/workspace/quotes/{evidence_id}": {
+      "delete": {
+        "operationId": "delete_economy_quote_api_v1_advisor_economy_quotes_workspace_quotes__evidence_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "evidence_id",
+            "required": true,
+            "schema": {
+              "title": "Evidence Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EconomyQuoteWorkspaceDeleteResponseDto"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Delete Economy Quote",
+        "tags": [
+          "advisor"
+        ]
+      },
+      "put": {
+        "operationId": "update_economy_quote_api_v1_advisor_economy_quotes_workspace_quotes__evidence_id__put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "evidence_id",
+            "required": true,
+            "schema": {
+              "title": "Evidence Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EconomyQuoteWorkspaceSaveRequestDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EconomyQuoteWorkspaceSaveResponseDto"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Update Economy Quote",
         "tags": [
           "advisor"
         ]

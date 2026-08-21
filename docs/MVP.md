@@ -77,6 +77,7 @@ PASTE QUIVER
 - Task 17B persists the local empirical dataset registry to ignored JSON storage by default so registrations survive API restarts. Persistence keeps the same explicit-selection, context-compatibility, and synthetic-evidence guards.
 - Task 18A persists the local craft observation/review workspace to ignored JSON storage by default. Raw observations survive refresh/API restart, review decisions remain separate audit metadata, and only accepted records proceed through the existing dataset-build and registry gates.
 - Task 18B adds local workspace backup/export and restore/import. Backups preserve the versioned raw-record plus review-decision envelope for portability; `MERGE` and `REPLACE` restore modes are conservative and transactional, and restoring a backup never activates probability evidence by itself.
+- Task 22A adds a local economy quote evidence workspace for missing crafting-material costs. Operator-supplied quotes are exact league/asset Exalted-unit evidence with provenance and freshness; they are consumed only when Advisor analysis is re-run and never fabricate probability, valuation, or recommendation readiness.
 - Expected value, ROI, probability of profit, downside risk, and required capital are represented in the recommendation model, even if early implementations mark inputs as `NEEDS VERIFICATION`.
 - Craft session data can track item states, actions, costs, total invested, current estimated value, and unrealized profit/loss.
 
