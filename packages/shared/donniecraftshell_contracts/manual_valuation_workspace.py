@@ -109,6 +109,16 @@ class ManualValuationWorkspaceRepository:
                 evidence_id=evidence_id,
                 warnings=(f"Manual valuation evidence {evidence_id} was not found.",),
             )
+        partition_change = _identity_partition_difference(existing, copied)
+        if partition_change:
+            return ManualValuationWorkspaceResult(
+                status=ManualValuationWorkspaceSaveStatus.REJECTED,
+                evidence_id=evidence_id,
+                warnings=(
+                    "Manual valuation evidence update was rejected because evidence_id "
+                    f"{evidence_id} is already bound to a different {partition_change}.",
+                ),
+            )
         copied["created_at"] = existing.get("created_at", copied["created_at"])
         copied["updated_at"] = _now_iso()
         self._records[evidence_id] = copied
@@ -137,25 +147,34 @@ class ManualValuationWorkspaceRepository:
         )
 
     def clear_subject(self, subject_id: str) -> ManualValuationWorkspaceResult:
+        try:
+            canonical_subject_id = validate_manual_valuation_subject_id(subject_id)
+        except Exception as exc:
+            return ManualValuationWorkspaceResult(
+                status=ManualValuationWorkspaceSaveStatus.REJECTED,
+                warnings=(f"Manual valuation workspace subject clear was rejected: {exc}",),
+            )
         deleted = tuple(
             evidence_id
             for evidence_id, record in self._records.items()
-            if record.get("subject_id") == subject_id
+            if record.get("subject_id") == canonical_subject_id
         )
+        deleted_records = tuple(deepcopy(self._records[evidence_id]) for evidence_id in deleted)
         for evidence_id in deleted:
             self._records.pop(evidence_id, None)
             self._fingerprints.pop(evidence_id, None)
         return ManualValuationWorkspaceResult(
             status=ManualValuationWorkspaceSaveStatus.CLEARED,
-            records=(),
-            warnings=(f"Cleared {len(deleted)} manual valuation evidence records for {subject_id}.",),
+            records=deleted_records,
+            warnings=(f"Cleared {len(deleted)} manual valuation evidence records for {canonical_subject_id}.",),
         )
 
     def list_records(self, subject_id: str | None = None) -> tuple[dict[str, Any], ...]:
+        canonical_subject_id = validate_manual_valuation_subject_id(subject_id) if subject_id is not None else None
         return tuple(
             deepcopy(record)
             for record in sorted(self._records.values(), key=lambda item: item["evidence_id"])
-            if subject_id is None or record.get("subject_id") == subject_id
+            if canonical_subject_id is None or record.get("subject_id") == canonical_subject_id
         )
 
     def export_backup(self) -> dict[str, Any]:
@@ -314,6 +333,14 @@ def canonical_manual_valuation_subject_id(subject_type: str, outcome_id: str | N
     raise ValueError("subject_type must be CURRENT_ITEM or HYPOTHETICAL_OUTCOME")
 
 
+def validate_manual_valuation_subject_id(subject_id: str) -> str:
+    if subject_id == "current":
+        return subject_id
+    if subject_id.startswith("outcome:") and subject_id.removeprefix("outcome:"):
+        return subject_id
+    raise ValueError("subject_id must be current or canonical outcome:{outcome_id}")
+
+
 def _normalized_record(record: dict[str, Any]) -> dict[str, Any]:
     copied = _json_payload_copy(record)
     subject_type = str(copied.get("subject_type", ""))
@@ -339,6 +366,14 @@ def _normalized_record(record: dict[str, Any]) -> dict[str, Any]:
     copied.setdefault("updated_at", copied["created_at"])
     copied["evidence_id"] = str(copied.get("evidence_id") or _derive_evidence_id(copied))
     return copied
+
+
+def _identity_partition_difference(existing: dict[str, Any], replacement: dict[str, Any]) -> str | None:
+    immutable_fields = ("subject_type", "subject_id", "outcome_id", "league")
+    changed = tuple(field for field in immutable_fields if existing.get(field) != replacement.get(field))
+    if not changed:
+        return None
+    return "/".join(changed)
 
 
 def _derive_evidence_id(record: dict[str, Any]) -> str:

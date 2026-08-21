@@ -121,6 +121,55 @@ class ManualValuationWorkspaceTests(unittest.TestCase):
         self.assertEqual(repository.list_records("current"), ())
         self.assertEqual(len(repository.list_records("outcome:outcome-1")), 1)
 
+    def test_update_cannot_move_existing_evidence_id_between_subjects(self):
+        repository = ManualValuationWorkspaceRepository()
+        repository.save_record(record(evidence_id="stable-evidence"))
+
+        moved = repository.update_record(
+            "stable-evidence",
+            record(
+                evidence_id="stable-evidence",
+                subject_id="outcome:outcome-1",
+                subject_type="HYPOTHETICAL_OUTCOME",
+                outcome_id="outcome-1",
+                external_listing_id="outcome-listing",
+            ),
+        )
+
+        self.assertEqual(moved.status, ManualValuationWorkspaceSaveStatus.REJECTED)
+        self.assertIn("subject_type/subject_id/outcome_id", moved.warnings[0])
+        self.assertEqual(len(repository.list_records("current")), 1)
+        self.assertEqual(repository.list_records("outcome:outcome-1"), ())
+
+    def test_update_cannot_silently_change_league_context(self):
+        repository = ManualValuationWorkspaceRepository()
+        repository.save_record(record(evidence_id="stable-evidence"))
+        changed = record(evidence_id="stable-evidence", amount="120")
+        changed["league"] = "Different League"
+
+        result = repository.update_record("stable-evidence", changed)
+
+        self.assertEqual(result.status, ManualValuationWorkspaceSaveStatus.REJECTED)
+        self.assertIn("league", result.warnings[0])
+        self.assertEqual(repository.list_records("current")[0]["league"], "Runes of Aldur")
+
+    def test_list_records_rejects_noncanonical_subject_id(self):
+        repository = ManualValuationWorkspaceRepository()
+        repository.save_record(record(evidence_id="current-evidence"))
+
+        with self.assertRaisesRegex(ValueError, "subject_id must be current"):
+            repository.list_records("outcome:")
+
+    def test_clear_subject_rejects_noncanonical_subject_id_without_mutation(self):
+        repository = ManualValuationWorkspaceRepository()
+        repository.save_record(record(evidence_id="current-evidence"))
+
+        result = repository.clear_subject("not-a-canonical-subject")
+
+        self.assertEqual(result.status, ManualValuationWorkspaceSaveStatus.REJECTED)
+        self.assertIn("subject_id must be current", result.warnings[0])
+        self.assertEqual(len(repository.list_records("current")), 1)
+
     def test_persistence_failure_rolls_back_memory_and_preserves_previous_file(self):
         class FailingRepository(FileBackedManualValuationWorkspaceRepository):
             fail_next = False

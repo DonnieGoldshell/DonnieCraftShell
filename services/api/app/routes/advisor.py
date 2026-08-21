@@ -120,9 +120,13 @@ def list_manual_valuation_evidence(
     subject_id: str | None = None,
     workspace: ManualValuationWorkspaceRepository = Depends(get_manual_valuation_workspace),
 ) -> ManualValuationWorkspaceListResponseDto:
+    try:
+        records = workspace.list_records(subject_id)
+    except ValueError as exc:
+        _bad_request("Manual valuation workspace subject list was rejected.", (str(exc),))
     return ManualValuationWorkspaceListResponseDto(
         workspace_version=MANUAL_VALUATION_WORKSPACE_VERSION,
-        records=[_workspace_record_to_dto(record) for record in workspace.list_records(subject_id)],
+        records=[_workspace_record_to_dto(record) for record in records],
         persistence=_manual_workspace_persistence_to_dto(workspace.persistence_status()),
         warnings=(
             "Persisted manual valuation evidence is inactive until explicitly submitted to Advisor.",
@@ -154,7 +158,6 @@ def clear_manual_valuation_subject(
     subject_id: str,
     workspace: ManualValuationWorkspaceRepository = Depends(get_manual_valuation_workspace),
 ) -> ManualValuationWorkspaceDeleteResponseDto:
-    before = len(workspace.list_records(subject_id))
     result = workspace.clear_subject(subject_id)
     if result.status == ManualValuationWorkspaceSaveStatus.REJECTED:
         _bad_request("Manual valuation workspace subject clear was rejected.", result.warnings)
@@ -162,7 +165,7 @@ def clear_manual_valuation_subject(
         workspace_version=MANUAL_VALUATION_WORKSPACE_VERSION,
         status=result.status.value,
         evidence_id=None,
-        deleted_count=before,
+        deleted_count=len(result.records),
         persistence=_manual_workspace_persistence_to_dto(workspace.persistence_status()),
         warnings=list(result.warnings),
     )

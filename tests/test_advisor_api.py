@@ -499,6 +499,88 @@ class AdvisorApiTests(unittest.TestCase):
         self.assertEqual(cleared.json()["deleted_count"], 1)
         self.assertEqual(listed.json()["records"], [])
 
+    def test_manual_valuation_workspace_update_rejects_cross_subject_move(self):
+        self.client.post(
+            "/api/v1/advisor/manual-valuation/workspace/evidence",
+            json={"record": self._manual_workspace_record(evidence_id="current-listing")},
+        )
+
+        moved = self.client.put(
+            "/api/v1/advisor/manual-valuation/workspace/evidence/current-listing",
+            json={
+                "record": self._manual_workspace_record(
+                    evidence_id="current-listing",
+                    subject_id="outcome:outcome-2",
+                    subject_type="HYPOTHETICAL_OUTCOME",
+                    outcome_id="outcome-2",
+                    external_listing_id="outcome-listing",
+                )
+            },
+        )
+        current = self.client.get(
+            "/api/v1/advisor/manual-valuation/workspace/evidence",
+            params={"subject_id": "current"},
+        )
+        outcome = self.client.get(
+            "/api/v1/advisor/manual-valuation/workspace/evidence",
+            params={"subject_id": "outcome:outcome-2"},
+        )
+
+        self.assertEqual(moved.status_code, 400)
+        self.assertIn("different subject_type/subject_id/outcome_id", moved.json()["detail"]["warnings"][0])
+        self.assertEqual(len(current.json()["records"]), 1)
+        self.assertEqual(outcome.json()["records"], [])
+
+    def test_manual_valuation_workspace_update_rejects_cross_league_move(self):
+        self.client.post(
+            "/api/v1/advisor/manual-valuation/workspace/evidence",
+            json={"record": self._manual_workspace_record(evidence_id="current-listing")},
+        )
+        changed = self._manual_workspace_record(evidence_id="current-listing", amount="130")
+        changed["league"] = "Different League"
+
+        response = self.client.put(
+            "/api/v1/advisor/manual-valuation/workspace/evidence/current-listing",
+            json={"record": changed},
+        )
+        current = self.client.get(
+            "/api/v1/advisor/manual-valuation/workspace/evidence",
+            params={"subject_id": "current"},
+        )
+
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("different league", response.json()["detail"]["warnings"][0])
+        self.assertEqual(current.json()["records"][0]["league"], LEAGUE)
+        self.assertEqual(current.json()["records"][0]["amount"], "100")
+
+    def test_manual_valuation_workspace_list_rejects_noncanonical_subject(self):
+        response = self.client.get(
+            "/api/v1/advisor/manual-valuation/workspace/evidence",
+            params={"subject_id": "outcome:"},
+        )
+
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("subject_id must be current", response.json()["detail"]["warnings"][0])
+
+    def test_manual_valuation_workspace_clear_rejects_noncanonical_subject_without_mutation(self):
+        self.client.post(
+            "/api/v1/advisor/manual-valuation/workspace/evidence",
+            json={"record": self._manual_workspace_record(evidence_id="current-listing")},
+        )
+
+        response = self.client.delete(
+            "/api/v1/advisor/manual-valuation/workspace/subject",
+            params={"subject_id": "not-a-canonical-subject"},
+        )
+        current = self.client.get(
+            "/api/v1/advisor/manual-valuation/workspace/evidence",
+            params={"subject_id": "current"},
+        )
+
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("subject_id must be current", response.json()["detail"]["warnings"][0])
+        self.assertEqual(len(current.json()["records"]), 1)
+
     def test_manual_valuation_workspace_persistence_does_not_auto_submit_to_advisor(self):
         self.client.post(
             "/api/v1/advisor/manual-valuation/workspace/evidence",
