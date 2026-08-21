@@ -185,81 +185,92 @@ function AdvancedTools({
   setCurrentObservations: Dispatch<SetStateAction<EditableManualListingObservation[]>>;
   setOutcomeObservations: Dispatch<SetStateAction<Record<string, EditableManualListingObservation[]>>>;
 }) {
+  const [advancedToolsOpen, setAdvancedToolsOpen] = useState(false);
+
   return (
-    <section className="advanced-tools">
-      <div className="section-heading">
-        <h2>Advanced Evidence & Diagnostics</h2>
+    <details
+      className="advanced-tools"
+      open={advancedToolsOpen}
+      onToggle={(event) => setAdvancedToolsOpen(event.currentTarget.open)}
+    >
+      <summary>
+        <span>
+          <strong>Advanced Evidence & Diagnostics</strong>
+          <small>Manual evidence, recorder, review, and raw diagnostic tooling</small>
+        </span>
         <span className="count">Optional</span>
-      </div>
-      <p className="muted">
-        These tools preserve manual evidence, observation recording, dataset IDs, and raw diagnostics. They do not
-        change Advisor recommendations unless their evidence is explicitly submitted.
-      </p>
-      <ManualValuationPanel
-        actions={analysis?.actions ?? []}
-        league={league}
-        currentObservations={currentObservations}
-        outcomeObservations={outcomeObservations}
-        onAddCurrentObservation={(observation) =>
-          setCurrentObservations((observations) => [...observations, observation])
-        }
-        onAddOutcomeObservation={(outcomeId, observation) =>
-          setOutcomeObservations((groups) => ({
-            ...groups,
-            [outcomeId]: [...(groups[outcomeId] ?? []), observation]
-          }))
-        }
-        onUpdateCurrentObservation={(index, observation) =>
-          setCurrentObservations((observations) =>
-            observations.map((existing, existingIndex) => (existingIndex === index ? observation : existing))
-          )
-        }
-        onUpdateOutcomeObservation={(outcomeId, index, observation) =>
-          setOutcomeObservations((groups) => ({
-            ...groups,
-            [outcomeId]: (groups[outcomeId] ?? []).map((existing, existingIndex) =>
-              existingIndex === index ? observation : existing
+      </summary>
+      <div className="advanced-tools-body" hidden={!advancedToolsOpen}>
+        <p className="muted">
+          These tools preserve manual evidence, observation recording, dataset IDs, and raw diagnostics. They do not
+          change Advisor recommendations unless their evidence is explicitly submitted.
+        </p>
+        <ManualValuationPanel
+          actions={analysis?.actions ?? []}
+          league={league}
+          currentObservations={currentObservations}
+          outcomeObservations={outcomeObservations}
+          onAddCurrentObservation={(observation) =>
+            setCurrentObservations((observations) => [...observations, observation])
+          }
+          onAddOutcomeObservation={(outcomeId, observation) =>
+            setOutcomeObservations((groups) => ({
+              ...groups,
+              [outcomeId]: [...(groups[outcomeId] ?? []), observation]
+            }))
+          }
+          onUpdateCurrentObservation={(index, observation) =>
+            setCurrentObservations((observations) =>
+              observations.map((existing, existingIndex) => (existingIndex === index ? observation : existing))
             )
-          }))
-        }
-        onRemoveCurrentObservation={(index) =>
-          setCurrentObservations((observations) => observations.filter((_, existingIndex) => existingIndex !== index))
-        }
-        onRemoveOutcomeObservation={(outcomeId, index) =>
-          setOutcomeObservations((groups) => ({
-            ...groups,
-            [outcomeId]: (groups[outcomeId] ?? []).filter((_, existingIndex) => existingIndex !== index)
-          }))
-        }
-        onClearCurrentObservations={() => setCurrentObservations([])}
-        onClearOutcomeObservations={(outcomeId) =>
-          setOutcomeObservations((groups) => {
-            const next = { ...groups };
-            delete next[outcomeId];
-            return next;
-          })
-        }
-        onReplaceCurrentObservations={setCurrentObservations}
-        onReplaceOutcomeObservations={(outcomeId, observations) =>
-          setOutcomeObservations((groups) => ({
-            ...groups,
-            [outcomeId]: observations
-          }))
-        }
-      />
-      {analysis && (
-        <>
-          <CraftObservationRecorderPanel
-            actions={analysis.actions}
-            defaultBeforeText={clipboardText}
-            league={league}
-            craftingDatasetVersion={craftingDataset}
-            modifierDatasetVersion={gameDataDataset}
-          />
-          <ObservationReviewPanel />
-        </>
-      )}
-    </section>
+          }
+          onUpdateOutcomeObservation={(outcomeId, index, observation) =>
+            setOutcomeObservations((groups) => ({
+              ...groups,
+              [outcomeId]: (groups[outcomeId] ?? []).map((existing, existingIndex) =>
+                existingIndex === index ? observation : existing
+              )
+            }))
+          }
+          onRemoveCurrentObservation={(index) =>
+            setCurrentObservations((observations) => observations.filter((_, existingIndex) => existingIndex !== index))
+          }
+          onRemoveOutcomeObservation={(outcomeId, index) =>
+            setOutcomeObservations((groups) => ({
+              ...groups,
+              [outcomeId]: (groups[outcomeId] ?? []).filter((_, existingIndex) => existingIndex !== index)
+            }))
+          }
+          onClearCurrentObservations={() => setCurrentObservations([])}
+          onClearOutcomeObservations={(outcomeId) =>
+            setOutcomeObservations((groups) => {
+              const next = { ...groups };
+              delete next[outcomeId];
+              return next;
+            })
+          }
+          onReplaceCurrentObservations={setCurrentObservations}
+          onReplaceOutcomeObservations={(outcomeId, observations) =>
+            setOutcomeObservations((groups) => ({
+              ...groups,
+              [outcomeId]: observations
+            }))
+          }
+        />
+        {analysis && (
+          <>
+            <CraftObservationRecorderPanel
+              actions={analysis.actions}
+              defaultBeforeText={clipboardText}
+              league={league}
+              craftingDatasetVersion={craftingDataset}
+              modifierDatasetVersion={gameDataDataset}
+            />
+            <ObservationReviewPanel />
+          </>
+        )}
+      </div>
+    </details>
   );
 }
 

@@ -260,6 +260,10 @@ describe("AdvisorWorkbench", () => {
     vi.unstubAllGlobals();
   });
 
+  async function openAdvancedTools(user: ReturnType<typeof userEvent.setup>) {
+    await user.click(screen.getByText(/advanced evidence & diagnostics/i));
+  }
+
   it("renders partial Quiver analysis, action states, decision and missing requirements", async () => {
     vi.stubGlobal(
       "fetch",
@@ -291,7 +295,12 @@ describe("AdvisorWorkbench", () => {
     expect(screen.getAllByText("Probability Evidence Required").length).toBeGreaterThan(0);
     expect(screen.getByText(/advanced diagnostics: raw missing requirements/i)).toBeInTheDocument();
     expect(screen.getByText(/advanced evidence & diagnostics/i)).toBeInTheDocument();
-    expect(screen.getByText(/listing-derived estimates are not guaranteed sale prices/i)).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /add observation/i })).not.toBeInTheDocument();
+
+    await openAdvancedTools(user);
+
+    expect(screen.getByText(/listing-derived estimates are not guaranteed sale prices/i)).toBeVisible();
+    expect(screen.getByRole("button", { name: /add observation/i })).toBeVisible();
   });
 
   it("adds current-item manual comparable observations to the next advisor request", async () => {
@@ -303,6 +312,7 @@ describe("AdvisorWorkbench", () => {
     const user = userEvent.setup();
 
     render(<AdvisorWorkbench />);
+    await openAdvancedTools(user);
     await user.type(screen.getByLabelText(/listing amount/i), "5.5");
     await user.type(screen.getByLabelText(/listing id/i), "current-listing-1");
     await user.type(screen.getByLabelText(/listing\/item note/i), "manual current comparable");
@@ -344,6 +354,7 @@ describe("AdvisorWorkbench", () => {
     const user = userEvent.setup();
 
     render(<AdvisorWorkbench />);
+    await openAdvancedTools(user);
     await user.type(screen.getByLabelText(/listing amount/i), "100");
     await user.selectOptions(screen.getAllByLabelText(/^currency$/i)[0], EXALTED_ASSET_ID);
     await user.type(screen.getByLabelText(/listing id/i), "edit-me");
@@ -461,6 +472,7 @@ describe("AdvisorWorkbench", () => {
     const user = userEvent.setup();
 
     render(<AdvisorWorkbench />);
+    await openAdvancedTools(user);
     await user.click(screen.getByRole("button", { name: /load persisted evidence/i }));
     expect(await screen.findByText(/loaded 1 persisted observation/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/current item observations amount 1/i)).toHaveValue("140");
@@ -477,6 +489,7 @@ describe("AdvisorWorkbench", () => {
     ]);
     expect(JSON.stringify(analyzeBody)).not.toContain("evidence_id");
 
+    await openAdvancedTools(user);
     await user.clear(screen.getByLabelText(/current item observations amount 1/i));
     await user.type(screen.getByLabelText(/current item observations amount 1/i), "145");
     await user.click(screen.getByRole("button", { name: /save subject evidence/i }));
@@ -539,6 +552,7 @@ describe("AdvisorWorkbench", () => {
     await user.type(screen.getByLabelText(/clipboard item text/i), "Item Class: Quivers\nRarity: Rare");
     await user.click(screen.getByRole("button", { name: /analyze quiver/i }));
     await screen.findByText("Primed Quiver");
+    await openAdvancedTools(user);
 
     await user.selectOptions(screen.getByLabelText(/evidence subject/i), "outcome");
     await user.selectOptions(screen.getByLabelText(/^Outcome ID$/i), "outcome-2");
@@ -588,6 +602,7 @@ describe("AdvisorWorkbench", () => {
     await user.type(screen.getByLabelText(/clipboard item text/i), "Item Class: Quivers\nRarity: Rare");
     await user.click(screen.getByRole("button", { name: /analyze quiver/i }));
     await screen.findByText("Primed Quiver");
+    await openAdvancedTools(user);
 
     await user.selectOptions(screen.getByLabelText(/evidence subject/i), "outcome");
     await user.selectOptions(screen.getByLabelText(/^Outcome ID$/i), "outcome-2");
@@ -661,6 +676,7 @@ describe("AdvisorWorkbench", () => {
     await user.type(screen.getByLabelText(/clipboard item text/i), "Item Class: Quivers\nRarity: Rare");
     await user.click(screen.getByRole("button", { name: /analyze quiver/i }));
     await screen.findByText("Primed Quiver");
+    await openAdvancedTools(user);
 
     await user.selectOptions(screen.getByLabelText(/evidence subject/i), "outcome");
     await user.selectOptions(screen.getByLabelText(/^Outcome ID$/i), "outcome-2");
@@ -689,6 +705,7 @@ describe("AdvisorWorkbench", () => {
     const user = userEvent.setup();
 
     render(<AdvisorWorkbench />);
+    await openAdvancedTools(user);
     await user.click(screen.getByRole("button", { name: /add observation/i }));
 
     expect(screen.getByText("Listing amount is required.")).toBeInTheDocument();
@@ -988,6 +1005,7 @@ describe("AdvisorWorkbench", () => {
     render(<AdvisorWorkbench />);
     await user.type(screen.getByLabelText(/clipboard item text/i), "Item Class: Quivers\nRarity: Rare");
     await user.click(screen.getByRole("button", { name: /analyze quiver/i }));
+    await openAdvancedTools(user);
     await screen.findByText("Craft Observation Recorder");
 
     await user.selectOptions(screen.getByLabelText(/craft action/i), "dc:poe2:craft-action:orb-of-annulment");
@@ -1157,6 +1175,7 @@ describe("AdvisorWorkbench", () => {
     render(<AdvisorWorkbench />);
     await user.type(screen.getByLabelText(/clipboard item text/i), "Item Class: Quivers\nRarity: Rare");
     await user.click(screen.getByRole("button", { name: /analyze quiver/i }));
+    await openAdvancedTools(user);
     await screen.findByText("Observation Review");
 
     await user.click(screen.getByRole("button", { name: /load persisted workspace/i }));
@@ -1295,6 +1314,7 @@ describe("AdvisorWorkbench", () => {
     render(<AdvisorWorkbench />);
     await user.type(screen.getByLabelText(/clipboard item text/i), "Item Class: Quivers\nRarity: Rare");
     await user.click(screen.getByRole("button", { name: /analyze quiver/i }));
+    await openAdvancedTools(user);
     await screen.findByText("Observation Review");
 
     await user.click(screen.getByRole("button", { name: /export workspace backup/i }));

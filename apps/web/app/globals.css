@@ -204,6 +204,7 @@ button:disabled {
 }
 
 .advanced-disclosure summary,
+.advanced-tools > summary,
 .diagnostics-details summary,
 .inline-diagnostics summary {
   color: var(--muted);
@@ -215,9 +216,35 @@ button:disabled {
 .advanced-tools {
   border: 1px dashed var(--line);
   border-radius: var(--radius);
+  padding: 14px;
+}
+
+.advanced-tools > summary {
+  align-items: center;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+}
+
+.advanced-tools > summary span:first-child {
+  display: grid;
+  gap: 4px;
+}
+
+.advanced-tools > summary strong {
+  color: var(--text);
+  font-size: 18px;
+}
+
+.advanced-tools > summary small {
+  color: var(--muted);
+  font-weight: 500;
+}
+
+.advanced-tools-body {
   display: grid;
   gap: 14px;
-  padding: 14px;
+  padding-top: 14px;
 }
 
 .facts-grid {
