@@ -11,6 +11,37 @@ The long-term product is planned around four modules:
 
 The first MVP focuses only on **rare Quivers**.
 
+## Run First Playable
+
+The first local playable workflow starts the FastAPI backend and Next.js
+frontend together on Windows, then smoke-checks the real API/UI path with a
+fixture Quiver.
+
+One-time setup from the repository root:
+
+```powershell
+python -m pip install -r services/api/requirements.txt
+cd apps\web
+npm install
+npm run generate:openapi
+cd ..\..
+```
+
+Start the app:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\start_first_playable.ps1
+```
+
+Open `http://localhost:3000` and paste
+`samples\first_playable_quiver_sample.txt`. The sample is fixture/example data,
+not live market evidence. A partial analysis or `NO_RECOMMENDATION` is a valid
+first-playable result because the app still refuses to fabricate valuation or
+probability evidence.
+
+See [FIRST_PLAYABLE.md](FIRST_PLAYABLE.md) for smoke checks, port overrides,
+logs, and troubleshooting.
+
 ## MVP Workflow
 
 The initial milestone will eventually support:
