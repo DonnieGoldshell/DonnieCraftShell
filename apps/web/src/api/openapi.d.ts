@@ -449,6 +449,7 @@ export interface components {
             context: components["schemas"]["AdvisorContextDto"];
             decision?: components["schemas"]["AdvisorDecisionDto"] | null;
             enrichment_summary?: components["schemas"]["EnrichmentSummaryDto"] | null;
+            evidence_readiness?: components["schemas"]["AdvisorEvidenceReadinessDto"] | null;
             item?: components["schemas"]["ItemSummaryDto"] | null;
             /**
              * Missing Requirements
@@ -504,6 +505,19 @@ export interface components {
             reasons: string[];
             /** Selected Candidate Id */
             selected_candidate_id?: string | null;
+            /**
+             * Warnings
+             * @default []
+             */
+            warnings: string[];
+        };
+        /** AdvisorEvidenceReadinessDto */
+        AdvisorEvidenceReadinessDto: {
+            /**
+             * Items
+             * @default []
+             */
+            items: components["schemas"]["EvidenceReadinessItemDto"][];
             /**
              * Warnings
              * @default []
@@ -878,6 +892,54 @@ export interface components {
              * @default []
              */
             warnings: string[];
+        };
+        /** EvidenceReadinessItemDto */
+        EvidenceReadinessItemDto: {
+            /** Category */
+            category: string;
+            /**
+             * Diagnostics
+             * @default []
+             */
+            diagnostics: components["schemas"]["MissingRequirementDto"][];
+            /** Evidence Tool */
+            evidence_tool?: string | null;
+            /** Label */
+            label: string;
+            /** Status */
+            status: string;
+            /** Summary */
+            summary: string;
+            /**
+             * Targets
+             * @default []
+             */
+            targets: components["schemas"]["EvidenceReadinessTargetDto"][];
+        };
+        /** EvidenceReadinessTargetDto */
+        EvidenceReadinessTargetDto: {
+            /** Action Display Name */
+            action_display_name?: string | null;
+            /** Action Id */
+            action_id?: string | null;
+            /** Asset Id */
+            asset_id?: string | null;
+            /**
+             * Blocks
+             * @default []
+             */
+            blocks: string[];
+            /**
+             * Outcome Ids
+             * @default []
+             */
+            outcome_ids: string[];
+            /** Reason */
+            reason: string;
+            /** Target Id */
+            target_id: string;
+            /** Target Type */
+            target_type: string;
         };
         /** ExpectedValueSummaryDto */
         ExpectedValueSummaryDto: {

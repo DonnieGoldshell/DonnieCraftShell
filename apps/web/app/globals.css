@@ -111,6 +111,56 @@ textarea {
   padding: 7px 10px;
 }
 
+.readiness-panel {
+  display: grid;
+  gap: 14px;
+}
+
+.readiness-list {
+  display: grid;
+  gap: 10px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.readiness-row {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+}
+
+.readiness-row-main {
+  align-items: start;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: auto 1fr;
+}
+
+.readiness-row-main p,
+.readiness-warning {
+  margin: 4px 0 0;
+}
+
+.readiness-target-list {
+  display: grid;
+  gap: 6px;
+  list-style: none;
+  margin: 0;
+  padding: 0 0 0 6px;
+}
+
+.readiness-target-list li {
+  display: grid;
+  gap: 2px;
+}
+
+.readiness-target-list small {
+  color: var(--muted);
+}
+
 .section-heading {
   display: flex;
   align-items: center;

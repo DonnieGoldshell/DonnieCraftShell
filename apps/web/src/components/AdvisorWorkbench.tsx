@@ -16,6 +16,7 @@ import {
 import { ActionTable } from "./ActionTable";
 import { CraftObservationRecorderPanel } from "./CraftObservationRecorderPanel";
 import { DecisionPanel } from "./DecisionPanel";
+import { EvidenceReadinessPanel } from "./EvidenceReadinessPanel";
 import { ItemSummary } from "./ItemSummary";
 import { ManualValuationPanel } from "./ManualValuationPanel";
 import { MissingRequirements } from "./MissingRequirements";
@@ -39,6 +40,7 @@ export function AdvisorWorkbench() {
   const [analysis, setAnalysis] = useState<AdvisorAnalyzeResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [advancedToolsOpen, setAdvancedToolsOpen] = useState(false);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -120,6 +122,10 @@ export function AdvisorWorkbench() {
           {analysis ? (
             <>
               <PlayerSummary analysis={analysis} />
+              <EvidenceReadinessPanel
+                readiness={analysis.evidence_readiness}
+                onOpenEvidenceTools={() => setAdvancedToolsOpen(true)}
+              />
               <ItemSummary item={analysis.item} affixState={analysis.affix_state} />
               <DecisionPanel decision={analysis.decision} riskDecision={analysis.risk_adjusted_decision} />
               <ActionTable actions={analysis.actions} />
@@ -134,6 +140,8 @@ export function AdvisorWorkbench() {
                 outcomeObservations={outcomeObservations}
                 setCurrentObservations={setCurrentObservations}
                 setOutcomeObservations={setOutcomeObservations}
+                advancedToolsOpen={advancedToolsOpen}
+                setAdvancedToolsOpen={setAdvancedToolsOpen}
               />
             </>
           ) : (
@@ -155,6 +163,8 @@ export function AdvisorWorkbench() {
                 outcomeObservations={outcomeObservations}
                 setCurrentObservations={setCurrentObservations}
                 setOutcomeObservations={setOutcomeObservations}
+                advancedToolsOpen={advancedToolsOpen}
+                setAdvancedToolsOpen={setAdvancedToolsOpen}
               />
             </>
           )}
@@ -173,7 +183,9 @@ function AdvancedTools({
   currentObservations,
   outcomeObservations,
   setCurrentObservations,
-  setOutcomeObservations
+  setOutcomeObservations,
+  advancedToolsOpen,
+  setAdvancedToolsOpen
 }: {
   analysis: AdvisorAnalyzeResponse | null;
   clipboardText: string;
@@ -184,9 +196,9 @@ function AdvancedTools({
   outcomeObservations: Record<string, EditableManualListingObservation[]>;
   setCurrentObservations: Dispatch<SetStateAction<EditableManualListingObservation[]>>;
   setOutcomeObservations: Dispatch<SetStateAction<Record<string, EditableManualListingObservation[]>>>;
+  advancedToolsOpen: boolean;
+  setAdvancedToolsOpen: Dispatch<SetStateAction<boolean>>;
 }) {
-  const [advancedToolsOpen, setAdvancedToolsOpen] = useState(false);
-
   return (
     <details
       className="advanced-tools"

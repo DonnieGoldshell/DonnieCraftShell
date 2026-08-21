@@ -362,6 +362,32 @@ class MissingRequirementDto(ApiModel):
     reason: str
 
 
+class EvidenceReadinessTargetDto(ApiModel):
+    target_type: str
+    target_id: str
+    reason: str
+    action_id: str | None = None
+    action_display_name: str | None = None
+    asset_id: str | None = None
+    outcome_ids: list[str] = []
+    blocks: list[str] = []
+
+
+class EvidenceReadinessItemDto(ApiModel):
+    category: str
+    label: str
+    status: str
+    summary: str
+    targets: list[EvidenceReadinessTargetDto] = []
+    evidence_tool: str | None = None
+    diagnostics: list[MissingRequirementDto] = []
+
+
+class AdvisorEvidenceReadinessDto(ApiModel):
+    items: list[EvidenceReadinessItemDto] = []
+    warnings: list[str] = []
+
+
 class AdvisorContextDto(ApiModel):
     league: str
     game_data_dataset_version: str
@@ -382,6 +408,7 @@ class AdvisorAnalyzeResponseDto(ApiModel):
     actions: list[ActionAnalysisDto] = []
     decision: AdvisorDecisionDto | None = None
     risk_adjusted_decision: RiskAdjustedDecisionDto | None = None
+    evidence_readiness: AdvisorEvidenceReadinessDto | None = None
     missing_requirements: list[MissingRequirementDto] = []
     warnings: list[str] = []
     provenance: list[dict] = []

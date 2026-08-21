@@ -82,6 +82,34 @@ Missing inputs are explicit so the future UI can explain how to improve the anal
 
 Missing data never becomes zero cost, zero probability, or a negative recommendation.
 
+## Evidence Readiness
+
+Task 21 adds an `evidence_readiness` summary beside the raw missing
+requirements. This is a player-facing checklist derived from existing
+orchestration evidence; it does not fabricate recommendation confidence or make
+any non-rankable action rankable.
+
+Readiness is grouped into:
+
+- current-item valuation readiness,
+- economy/crafting-cost readiness,
+- probability readiness,
+- outcome valuation readiness,
+- verified mechanic readiness.
+
+Each readiness item has a status (`READY`, `PARTIAL`, `MISSING`, or `UNKNOWN`),
+a short summary, optional diagnostics copied from the underlying missing
+requirements, and actionable targets such as missing EconomyAsset IDs, actions
+or outcomes lacking probability evidence, outcomes lacking valuation coverage,
+and mechanics that still need verification. The UI may link these targets to
+manual valuation, observation review/import, economy import, or mechanic
+research tools, but those tools remain separate workflows and must not be
+auto-submitted or trusted as evidence merely because the checklist was opened.
+
+Completing every checklist item is not a guarantee that Advisor will recommend
+a craft. The normal gates still apply: probability, valuation, cost, mechanics,
+EV readiness, risk policy, and Advisor decision policy remain authoritative.
+
 ## Failure Isolation
 
 Action analysis is isolated per candidate. A failure in one action is surfaced as that action's warning and missing requirement; other actions continue through the pipeline.
