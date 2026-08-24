@@ -75,6 +75,8 @@ Task 6C extends the same path to Ritual/Omens and Essences, plus a small craft-m
 
 Task 7C connects crafting actions to economy costs through `CraftActionCostService`. Crafting mechanics provide required material IDs and quantities; the Economy Engine prices those materials using `CraftMaterialCost`.
 
+Task 22A adds a local operator quote workspace for missing crafting-material prices. These records are exact league/asset evidence in Exalted economic units and are composed into a request-scoped local `EconomySnapshot` only when Advisor analysis is re-run. Local quotes preserve provenance and freshness, but they do not scrape providers, infer related asset prices, cross-use leagues, or alter committed normalized economy fixtures. See [LOCAL_ECONOMY_QUOTES.md](LOCAL_ECONOMY_QUOTES.md).
+
 Applicability and price completeness are independent:
 
 - `APPLICABLE` action + complete cost: action can be performed and all required material quotes are available.

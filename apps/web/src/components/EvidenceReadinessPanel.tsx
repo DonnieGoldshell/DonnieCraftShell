@@ -14,7 +14,8 @@ const TOOL_LABELS: Record<string, string> = {
   "manual-current-valuation": "Open manual valuation evidence",
   "manual-outcome-valuation": "Open manual outcome valuation evidence",
   "observation-recorder-review-import": "Open observation recorder and review tools",
-  "economy-data-import": "Review economy fixture/import path",
+  "economy-data-import": "Open economy quote workflow",
+  "local-economy-quotes": "Open economy quote workflow",
   "mechanic-research": "Review mechanic diagnostics"
 };
 

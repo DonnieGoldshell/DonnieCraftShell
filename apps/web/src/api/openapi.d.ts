@@ -21,6 +21,43 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/advisor/economy-quotes/workspace/quotes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Economy Quotes */
+        get: operations["list_economy_quotes_api_v1_advisor_economy_quotes_workspace_quotes_get"];
+        put?: never;
+        /** Save Economy Quote */
+        post: operations["save_economy_quote_api_v1_advisor_economy_quotes_workspace_quotes_post"];
+        /** Clear Economy Quotes */
+        delete: operations["clear_economy_quotes_api_v1_advisor_economy_quotes_workspace_quotes_delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/advisor/economy-quotes/workspace/quotes/{evidence_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Update Economy Quote */
+        put: operations["update_economy_quote_api_v1_advisor_economy_quotes_workspace_quotes__evidence_id__put"];
+        post?: never;
+        /** Delete Economy Quote */
+        delete: operations["delete_economy_quote_api_v1_advisor_economy_quotes_workspace_quotes__evidence_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/advisor/manual-valuation/preview": {
         parameters: {
             query?: never;
@@ -759,6 +796,118 @@ export interface components {
              * @default EXALTED_ECONOMIC_UNIT
              */
             unit: string;
+        };
+        /** EconomyQuoteWorkspaceDeleteResponseDto */
+        EconomyQuoteWorkspaceDeleteResponseDto: {
+            /**
+             * Deleted Count
+             * @default 0
+             */
+            deleted_count: number;
+            /** Evidence Id */
+            evidence_id?: string | null;
+            persistence: components["schemas"]["EconomyQuoteWorkspacePersistenceStatusDto"];
+            /** Status */
+            status: string;
+            /**
+             * Warnings
+             * @default []
+             */
+            warnings: string[];
+            /** Workspace Version */
+            workspace_version: string;
+        };
+        /** EconomyQuoteWorkspaceListResponseDto */
+        EconomyQuoteWorkspaceListResponseDto: {
+            persistence: components["schemas"]["EconomyQuoteWorkspacePersistenceStatusDto"];
+            /** Records */
+            records: components["schemas"]["EconomyQuoteWorkspaceRecordDto"][];
+            /**
+             * Warnings
+             * @default []
+             */
+            warnings: string[];
+            /** Workspace Version */
+            workspace_version: string;
+        };
+        /** EconomyQuoteWorkspacePersistenceStatusDto */
+        EconomyQuoteWorkspacePersistenceStatusDto: {
+            /** Loaded Quote Count */
+            loaded_quote_count: number;
+            /** Persistence Enabled */
+            persistence_enabled: boolean;
+            /**
+             * Skipped Quote Count
+             * @default 0
+             */
+            skipped_quote_count: number;
+            /** Storage Mode */
+            storage_mode: string;
+            /** Storage Version */
+            storage_version: string;
+            /**
+             * Warnings
+             * @default []
+             */
+            warnings: string[];
+        };
+        /** EconomyQuoteWorkspaceRecordDto */
+        EconomyQuoteWorkspaceRecordDto: {
+            /**
+             * Amount
+             * @description Decimal quote amount in Exalted economic units encoded as string.
+             */
+            amount: string;
+            /** Asset Id */
+            asset_id: string;
+            /** Created At */
+            created_at?: string | null;
+            /**
+             * Currency Asset Id
+             * @default dc:poe2:economy-asset:currency:exalted-orb
+             */
+            currency_asset_id: string;
+            /** Evidence Id */
+            evidence_id?: string | null;
+            /** Freshness */
+            freshness?: string | null;
+            /** League */
+            league: string;
+            /** Notes */
+            notes?: string | null;
+            /** Observed At */
+            observed_at?: string | null;
+            /** Source Reference */
+            source_reference?: string | null;
+            /**
+             * Source Type
+             * @default MANUAL_RESEARCH
+             */
+            source_type: string;
+            /** Updated At */
+            updated_at?: string | null;
+            /** Usable */
+            usable?: boolean | null;
+        };
+        /** EconomyQuoteWorkspaceSaveRequestDto */
+        EconomyQuoteWorkspaceSaveRequestDto: {
+            record: components["schemas"]["EconomyQuoteWorkspaceRecordDto"];
+        };
+        /** EconomyQuoteWorkspaceSaveResponseDto */
+        EconomyQuoteWorkspaceSaveResponseDto: {
+            /** Evidence Id */
+            evidence_id?: string | null;
+            persistence: components["schemas"]["EconomyQuoteWorkspacePersistenceStatusDto"];
+            record?: components["schemas"]["EconomyQuoteWorkspaceRecordDto"] | null;
+            /** Status */
+            status: string;
+            /**
+             * Warnings
+             * @default []
+             */
+            warnings: string[];
+            /** Workspace Version */
+            workspace_version: string;
         };
         /** EmpiricalDatasetListResponseDto */
         EmpiricalDatasetListResponseDto: {
@@ -1867,6 +2016,169 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AdvisorAnalyzeResponseDto"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_economy_quotes_api_v1_advisor_economy_quotes_workspace_quotes_get: {
+        parameters: {
+            query?: {
+                league?: string | null;
+                asset_id?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EconomyQuoteWorkspaceListResponseDto"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    save_economy_quote_api_v1_advisor_economy_quotes_workspace_quotes_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EconomyQuoteWorkspaceSaveRequestDto"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EconomyQuoteWorkspaceSaveResponseDto"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    clear_economy_quotes_api_v1_advisor_economy_quotes_workspace_quotes_delete: {
+        parameters: {
+            query?: {
+                league?: string | null;
+                asset_id?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EconomyQuoteWorkspaceDeleteResponseDto"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_economy_quote_api_v1_advisor_economy_quotes_workspace_quotes__evidence_id__put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                evidence_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EconomyQuoteWorkspaceSaveRequestDto"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EconomyQuoteWorkspaceSaveResponseDto"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_economy_quote_api_v1_advisor_economy_quotes_workspace_quotes__evidence_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                evidence_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EconomyQuoteWorkspaceDeleteResponseDto"];
                 };
             };
             /** @description Validation Error */

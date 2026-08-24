@@ -7,6 +7,8 @@ from decimal import Decimal
 
 from pydantic import Field, field_validator, model_validator
 
+from packages.shared.donniecraftshell_contracts.domain import SourceType
+
 from .common import ApiModel, EconomicValueDto, GameContextDto
 
 
@@ -176,6 +178,71 @@ class ManualValuationWorkspaceDeleteResponseDto(ApiModel):
     evidence_id: str | None = None
     deleted_count: int = 0
     persistence: ManualValuationWorkspacePersistenceStatusDto
+    warnings: list[str] = []
+
+
+class EconomyQuoteWorkspaceRecordDto(ApiModel):
+    evidence_id: str | None = None
+    league: str
+    asset_id: str
+    amount: str = Field(description="Decimal quote amount in Exalted economic units encoded as string.")
+    currency_asset_id: str = "dc:poe2:economy-asset:currency:exalted-orb"
+    observed_at: datetime | None = None
+    source_type: str = "MANUAL_RESEARCH"
+    source_reference: str | None = None
+    notes: str | None = None
+    freshness: str | None = None
+    usable: bool | None = None
+    created_at: datetime | None = None
+    updated_at: datetime | None = None
+
+    @field_validator("amount")
+    @classmethod
+    def quote_amount_is_decimal(cls, value: str) -> str:
+        Decimal(value)
+        return value
+
+    @field_validator("source_type")
+    @classmethod
+    def source_type_matches_domain_contract(cls, value: str) -> str:
+        return SourceType(value).value
+
+
+class EconomyQuoteWorkspacePersistenceStatusDto(ApiModel):
+    storage_version: str
+    storage_mode: str
+    persistence_enabled: bool
+    loaded_quote_count: int
+    skipped_quote_count: int = 0
+    warnings: list[str] = []
+
+
+class EconomyQuoteWorkspaceSaveRequestDto(ApiModel):
+    record: EconomyQuoteWorkspaceRecordDto
+
+
+class EconomyQuoteWorkspaceSaveResponseDto(ApiModel):
+    workspace_version: str
+    status: str
+    evidence_id: str | None = None
+    record: EconomyQuoteWorkspaceRecordDto | None = None
+    persistence: EconomyQuoteWorkspacePersistenceStatusDto
+    warnings: list[str] = []
+
+
+class EconomyQuoteWorkspaceListResponseDto(ApiModel):
+    workspace_version: str
+    records: list[EconomyQuoteWorkspaceRecordDto]
+    persistence: EconomyQuoteWorkspacePersistenceStatusDto
+    warnings: list[str] = []
+
+
+class EconomyQuoteWorkspaceDeleteResponseDto(ApiModel):
+    workspace_version: str
+    status: str
+    evidence_id: str | None = None
+    deleted_count: int = 0
+    persistence: EconomyQuoteWorkspacePersistenceStatusDto
     warnings: list[str] = []
 
 

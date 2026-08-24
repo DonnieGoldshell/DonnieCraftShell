@@ -7,9 +7,10 @@ Task 13B exposes the framework-independent `CraftAdvisorOrchestrator` through Fa
 ```text
 POST /api/v1/advisor/analyze
 POST /api/v1/advisor/manual-valuation/preview
+POST /api/v1/advisor/economy-quotes/workspace/quotes
 ```
 
-The endpoint performs no external network calls. It uses configured local/offline repositories plus request-supplied manual valuation evidence.
+The endpoints perform no external network calls. Advisor analysis uses configured local/offline repositories, request-supplied manual valuation evidence, and explicit local economy quote evidence where available for the request league.
 
 ## Browser Access / CORS
 
@@ -115,6 +116,22 @@ readiness behavior.
 When empirical evidence is absent, partial, incompatible with league/game or
 dataset context, or disabled because it is synthetic, real action probabilities
 remain `UNKNOWN` and the response includes probability missing requirements.
+
+## Local Economy Quote Evidence
+
+Task 22A adds local/operator economy quote workspace endpoints:
+
+```text
+POST   /api/v1/advisor/economy-quotes/workspace/quotes
+PUT    /api/v1/advisor/economy-quotes/workspace/quotes/{evidence_id}
+GET    /api/v1/advisor/economy-quotes/workspace/quotes
+DELETE /api/v1/advisor/economy-quotes/workspace/quotes/{evidence_id}
+DELETE /api/v1/advisor/economy-quotes/workspace/quotes
+```
+
+The workspace stores exact league/asset crafting-material quote evidence in Exalted economic units. Saving a quote does not submit valuation evidence, fabricate probability evidence, or re-run Advisor analysis. The next `POST /api/v1/advisor/analyze` request composes matching local quotes into a request-scoped economy repository. Non-matching leagues/assets remain unavailable, never zero.
+
+See [LOCAL_ECONOMY_QUOTES.md](LOCAL_ECONOMY_QUOTES.md).
 
 ## Empirical Dataset Registry
 
