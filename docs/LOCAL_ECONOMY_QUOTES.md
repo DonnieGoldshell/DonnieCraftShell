@@ -76,6 +76,8 @@ Local quote freshness uses the existing Economy Engine freshness policy:
 
 Stale quotes keep their explicit freshness metadata. Missing or invalid quotes remain unavailable and never become zero.
 
+The current `CraftMaterialCost` policy treats a stale quote with a valid normalized value as price-complete while carrying `freshness = STALE` on the cost line and aggregate material cost. This is intentional pre-existing Economy Engine behavior: freshness is visible to Advisor/risk policy, but stale evidence is not silently converted to missing or zero at the cost-calculation layer.
+
 ## API
 
 ```text

@@ -7,6 +7,8 @@ from decimal import Decimal
 
 from pydantic import Field, field_validator, model_validator
 
+from packages.shared.donniecraftshell_contracts.domain import SourceType
+
 from .common import ApiModel, EconomicValueDto, GameContextDto
 
 
@@ -199,6 +201,11 @@ class EconomyQuoteWorkspaceRecordDto(ApiModel):
     def quote_amount_is_decimal(cls, value: str) -> str:
         Decimal(value)
         return value
+
+    @field_validator("source_type")
+    @classmethod
+    def source_type_matches_domain_contract(cls, value: str) -> str:
+        return SourceType(value).value
 
 
 class EconomyQuoteWorkspacePersistenceStatusDto(ApiModel):

@@ -401,7 +401,7 @@ def _normalized_record(record: dict[str, Any]) -> dict[str, Any]:
     copied["amount"] = str(amount)
     copied["currency_asset_id"] = currency_asset_id
     copied["observed_at"] = _iso_or_none(copied.get("observed_at")) or _now_iso()
-    copied["source_type"] = str(copied.get("source_type") or "MANUAL_RESEARCH")
+    copied["source_type"] = _source_type_value(copied.get("source_type"))
     copied["source_reference"] = _empty_to_none(copied.get("source_reference"))
     copied["notes"] = _empty_to_none(copied.get("notes"))
     now = _now_iso()
@@ -458,7 +458,7 @@ def _quote_from_record(
     freshness_policy: FreshnessPolicy,
 ) -> EconomyQuote:
     observed_at = _parse_iso(record["observed_at"])
-    source_type = SourceType(record.get("source_type") or SourceType.MANUAL_RESEARCH.value)
+    source_type = SourceType(_source_type_value(record.get("source_type")))
     return EconomyQuote(
         asset_id=record["asset_id"],
         league=record["league"],
@@ -493,6 +493,12 @@ def _category_for_asset(asset_id: str) -> EconomyCategory:
     if ":essence:" in asset_id:
         return EconomyCategory.ESSENCES
     return EconomyCategory.UNKNOWN
+
+
+def _source_type_value(value: Any) -> str:
+    if value in (None, ""):
+        return SourceType.MANUAL_RESEARCH.value
+    return SourceType(str(value)).value
 
 
 def _snapshot_id(league: str, observed_at: datetime) -> str:

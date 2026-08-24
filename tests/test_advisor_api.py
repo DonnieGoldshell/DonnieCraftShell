@@ -6,7 +6,7 @@ import os
 import tempfile
 import unittest
 from dataclasses import replace
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 from pathlib import Path
 
@@ -193,6 +193,30 @@ class AdvisorApiTests(unittest.TestCase):
         self.assertEqual(rejected.status_code, 400)
         self.assertIn("Conflicting economy quote evidence", str(rejected.json()["detail"]))
 
+    def test_economy_quote_workspace_rejects_invalid_source_type_before_analysis(self):
+        rejected = self.client.post(
+            "/api/v1/advisor/economy-quotes/workspace/quotes",
+            json={
+                "record": {
+                    "evidence_id": "invalid-source-local-quote",
+                    "league": LEAGUE,
+                    "asset_id": "dc:poe2:economy-asset:currency:orb-of-annulment",
+                    "amount": "7.5",
+                    "currency_asset_id": "dc:poe2:economy-asset:currency:exalted-orb",
+                    "observed_at": AS_OF,
+                    "source_type": "NOT_A_REAL_SOURCE",
+                }
+            },
+        )
+        analyzed = self.client.post("/api/v1/advisor/analyze", json=base_request())
+        listed = self.client.get("/api/v1/advisor/economy-quotes/workspace/quotes", params={"league": LEAGUE})
+
+        self.assertEqual(rejected.status_code, 422)
+        self.assertEqual(analyzed.status_code, 200)
+        self.assertEqual(listed.json()["records"], [])
+        annulment = next(action for action in analyzed.json()["actions"] if action["action_id"] == "dc:poe2:craft-action:orb-of-annulment")
+        self.assertFalse(annulment["material_cost"]["complete"])
+
     def test_advisor_consumes_matching_local_economy_quote_only_after_rerun(self):
         initial = self.client.post("/api/v1/advisor/analyze", json=base_request()).json()
         economy_targets = [
@@ -230,6 +254,37 @@ class AdvisorApiTests(unittest.TestCase):
         self.assertEqual(annulment["material_cost"]["lines"][0]["source"], "LOCAL_OPERATOR_ECONOMY_QUOTE")
         self.assertEqual(annulment["material_cost"]["total"]["amount"], "7.5")
         self.assertFalse(any(requirement["action_id"] == "dc:poe2:craft-action:orb-of-annulment" for requirement in missing))
+
+    def test_stale_local_economy_quote_is_complete_but_carries_stale_freshness(self):
+        stale_observed = (datetime.fromisoformat(AS_OF) - timedelta(hours=8)).isoformat()
+        save = self.client.post(
+            "/api/v1/advisor/economy-quotes/workspace/quotes",
+            json={
+                "record": {
+                    "evidence_id": "stale-local-annulment",
+                    "league": LEAGUE,
+                    "asset_id": "dc:poe2:economy-asset:currency:orb-of-annulment",
+                    "amount": "7.5",
+                    "currency_asset_id": "dc:poe2:economy-asset:currency:exalted-orb",
+                    "observed_at": stale_observed,
+                    "source_type": "MANUAL_RESEARCH",
+                }
+            },
+        )
+        response = self.client.post("/api/v1/advisor/analyze", json=base_request()).json()
+        annulment = next(action for action in response["actions"] if action["action_id"] == "dc:poe2:craft-action:orb-of-annulment")
+
+        self.assertEqual(save.status_code, 200)
+        self.assertTrue(annulment["material_cost"]["complete"])
+        self.assertEqual(annulment["material_cost"]["freshness"], "STALE")
+        self.assertEqual(annulment["material_cost"]["lines"][0]["freshness"], "STALE")
+        self.assertFalse(
+            any(
+                requirement["type"] == "ECONOMY_QUOTE_REQUIRED"
+                and requirement["action_id"] == "dc:poe2:craft-action:orb-of-annulment"
+                for requirement in response["missing_requirements"]
+            )
+        )
 
     def test_local_economy_quotes_do_not_cross_leagues(self):
         self.client.post(

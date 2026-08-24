@@ -96,6 +96,27 @@ class EconomyQuoteWorkspaceTests(unittest.TestCase):
             path.unlink(missing_ok=True)
             path.with_name(f"{path.name}.tmp").unlink(missing_ok=True)
 
+    def test_file_load_skips_record_with_invalid_source_type(self):
+        TMP_ROOT.mkdir(exist_ok=True)
+        path = TMP_ROOT / "economy_quotes_invalid_source_type_test.json"
+        path.unlink(missing_ok=True)
+        try:
+            payload = {
+                "workspace_version": ECONOMY_QUOTE_WORKSPACE_VERSION,
+                "storage_version": ECONOMY_QUOTE_WORKSPACE_STORAGE_VERSION,
+                "records": [quote_record(source_type="NOT_A_REAL_SOURCE")],
+            }
+            path.write_text(json.dumps(payload), encoding="utf-8")
+
+            workspace = FileBackedEconomyQuoteWorkspaceRepository(path)
+
+            self.assertEqual(workspace.list_records(), ())
+            self.assertEqual(workspace.persistence_status().skipped_quote_count, 1)
+            self.assertIn("NOT_A_REAL_SOURCE", workspace.persistence_status().warnings[0])
+        finally:
+            path.unlink(missing_ok=True)
+            path.with_name(f"{path.name}.tmp").unlink(missing_ok=True)
+
     def test_persistence_failure_rolls_back_memory(self):
         class FailingRepository(FileBackedEconomyQuoteWorkspaceRepository):
             def _persist(self) -> None:
@@ -153,9 +174,12 @@ class EconomyQuoteWorkspaceTests(unittest.TestCase):
 
         negative = workspace.save_record(quote_record(amount="-1"))
         unsupported_currency = workspace.save_record(quote_record(evidence_id="div", currency_asset_id="dc:poe2:economy-asset:currency:divine-orb"))
+        unsupported_source = workspace.save_record(quote_record(evidence_id="bad-source", source_type="NOT_A_REAL_SOURCE"))
 
         self.assertEqual(negative.status, EconomyQuoteWorkspaceSaveStatus.REJECTED)
         self.assertEqual(unsupported_currency.status, EconomyQuoteWorkspaceSaveStatus.REJECTED)
+        self.assertEqual(unsupported_source.status, EconomyQuoteWorkspaceSaveStatus.REJECTED)
+        self.assertEqual(workspace.list_records(), ())
 
     def test_export_backup_has_versioned_envelope(self):
         workspace = EconomyQuoteWorkspaceRepository()
