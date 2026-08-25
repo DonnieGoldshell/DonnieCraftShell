@@ -585,6 +585,9 @@ describe("AdvisorWorkbench", () => {
     expect(await screen.findByText("Primed Quiver")).toBeInTheDocument();
     expect(screen.getByRole("region", { name: /player advisor summary/i })).toBeInTheDocument();
     expect(screen.getByText("Advisor for Primed Quiver")).toBeInTheDocument();
+    expect(screen.getByRole("region", { name: /production evidence pilot/i })).toBeInTheDocument();
+    expect(screen.getByText("Evidence incomplete - recommendation unavailable")).toBeInTheDocument();
+    expect(screen.getByText(/saved workspace evidence and selected dataset ids do not affect advisor output/i)).toBeInTheDocument();
     expect(screen.getAllByText("3/3 prefixes, 3/3 suffixes").length).toBeGreaterThanOrEqual(1);
     expect(screen.getByText("What is blocking a stronger recommendation?")).toBeInTheDocument();
     expect(screen.getAllByText("Valuation evidence").length).toBeGreaterThan(0);
@@ -608,6 +611,11 @@ describe("AdvisorWorkbench", () => {
     expect(screen.queryByRole("button", { name: /add observation/i })).not.toBeInTheDocument();
 
     expect(screen.getByRole("button", { name: /collect probability evidence/i })).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: /open current valuation workflow/i }));
+    expect(screen.getByRole("button", { name: /add observation/i })).toBeVisible();
+    expect(screen.getByLabelText(/evidence subject/i)).toHaveValue("current");
+    expect(fetch).toHaveBeenCalledTimes(1);
 
     await user.click(screen.getByRole("button", { name: /collect probability evidence/i }));
 
@@ -641,6 +649,8 @@ describe("AdvisorWorkbench", () => {
     await user.click(screen.getByRole("button", { name: /analyze quiver/i }));
 
     await screen.findByText("Decision Ready");
+    expect(screen.getByText("Decision ready - backend decision available")).toBeInTheDocument();
+    expect(screen.getByText(/raw and risk-adjusted decision state/i)).toBeInTheDocument();
     expect(screen.getAllByText("Craft").length).toBeGreaterThan(0);
     expect(screen.getAllByText(/net expected value 22.5 ex above/i).length).toBeGreaterThan(0);
     expect(screen.getByText(/raw winner: advisor-candidate:craft:dc:poe2:craft-action:orb-of-annulment/i)).toBeInTheDocument();
@@ -651,6 +661,7 @@ describe("AdvisorWorkbench", () => {
     expect(
       screen.queryByRole("button", { name: /add outcome valuation evidence for orb of annulment/i })
     ).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /open current valuation workflow/i })).not.toBeInTheDocument();
   });
 
   it("opens probability collection per authoritative blocked action target only", async () => {
@@ -856,6 +867,8 @@ describe("AdvisorWorkbench", () => {
     await user.type(screen.getByLabelText(/clipboard item text/i), "Item Class: Quivers\nRarity: Rare");
     await user.click(screen.getByRole("button", { name: /analyze quiver/i }));
     await screen.findByText("Primed Quiver");
+    expect(screen.getByText(/1 prepared for next rerun; 0 saved locally/i)).toBeInTheDocument();
+    expect(screen.getByText(/saved workspace evidence and selected dataset ids do not affect advisor output/i)).toBeInTheDocument();
     const analyzeBody = JSON.parse(fetchMock.mock.calls[1][1].body as string);
     expect(analyzeBody.current_valuation_evidence.observations).toEqual([
       expect.objectContaining({
@@ -950,6 +963,8 @@ describe("AdvisorWorkbench", () => {
     await user.type(screen.getByLabelText(/clipboard item text/i), "Item Class: Quivers\nRarity: Rare");
     await user.click(screen.getByRole("button", { name: /analyze quiver/i }));
     await screen.findByText("Primed Quiver");
+    expect(screen.getByText(/1 prepared for next rerun; 1 saved locally/i)).toBeInTheDocument();
+    expect(screen.getByText(/saved workspace evidence and selected dataset ids do not affect advisor output/i)).toBeInTheDocument();
     const analyzeBody = JSON.parse(fetchMock.mock.calls[1][1].body as string);
     expect(analyzeBody.current_valuation_evidence.observations).toEqual([
       expect.objectContaining({
@@ -1052,6 +1067,28 @@ describe("AdvisorWorkbench", () => {
     await screen.findByText("Primed Quiver");
     const body = JSON.parse(fetchMock.mock.calls[0][1].body as string);
     expect(body.empirical_probability_dataset_version).toBe("api-registered-empirical-probability");
+  });
+
+  it("sends bankroll and risk context to the backend without frontend decision logic", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => quiverResponse
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    const user = userEvent.setup();
+
+    render(<AdvisorWorkbench />);
+    await user.type(screen.getByLabelText(/clipboard item text/i), "Item Class: Quivers\nRarity: Rare");
+    await user.type(screen.getByLabelText(/bankroll in exalted units/i), "250");
+    await user.selectOptions(screen.getByLabelText(/risk profile/i), "CONSERVATIVE");
+    await user.click(screen.getByRole("button", { name: /analyze quiver/i }));
+
+    await screen.findByText("Primed Quiver");
+    const body = JSON.parse(fetchMock.mock.calls[0][1].body as string);
+    expect(body.bankroll).toEqual({ amount: "250", unit: "EXALTED_ECONOMIC_UNIT" });
+    expect(body.risk_profile).toBe("CONSERVATIVE");
+    expect(screen.getByText(/next rerun includes 250 ex bankroll and conservative risk profile/i)).toBeInTheDocument();
+    expect(screen.getAllByText("No Recommendation").length).toBeGreaterThan(0);
   });
 
   it("adds outcome manual comparable observations and re-runs analysis with outcome IDs", async () => {

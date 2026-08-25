@@ -111,6 +111,39 @@ textarea {
   padding: 7px 10px;
 }
 
+.pilot-panel {
+  border-color: #b8cbc9;
+}
+
+.pilot-steps {
+  display: grid;
+  gap: 10px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.pilot-steps li {
+  align-items: center;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+  padding: 10px;
+}
+
+.pilot-step-main {
+  align-items: flex-start;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: auto minmax(0, 1fr);
+}
+
+.pilot-step-main strong {
+  display: block;
+}
+
 .readiness-panel {
   display: grid;
   gap: 14px;
