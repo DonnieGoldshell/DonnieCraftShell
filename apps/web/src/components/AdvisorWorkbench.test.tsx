@@ -367,6 +367,88 @@ const empiricalQuiverResponse: AdvisorAnalyzeResponse = {
   )
 };
 
+const decisionReadyQuiverResponse: AdvisorAnalyzeResponse = {
+  ...quiverResponse,
+  status: "DECISION_READY",
+  actions: quiverResponse.actions.map((action) =>
+    action.action_id === "dc:poe2:craft-action:orb-of-annulment"
+      ? {
+          ...action,
+          material_cost: {
+            complete: true,
+            freshness: "FRESH",
+            lines: [],
+            total: { amount: "7.5", unit: "EXALTED_ECONOMIC_UNIT" },
+            warnings: []
+          },
+          probability_completeness: "COMPLETE",
+          scenario: {
+            readiness: "EV_READY",
+            outcome_count: 6,
+            valued_outcome_count: 6,
+            unvalued_outcome_count: 0,
+            valuation_completeness: "COMPLETE",
+            best_valuated_outcome: { amount: "130", unit: "EXALTED_ECONOMIC_UNIT" },
+            worst_valuated_outcome: { amount: "130", unit: "EXALTED_ECONOMIC_UNIT" },
+            median_valuated_outcome: { amount: "130", unit: "EXALTED_ECONOMIC_UNIT" },
+            upside_relative_to_current: { amount: "30", unit: "EXALTED_ECONOMIC_UNIT" },
+            downside_relative_to_current: { amount: "30", unit: "EXALTED_ECONOMIC_UNIT" },
+            reasons: ["Synthetic test-only complete evidence makes the action EV-ready."]
+          },
+          expected_value: {
+            available: true,
+            status: "AVAILABLE",
+            gross_expected_outcome_value: { amount: "130", unit: "EXALTED_ECONOMIC_UNIT" },
+            craft_cost: { amount: "7.5", unit: "EXALTED_ECONOMIC_UNIT" },
+            net_expected_value: { amount: "122.5", unit: "EXALTED_ECONOMIC_UNIT" },
+            current_item_value: { amount: "100", unit: "EXALTED_ECONOMIC_UNIT" },
+            expected_gain_vs_sell_now: { amount: "22.5", unit: "EXALTED_ECONOMIC_UNIT" },
+            roi_on_craft_cost: "3",
+            algorithm_version: "dc-ev-v1",
+            unavailable_reasons: []
+          },
+          advisor_candidate_status: "RANKABLE_EV",
+          missing_requirements: [],
+          warnings: []
+        }
+      : action
+  ),
+  decision: {
+    decision_type: "CRAFT",
+    selected_candidate_id: "advisor-candidate:craft:dc:poe2:craft-action:orb-of-annulment",
+    reasons: [
+      "dc:poe2:craft-action:orb-of-annulment has a net expected value 22.5 Ex above the current listing-derived item valuation.",
+      "Only EV-ready craft candidates participated in ranking."
+    ],
+    warnings: [],
+    algorithm_version: "dc-advisor-v1"
+  },
+  risk_adjusted_decision: {
+    decision_type: "CRAFT",
+    raw_winner_candidate_id: "advisor-candidate:craft:dc:poe2:craft-action:orb-of-annulment",
+    selected_candidate_id: "advisor-candidate:craft:dc:poe2:craft-action:orb-of-annulment",
+    changed_by_policy: false,
+    risk_policy_version: "dc-risk-policy-v1",
+    reasons: ["Synthetic test-only risk context accepts the raw EV-ready craft candidate."],
+    triggered_rules: []
+  },
+  evidence_readiness: {
+    ...quiverResponse.evidence_readiness!,
+    items: quiverResponse.evidence_readiness!.items.map((item) =>
+      ["CURRENT_ITEM_VALUATION", "ECONOMY_CRAFTING_COST", "PROBABILITY", "OUTCOME_VALUATION"].includes(item.category)
+        ? {
+            ...item,
+            status: "READY",
+            summary: `Synthetic test-only ${item.label.toLowerCase()} evidence is complete for Orb of Annulment.`,
+            targets: []
+          }
+        : item
+    )
+  },
+  missing_requirements: [],
+  warnings: ["Synthetic test-only decision-ready response."]
+};
+
 const multiProbabilityTargetResponse: AdvisorAnalyzeResponse = {
   ...quiverResponse,
   actions: [
@@ -542,6 +624,33 @@ describe("AdvisorWorkbench", () => {
 
     expect(screen.getByText(/listing-derived estimates are not guaranteed sale prices/i)).toBeVisible();
     expect(screen.getByRole("button", { name: /add observation/i })).toBeVisible();
+  });
+
+  it("renders backend decision-ready state without stale evidence collection CTAs", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => decisionReadyQuiverResponse
+      })
+    );
+    const user = userEvent.setup();
+
+    render(<AdvisorWorkbench />);
+    await user.type(screen.getByLabelText(/clipboard item text/i), "Item Class: Quivers\nRarity: Rare");
+    await user.click(screen.getByRole("button", { name: /analyze quiver/i }));
+
+    await screen.findByText("Decision Ready");
+    expect(screen.getAllByText("Craft").length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/net expected value 22.5 ex above/i).length).toBeGreaterThan(0);
+    expect(screen.getByText(/raw winner: advisor-candidate:craft:dc:poe2:craft-action:orb-of-annulment/i)).toBeInTheDocument();
+    expect(screen.getByText("Net EV: 122.5 Ex")).toBeInTheDocument();
+    expect(screen.getByText("Gain: 22.5 Ex")).toBeInTheDocument();
+    expect(screen.getByText("Craft cost: 7.5 Ex")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /collect probability evidence/i })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: /add outcome valuation evidence for orb of annulment/i })
+    ).not.toBeInTheDocument();
   });
 
   it("opens probability collection per authoritative blocked action target only", async () => {

@@ -77,6 +77,13 @@ export function ActionTable({ actions }: Props) {
                 </td>
                 <td>
                   <StatusBadge value={action.advisor_candidate_status ?? null} />
+                  {action.expected_value?.available && (
+                    <>
+                      <small>Net EV: {economicValueLabel(action.expected_value.net_expected_value)}</small>
+                      <small>Gain: {economicValueLabel(action.expected_value.expected_gain_vs_sell_now)}</small>
+                      <small>Craft cost: {economicValueLabel(action.expected_value.craft_cost)}</small>
+                    </>
+                  )}
                 </td>
               </tr>
             ))}
