@@ -28,6 +28,12 @@ Side-specific Omens restrict the eligible set to prefix or suffix, but no review
 
 Greater Annulment source text says two modifiers are removed, but not how the pair is selected.
 
+Task 23 repeated the evidence pass on `2026-08-25` for issue #41. It found no
+stronger source that verifies ordinary Orb of Annulment uniformity or the
+crafted/desecrated/special-origin eligibility semantics needed to clear the
+First Playable probability blocker. The detailed artifact is
+[ANNULMENT_ANALYTICAL_PROBABILITY_EVIDENCE_2026-08-25.md](data/ANNULMENT_ANALYTICAL_PROBABILITY_EVIDENCE_2026-08-25.md).
+
 ## Exalted Weight Evidence
 
 The Task 8C Quiver pool has source-backed legal candidates, not weights. PoE2DB's Quiver page explicitly notes that modifier weight information cannot be obtained from game files. The official GGG developer docs do not expose PoE2 modifier weights.
