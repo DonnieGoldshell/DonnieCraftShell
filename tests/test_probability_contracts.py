@@ -11,9 +11,13 @@ from packages.shared.donniecraftshell_contracts.affix_capacity import (
 from packages.shared.donniecraftshell_contracts.craft_outcomes import CraftOutcomeEngine
 from packages.shared.donniecraftshell_contracts.crafting_actions import CraftActionEngine, load_crafting_dataset
 from packages.shared.donniecraftshell_contracts.game_data_repository import GameDataRepository
-from packages.shared.donniecraftshell_contracts.domain import AffixState, AffixType
+from packages.shared.donniecraftshell_contracts.domain import AffixState, AffixType, DataProvenance, SourceType, VerificationStatus
 from packages.shared.donniecraftshell_contracts.parser import parse_clipboard_item
 from packages.shared.donniecraftshell_contracts.probability import (
+    AnalyticalProbabilityProvider,
+    AnalyticalProbabilityRule,
+    AnalyticalProbabilityRuleType,
+    CompositeProbabilityProvider,
     CurrentResearchProbabilityProvider,
     OutcomeProbability,
     OutcomeProbabilityModel,
@@ -195,6 +199,75 @@ class ProbabilityContractTests(unittest.TestCase):
         self.assertTrue(all(probability.probability is None for probability in model.outcome_probabilities))
         self.assertFalse(can_calculate_expected_value(model))
 
+    def test_analytical_provider_refuses_action_without_verified_rule(self):
+        item = parsed_fixture("quiver_6_crafted_desecrated_advanced.txt")
+        outcome_set = self._outcomes(item, "dc:poe2:craft-action:orb-of-annulment")
+
+        model = AnalyticalProbabilityProvider(()).get_probability_model(item, outcome_set, self.context)
+
+        self.assertEqual(model.probability_completeness, ProbabilityCompleteness.UNKNOWN)
+        self.assertTrue(all(probability.probability is None for probability in model.outcome_probabilities))
+        self.assertTrue(any("No verified analytical probability rule" in warning for warning in model.warnings))
+
+    def test_analytical_provider_applies_explicit_verified_rule_to_matching_outcomes(self):
+        item = parsed_fixture("quiver_6_crafted_desecrated_advanced.txt")
+        outcome_set = self._outcomes(item, "dc:poe2:craft-action:orb-of-annulment")
+        rule = self._synthetic_uniform_rule(outcome_set)
+
+        model = AnalyticalProbabilityProvider((rule,)).get_probability_model(item, outcome_set, self.context)
+
+        self.assertEqual(model.probability_completeness, ProbabilityCompleteness.COMPLETE)
+        self.assertEqual(model.total_known_probability_mass, Decimal("1.000000000000000000000000000"))
+        self.assertEqual(len(model.outcome_probabilities), len(outcome_set.hypothetical_states))
+        self.assertEqual(
+            {entry.outcome_id for entry in model.outcome_probabilities},
+            {state.outcome_id for state in outcome_set.hypothetical_states},
+        )
+        self.assertTrue(all(entry.probability is not None for entry in model.outcome_probabilities))
+        self.assertTrue(all(entry.evidence[0].probability_type == ProbabilityType.EXACT_MECHANICAL for entry in model.outcome_probabilities))
+        self.assertTrue(can_calculate_expected_value(model))
+        self.assertIn(rule.rule_id, model.dataset_versions)
+
+    def test_analytical_provider_changed_outcome_set_fails_closed(self):
+        item = parsed_fixture("quiver_6_crafted_desecrated_advanced.txt")
+        outcome_set = self._outcomes(item, "dc:poe2:craft-action:orb-of-annulment")
+        rule = self._synthetic_uniform_rule(outcome_set)
+        changed = replace(outcome_set, hypothetical_states=outcome_set.hypothetical_states[:-1])
+
+        model = AnalyticalProbabilityProvider((rule,)).get_probability_model(item, changed, self.context)
+
+        self.assertEqual(model.probability_completeness, ProbabilityCompleteness.UNKNOWN)
+        self.assertTrue(all(entry.probability is None for entry in model.outcome_probabilities))
+        self.assertTrue(any("outcome IDs do not match" in warning for warning in model.warnings))
+
+    def test_composite_provider_precedence_is_deterministic_and_reports_conflict(self):
+        item = parsed_fixture("quiver_6_crafted_desecrated_advanced.txt")
+        outcome_set = self._outcomes(item, "dc:poe2:craft-action:orb-of-annulment")
+        analytical = AnalyticalProbabilityProvider((self._synthetic_uniform_rule(outcome_set),))
+
+        class ConflictingLowerPrecedenceProvider:
+            def get_probability_model(self, item, outcome_set, context=None):
+                probabilities = tuple(
+                    OutcomeProbability(state.outcome_id, Decimal("1") if index == 0 else Decimal("0"))
+                    for index, state in enumerate(outcome_set.hypothetical_states)
+                )
+                return OutcomeProbabilityModel(
+                    action_id=outcome_set.action_id,
+                    source_outcome_set_id=f"{outcome_set.source_item_analysis_id}:{outcome_set.action_id}:conflicting",
+                    outcome_probabilities=probabilities,
+                    probability_completeness=ProbabilityCompleteness.COMPLETE,
+                    methodology_summary="Synthetic lower-precedence conflicting model.",
+                )
+
+        model = CompositeProbabilityProvider((analytical, ConflictingLowerPrecedenceProvider())).get_probability_model(
+            item,
+            outcome_set,
+            self.context,
+        )
+
+        self.assertTrue(all(entry.evidence and entry.evidence[0].evidence_id.startswith("probability:analytical:") for entry in model.outcome_probabilities))
+        self.assertTrue(any("not selected" in warning for warning in model.warnings))
+
     def test_real_exalted_remains_unknown(self):
         item = parsed_fixture("quiver_1_rare_standard_advanced.txt")
         open_item = with_prefix_suffix_counts(item, 2, 2)
@@ -238,6 +311,28 @@ class ProbabilityContractTests(unittest.TestCase):
 
         self.assertEqual(item, before_item)
         self.assertEqual(outcome_set, before_outcome_set)
+
+    def _synthetic_uniform_rule(self, outcome_set):
+        return AnalyticalProbabilityRule(
+            rule_id="synthetic-verified-analytical-uniform-annulment-test-only",
+            action_id=outcome_set.action_id,
+            rule_type=AnalyticalProbabilityRuleType.UNIFORM_ENUMERATED_OUTCOMES,
+            methodology="Synthetic test-only verified rule: each enumerated outcome has equal exact mechanical probability.",
+            provenance=(
+                DataProvenance(
+                    source_id="synthetic-analytical-probability-rule",
+                    source_type=SourceType.INTERNAL,
+                    verification_status=VerificationStatus.VERIFIED,
+                    notes="Synthetic test-only provenance; not real PoE2 mechanics.",
+                ),
+            ),
+            expected_source_outcome_set_id=f"{outcome_set.source_item_analysis_id}:{outcome_set.action_id}",
+            expected_outcome_ids=tuple(state.outcome_id for state in outcome_set.hypothetical_states),
+            crafting_dataset_version=CRAFTING_DATASET_VERSION,
+            modifier_dataset_version=GAME_DATASET_VERSION,
+            evidence_dataset_version="synthetic-analytical-probability-test-only",
+            warnings=("Synthetic test-only analytical rule; not production PoE2 probability evidence.",),
+        )
 
 
 if __name__ == "__main__":

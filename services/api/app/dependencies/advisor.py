@@ -28,7 +28,11 @@ from packages.shared.donniecraftshell_contracts.observation_workspace import (
     ObservationWorkspaceRepository,
 )
 from packages.shared.donniecraftshell_contracts.poe_show_economy import load_normalized_economy_snapshot
-from packages.shared.donniecraftshell_contracts.probability import ProbabilityProvider
+from packages.shared.donniecraftshell_contracts.probability import (
+    AnalyticalProbabilityProvider,
+    CompositeProbabilityProvider,
+    ProbabilityProvider,
+)
 
 from services.api.app.config import ApiSettings, get_settings
 
@@ -85,10 +89,11 @@ def get_economy_quote_workspace() -> EconomyQuoteWorkspaceRepository:
 
 @lru_cache(maxsize=1)
 def get_probability_provider() -> ProbabilityProvider:
-    return EmpiricalProbabilityRegistryProvider(
+    empirical_provider = EmpiricalProbabilityRegistryProvider(
         get_empirical_probability_registry(),
         allow_synthetic=False,
     )
+    return CompositeProbabilityProvider((AnalyticalProbabilityProvider(()), empirical_provider))
 
 
 @lru_cache(maxsize=1)

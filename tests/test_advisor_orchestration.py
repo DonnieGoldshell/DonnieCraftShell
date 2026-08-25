@@ -20,7 +20,7 @@ from packages.shared.donniecraftshell_contracts.advisor_risk import AdvisorRiskC
 from packages.shared.donniecraftshell_contracts.affix_capacity import AffixStateResolver, load_affix_capacity_dataset
 from packages.shared.donniecraftshell_contracts.craft_outcomes import CraftOutcomeEngine
 from packages.shared.donniecraftshell_contracts.crafting_actions import CraftActionEngine, load_crafting_dataset
-from packages.shared.donniecraftshell_contracts.domain import GameContext
+from packages.shared.donniecraftshell_contracts.domain import DataProvenance, GameContext, SourceType, VerificationStatus
 from packages.shared.donniecraftshell_contracts.economy import (
     EXALTED_ASSET_ID,
     ORB_OF_ANNULMENT_ASSET_ID,
@@ -36,7 +36,14 @@ from packages.shared.donniecraftshell_contracts.expected_value import ExpectedVa
 from packages.shared.donniecraftshell_contracts.game_data_repository import GameDataRepository
 from packages.shared.donniecraftshell_contracts.parser import ParseResult, parse_clipboard_item
 from packages.shared.donniecraftshell_contracts.poe_show_economy import load_normalized_economy_snapshot
-from packages.shared.donniecraftshell_contracts.probability import OutcomeProbability, OutcomeProbabilityModel, ProbabilityCompleteness
+from packages.shared.donniecraftshell_contracts.probability import (
+    AnalyticalProbabilityProvider,
+    AnalyticalProbabilityRule,
+    AnalyticalProbabilityRuleType,
+    OutcomeProbability,
+    OutcomeProbabilityModel,
+    ProbabilityCompleteness,
+)
 from packages.shared.donniecraftshell_contracts.scenario_analysis import DecisionReadiness
 from packages.shared.donniecraftshell_contracts.valuation import ValuationEstimateType, ValuationReadiness, ValuationResult
 
@@ -175,6 +182,29 @@ class AdvisorOrchestrationTests(unittest.TestCase):
         self.assertEqual(result.raw_advisor_decision.decision_type, AdvisorDecisionType.CRAFT)
         self.assertEqual(result.risk_adjusted_decision.risk_adjusted_decision_type, AdvisorDecisionType.CRAFT)
         self.assertIn("synthetic-economy-snapshot-annulment", result.economy_snapshot_ids)
+
+    def test_verified_analytical_probability_clears_blocker_only_for_supported_action(self):
+        initial = self._orchestrator(parser=self._fixed_parser()).analyze(self._request())
+        annulment = self._action(initial, "dc:poe2:craft-action:orb-of-annulment")
+        rule = self._synthetic_uniform_rule(annulment.outcome_set)
+        result = self._orchestrator(
+            parser=self._fixed_parser(),
+            probability_provider=AnalyticalProbabilityProvider((rule,)),
+        ).analyze(self._request())
+        annulment = self._action(result, "dc:poe2:craft-action:orb-of-annulment")
+        exalted = self._action(result, "dc:poe2:craft-action:exalted-orb")
+        probability_requirements = [
+            requirement
+            for requirement in result.missing_requirements
+            if requirement.kind == MissingRequirementKind.PROBABILITY_EVIDENCE_REQUIRED
+        ]
+
+        self.assertEqual(annulment.probability_model.probability_completeness, ProbabilityCompleteness.COMPLETE)
+        self.assertTrue(all(entry.probability is not None for entry in annulment.probability_model.outcome_probabilities))
+        self.assertFalse(any(requirement.affected_action_id == annulment.action_id for requirement in probability_requirements))
+        self.assertTrue(any(requirement.affected_action_id != annulment.action_id for requirement in probability_requirements))
+        self.assertEqual(exalted.candidate.applicability.status.value, "NOT_APPLICABLE")
+        self.assertFalse(any(requirement.affected_action_id == exalted.action_id for requirement in probability_requirements))
 
     def test_missing_economy_quote_keeps_action_applicable_but_blocks_ev(self):
         result = self._orchestrator(parser=self._fixed_parser()).analyze(self._request(current=self._valuation("current", "100")))
@@ -390,6 +420,28 @@ class AdvisorOrchestrationTests(unittest.TestCase):
     def _readiness(self, result):
         self.assertIsNotNone(result.evidence_readiness)
         return {item.category: item for item in result.evidence_readiness.items}
+
+    def _synthetic_uniform_rule(self, outcome_set):
+        return AnalyticalProbabilityRule(
+            rule_id="synthetic-advisor-analytical-uniform-annulment-test-only",
+            action_id=outcome_set.action_id,
+            rule_type=AnalyticalProbabilityRuleType.UNIFORM_ENUMERATED_OUTCOMES,
+            methodology="Synthetic test-only verified rule: each enumerated outcome has equal exact mechanical probability.",
+            provenance=(
+                DataProvenance(
+                    source_id="synthetic-advisor-analytical-rule",
+                    source_type=SourceType.INTERNAL,
+                    verification_status=VerificationStatus.VERIFIED,
+                    notes="Synthetic test-only provenance; not real PoE2 mechanics.",
+                ),
+            ),
+            expected_source_outcome_set_id=f"{outcome_set.source_item_analysis_id}:{outcome_set.action_id}",
+            expected_outcome_ids=tuple(state.outcome_id for state in outcome_set.hypothetical_states),
+            crafting_dataset_version=CRAFTING_DATASET_ID,
+            modifier_dataset_version=GAME_DATASET_ID,
+            evidence_dataset_version="synthetic-advisor-analytical-probability-test-only",
+            warnings=("Synthetic test-only analytical rule; not production PoE2 probability evidence.",),
+        )
 
 
 if __name__ == "__main__":

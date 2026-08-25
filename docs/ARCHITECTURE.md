@@ -96,6 +96,13 @@ registered empirical datasets. API startup reloads valid persisted datasets and
 surfaces corrupt-entry warnings while skipping malformed evidence. No persisted
 dataset is auto-activated for Advisor analysis.
 
+Task 22B adds verified analytical probability provider support. Production
+provider precedence is analytical verified mechanics, explicitly selected
+empirical datasets, then current research UNKNOWN fallback. The current
+configured analytical rule set is empty because existing mechanics do not verify
+uniform Annulment selection or Exalted weights. Providers are never averaged or
+merged; lower-precedence numeric conflicts are surfaced as warnings.
+
 Task 18A adds [OBSERVATION_WORKSPACE.md](OBSERVATION_WORKSPACE.md). Raw Task
 16A recorder records and Task 16B review decisions persist to local JSON before
 aggregation. Review metadata remains separate from raw evidence, conflicting
