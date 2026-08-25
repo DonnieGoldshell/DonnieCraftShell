@@ -31,6 +31,33 @@ Task 17A adds the explicit local dataset registry documented in
 can be registered for the running application, but they remain inactive until an
 Advisor request explicitly names `empirical_probability_dataset_version`.
 
+Task 24 connects this lifecycle to First Playable Evidence Readiness. When the
+Advisor response contains an authoritative `PROBABILITY_EVIDENCE_REQUIRED`
+missing requirement for an applicable action, the frontend can open the existing
+observation recorder/review/import workflow pre-targeted to that action. The
+target preserves the action ID, outcome-set identity, league, and selected
+dataset versions required by the empirical provider compatibility checks. The
+frontend never auto-submits observations, never invents blockers, and never
+activates a newly registered dataset.
+
+The operator path is:
+
+```text
+Probability evidence missing
+-> Collect probability evidence
+-> record manual before/after observations
+-> review and accept valid records
+-> build empirical datasets through the curated import endpoint
+-> register a dataset in the local registry
+-> explicitly select its dataset ID
+-> rerun Advisor analysis
+```
+
+Registration alone is not activation. Before explicit selection, Advisor
+analysis ignores registered empirical evidence and the action remains blocked.
+After selection, the blocker clears only if the existing empirical provider
+returns a compatible numeric model under `dc-empirical-readiness-policy-v1`.
+
 ## Raw Dataset Format
 
 Raw datasets live under `data/raw/probability/`.

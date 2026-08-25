@@ -304,6 +304,69 @@ const valuedQuiverResponse: AdvisorAnalyzeResponse = {
   )
 };
 
+const empiricalQuiverResponse: AdvisorAnalyzeResponse = {
+  ...quiverResponse,
+  context: {
+    ...quiverResponse.context,
+    empirical_probability_dataset_version: "empirical-probability-browser-test"
+  },
+  actions: quiverResponse.actions.map((action) =>
+    action.action_id === "dc:poe2:craft-action:orb-of-annulment"
+      ? {
+          ...action,
+          probability_completeness: "COMPLETE",
+          probability: {
+            completeness: "COMPLETE",
+            source_outcome_set_id: "manual-recorder:dc:poe2:craft-action:orb-of-annulment",
+            outcome_count: 1,
+            known_outcome_count: 1,
+            total_known_probability_mass: "1",
+            methodology_summary: "Synthetic frontend test-only empirical probability evidence.",
+            dataset_versions: ["empirical-probability-browser-test"],
+            outcome_probabilities: [
+              {
+                outcome_id: "outcome-1",
+                probability: "1",
+                evidence: [
+                  {
+                    evidence_id: "synthetic-frontend-probability-evidence",
+                    probability_type: "EMPIRICAL_ESTIMATE",
+                    probability: "1",
+                    outcome_id: "outcome-1",
+                    evidence_dataset_version: "empirical-probability-browser-test",
+                    methodology: "Synthetic frontend regression test.",
+                    sample_size: 1,
+                    uncertainty_interval: null,
+                    warnings: ["Synthetic test-only empirical evidence."]
+                  }
+                ],
+                warnings: []
+              }
+            ],
+            warnings: ["Synthetic test-only empirical evidence."]
+          },
+          missing_requirements: []
+        }
+      : action
+  ),
+  evidence_readiness: {
+    ...quiverResponse.evidence_readiness!,
+    items: quiverResponse.evidence_readiness!.items.map((item) =>
+      item.category === "PROBABILITY"
+        ? {
+            ...item,
+            status: "READY",
+            summary: "Selected empirical probability dataset supplied usable evidence for the action.",
+            targets: []
+          }
+        : item
+    )
+  },
+  missing_requirements: quiverResponse.missing_requirements.filter(
+    (requirement) => requirement.type !== "PROBABILITY_EVIDENCE_REQUIRED"
+  )
+};
+
 function manualPreviewResponse(
   overrides: Partial<ManualValuationPreviewResponse> = {}
 ): ManualValuationPreviewResponse {
@@ -397,9 +460,15 @@ describe("AdvisorWorkbench", () => {
     expect(screen.getByText(/advanced evidence & diagnostics/i)).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /add observation/i })).not.toBeInTheDocument();
 
-    await user.click(screen.getByRole("button", { name: /open manual valuation evidence/i }));
+    expect(screen.getByRole("button", { name: /collect probability evidence/i })).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: /collect probability evidence/i }));
 
     expect(screen.getByRole("button", { name: /add observation/i })).toBeVisible();
+    expect(screen.getByText(/targeted from evidence readiness: collect probability evidence for orb of annulment/i)).toBeVisible();
+    expect((screen.getByLabelText(/craft action/i) as HTMLSelectElement).value).toBe(
+      "dc:poe2:craft-action:orb-of-annulment"
+    );
     expect(fetch).toHaveBeenCalledTimes(1);
 
     await user.click(screen.getByText(/advanced evidence & diagnostics/i));
@@ -1190,6 +1259,10 @@ describe("AdvisorWorkbench", () => {
           ],
           warnings: ["Registered empirical datasets remain inactive until explicitly selected."]
         })
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => empiricalQuiverResponse
       });
     vi.stubGlobal("fetch", fetchMock);
     const user = userEvent.setup();
@@ -1197,10 +1270,13 @@ describe("AdvisorWorkbench", () => {
     render(<AdvisorWorkbench />);
     await user.type(screen.getByLabelText(/clipboard item text/i), "Item Class: Quivers\nRarity: Rare");
     await user.click(screen.getByRole("button", { name: /analyze quiver/i }));
-    await openAdvancedTools(user);
+    await user.click(screen.getByRole("button", { name: /collect probability evidence/i }));
     await screen.findByText("Craft Observation Recorder");
 
-    await user.selectOptions(screen.getByLabelText(/craft action/i), "dc:poe2:craft-action:orb-of-annulment");
+    expect(screen.getByRole("region", { name: /probability evidence progress/i })).toBeVisible();
+    expect((screen.getByLabelText(/craft action/i) as HTMLSelectElement).value).toBe(
+      "dc:poe2:craft-action:orb-of-annulment"
+    );
     await user.selectOptions(screen.getByLabelText(/manual outcome id/i), "outcome-1");
     await user.type(screen.getByLabelText(/manual classification reason/i), "observed after craft");
     await user.type(screen.getByLabelText(/after craft clipboard text/i), "Item Class: Quivers\nRarity: Rare\nafter");
@@ -1266,11 +1342,24 @@ describe("AdvisorWorkbench", () => {
 
     await user.click(screen.getByRole("button", { name: /register first dataset/i }));
     expect(await screen.findByText(/REGISTERED: empirical-probability-browser-test/i)).toBeInTheDocument();
-    expect(screen.getAllByText(/paste this id into empirical evidence dataset/i).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/registration does not activate probability evidence/i).length).toBeGreaterThan(0);
+    expect((screen.getByLabelText(/empirical evidence dataset/i) as HTMLInputElement).value).toBe("");
     expect(screen.getByText(/registry persistence: FILE active - 1 loaded/i)).toBeInTheDocument();
     expect(screen.getAllByText(/sample 1/i).length).toBeGreaterThan(0);
     expect(fetchMock.mock.calls[7][0]).toContain("/api/v1/observations/empirical-datasets/register");
     expect(fetchMock.mock.calls[8][0]).toContain("/api/v1/observations/empirical-datasets");
+    expect(fetchMock.mock.calls.filter((call) => String(call[0]).includes("/api/v1/advisor/analyze"))).toHaveLength(1);
+
+    await user.click(screen.getByRole("button", { name: /use dataset for next analysis/i }));
+    expect((screen.getByLabelText(/empirical evidence dataset/i) as HTMLInputElement).value).toBe(
+      "empirical-probability-browser-test"
+    );
+    await user.click(screen.getByRole("button", { name: /re-run analysis/i }));
+    await screen.findByText(/selected empirical probability dataset supplied usable evidence/i);
+    expect(fetchMock.mock.calls[9][0]).toContain("/api/v1/advisor/analyze");
+    const rerunBody = JSON.parse(fetchMock.mock.calls[9][1].body as string);
+    expect(rerunBody.empirical_probability_dataset_version).toBe("empirical-probability-browser-test");
+    expect(screen.queryByRole("button", { name: /collect probability evidence/i })).not.toBeInTheDocument();
   });
 
   it("loads persisted observation workspace evidence for review after refresh", async () => {

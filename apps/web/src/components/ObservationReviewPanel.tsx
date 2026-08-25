@@ -19,7 +19,17 @@ import {
 
 type DecisionState = Record<string, { status: string; note: string }>;
 
-export function ObservationReviewPanel() {
+type Props = {
+  targetActionId?: string | null;
+  selectedEmpiricalDatasetVersion?: string;
+  onSelectEmpiricalDataset?: (datasetId: string) => void;
+};
+
+export function ObservationReviewPanel({
+  targetActionId,
+  selectedEmpiricalDatasetVersion = "",
+  onSelectEmpiricalDataset
+}: Props) {
   const [batchText, setBatchText] = useState("");
   const [review, setReview] = useState<ObservationReviewResponse | null>(null);
   const [workspace, setWorkspace] = useState<ObservationWorkspaceListResponse | null>(null);
@@ -37,6 +47,14 @@ export function ObservationReviewPanel() {
   const [registeredDatasets, setRegisteredDatasets] = useState<EmpiricalDatasetListResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const progress = summarizeProgress(
+    workspace,
+    review,
+    decisions,
+    registeredDatasets,
+    targetActionId,
+    selectedEmpiricalDatasetVersion
+  );
 
   async function loadBatch() {
     setError(null);
@@ -248,6 +266,33 @@ export function ObservationReviewPanel() {
         Review persisted or pasted recorder evidence before empirical import. Accepted observations are exported
         unchanged; review decisions stay in a separate manifest.
       </p>
+      {targetActionId && (
+        <section className="evidence-list-block" aria-label="Probability evidence progress">
+          <div className="section-heading compact-heading">
+            <h3>Probability Evidence Progress</h3>
+            <span className="count">{progress.accepted} accepted</span>
+          </div>
+          <p className="muted">
+            Target action: {shortId(targetActionId)}. Counts come from loaded workspace/review state; backend import
+            policy still decides whether a dataset is usable.
+          </p>
+          <ul className="evidence-list">
+            <li>
+              <strong>{progress.raw} raw</strong>
+              <small>
+                {progress.accepted} accepted · {progress.rejected} rejected · {progress.unreviewed} unreviewed
+              </small>
+            </li>
+            <li>
+              <strong>{progress.selectedDataset || "No selected empirical dataset"}</strong>
+              <small>
+                {progress.registeredForTarget} registered for target ·{" "}
+                {progress.selectedDataset ? "selected for next Advisor run" : "selection is required before Advisor consumes evidence"}
+              </small>
+            </li>
+          </ul>
+        </section>
+      )}
       <button className="secondary-button" type="button" onClick={loadWorkspace} disabled={busy}>
         {busy ? "Loading..." : "Load Persisted Workspace"}
       </button>
@@ -412,10 +457,21 @@ export function ObservationReviewPanel() {
                 List Registered Evidence
               </button>
               {registryResult && (
-                <p className="muted">
-                  {registryResult.status}: {registryResult.dataset_id}. Paste this ID into Empirical evidence dataset
-                  before running Advisor analysis.
-                </p>
+                <>
+                  <p className="muted">
+                    {registryResult.status}: {registryResult.dataset_id}. Registration does not activate probability
+                    evidence.
+                  </p>
+                  {registryResult.dataset_id && onSelectEmpiricalDataset && (
+                    <button
+                      className="secondary-button"
+                      type="button"
+                      onClick={() => registryResult.dataset_id && onSelectEmpiricalDataset(registryResult.dataset_id)}
+                    >
+                      Use Dataset for Next Analysis
+                    </button>
+                  )}
+                </>
               )}
               {registeredDatasets && (
                 <>
@@ -459,4 +515,53 @@ function optionalText(value: string | null): string | null {
 
 function shortId(id: string): string {
   return id.length > 18 ? `${id.slice(0, 10)}...${id.slice(-6)}` : id;
+}
+
+function summarizeProgress(
+  workspace: ObservationWorkspaceListResponse | null,
+  review: ObservationReviewResponse | null,
+  decisions: DecisionState,
+  registeredDatasets: EmpiricalDatasetListResponse | null,
+  targetActionId: string | null | undefined,
+  selectedDataset: string
+) {
+  const workspaceEntries =
+    workspace?.entries.filter((entry) => !targetActionId || entry.summary.action_id === targetActionId) ?? [];
+  const reviewRecords =
+    review?.records.filter((record) => !targetActionId || record.action_id === targetActionId) ?? [];
+  const reviewCounts = reviewRecords.reduce(
+    (counts, record) => {
+      const status = decisions[record.raw_record_id]?.status ?? record.status;
+      if (status === "ACCEPTED") counts.accepted += 1;
+      else if (status === "REJECTED") counts.rejected += 1;
+      else counts.unreviewed += 1;
+      return counts;
+    },
+    { accepted: 0, rejected: 0, unreviewed: 0 }
+  );
+  const workspaceCounts =
+    reviewRecords.length > 0
+      ? reviewCounts
+      : workspaceEntries.reduce(
+          (counts, entry) => {
+            const status = entry.decision.status;
+            if (status === "ACCEPTED") counts.accepted += 1;
+            else if (status === "REJECTED") counts.rejected += 1;
+            else counts.unreviewed += 1;
+            return counts;
+          },
+          { accepted: 0, rejected: 0, unreviewed: 0 }
+        );
+  const registeredForTarget =
+    registeredDatasets?.datasets.filter((dataset) => !targetActionId || dataset.action_id === targetActionId).length ??
+    0;
+
+  return {
+    raw: reviewRecords.length || workspaceEntries.length,
+    accepted: workspaceCounts.accepted,
+    rejected: workspaceCounts.rejected,
+    unreviewed: workspaceCounts.unreviewed,
+    selectedDataset: selectedDataset.trim(),
+    registeredForTarget
+  };
 }

@@ -1240,6 +1240,102 @@ class AdvisorApiTests(unittest.TestCase):
         self.assertEqual(annulment["probability"]["outcome_probabilities"][0]["evidence"][0]["probability_type"], "EMPIRICAL_ESTIMATE")
         self.assertEqual(annulment["probability"]["outcome_probabilities"][0]["evidence"][0]["evidence_dataset_version"], payload["dataset_id"])
 
+    def test_first_playable_annulment_empirical_workflow_requires_explicit_selection(self):
+        self._install_registry_backed_deterministic_dependencies()
+        initial = self.client.post("/api/v1/advisor/analyze", json=base_request()).json()
+        annulment = self._action(initial, "dc:poe2:craft-action:orb-of-annulment")
+        exalted = self._action(initial, "dc:poe2:craft-action:exalted-orb")
+        source_outcome_set_id = annulment["probability"]["source_outcome_set_id"]
+
+        self.assertEqual(annulment["probability"]["completeness"], "UNKNOWN")
+        self.assertTrue(
+            any(
+                requirement["type"] == "PROBABILITY_EVIDENCE_REQUIRED"
+                and requirement["action_id"] == annulment["action_id"]
+                for requirement in initial["missing_requirements"]
+            )
+        )
+        self.assertEqual(exalted["applicability"], "NOT_APPLICABLE")
+        self.assertFalse(exalted["missing_requirements"])
+
+        records = []
+        outcome_ids = annulment["outcome_ids"]
+        for index in range(30):
+            outcome_id = outcome_ids[index % len(outcome_ids)]
+            record = self._observation_export_record(f"first-playable-annulment-observation-{index:02d}", outcome_id)
+            record["source_outcome_set_id"] = source_outcome_set_id
+            record["game_version"] = None
+            record["synthetic"] = False
+            record["source_uri"] = "local://tests/first-playable-annulment-empirical-workflow"
+            record["notes"] = "Synthetic test-only observation shape exercising the production empirical workflow."
+            records.append(record)
+            saved = self.client.post("/api/v1/observations/workspace/records", json={"record": record})
+            self.assertEqual(saved.status_code, 200)
+
+        reviewed = self.client.post(
+            "/api/v1/observations/workspace/reviews",
+            json={
+                "decisions": [
+                    {
+                        "raw_record_id": record["raw_record_id"],
+                        "status": "ACCEPTED",
+                        "reviewed_at": AS_OF,
+                        "note": "accepted for First Playable empirical workflow regression",
+                        "reviewer_id": "api-test-reviewer",
+                    }
+                    for record in records
+                ]
+            },
+        )
+        exported = self.client.get("/api/v1/observations/workspace/accepted-export")
+        built = self.client.post(
+            "/api/v1/observations/build-empirical-datasets",
+            json={
+                "accepted_export": exported.json()["accepted_export"],
+                "dataset_id_prefix": "first-playable-annulment",
+            },
+        )
+        registered = self.client.post(
+            "/api/v1/observations/empirical-datasets/register",
+            json={"dataset": built.json()["datasets"][0]},
+        )
+
+        self.assertEqual(reviewed.status_code, 200)
+        self.assertEqual(exported.status_code, 200)
+        self.assertEqual(len(exported.json()["accepted_export"]["observations"]), 30)
+        self.assertEqual(built.status_code, 200)
+        self.assertEqual(built.json()["accepted_record_count"], 30)
+        self.assertEqual(registered.status_code, 200)
+
+        still_blocked = self.client.post("/api/v1/advisor/analyze", json=base_request()).json()
+        still_blocked_annulment = self._action(still_blocked, "dc:poe2:craft-action:orb-of-annulment")
+        self.assertEqual(still_blocked_annulment["probability"]["completeness"], "UNKNOWN")
+        self.assertTrue(
+            any(
+                requirement["type"] == "PROBABILITY_EVIDENCE_REQUIRED"
+                and requirement["action_id"] == annulment["action_id"]
+                for requirement in still_blocked["missing_requirements"]
+            )
+        )
+
+        selected_request = base_request()
+        selected_request["empirical_probability_dataset_version"] = registered.json()["dataset_id"]
+        selected = self.client.post("/api/v1/advisor/analyze", json=selected_request).json()
+        selected_annulment = self._action(selected, "dc:poe2:craft-action:orb-of-annulment")
+        selected_exalted = self._action(selected, "dc:poe2:craft-action:exalted-orb")
+
+        self.assertEqual(selected_annulment["probability"]["completeness"], "COMPLETE")
+        self.assertEqual(selected_annulment["probability"]["known_outcome_count"], len(outcome_ids))
+        self.assertFalse(
+            any(
+                requirement["type"] == "PROBABILITY_EVIDENCE_REQUIRED"
+                and requirement["action_id"] == annulment["action_id"]
+                for requirement in selected["missing_requirements"]
+            )
+        )
+        self.assertEqual(selected_exalted["applicability"], "NOT_APPLICABLE")
+        self.assertFalse(selected_exalted["missing_requirements"])
+
     def test_unknown_empirical_dataset_selection_surfaces_warning_not_fallback(self):
         self._install_registry_backed_deterministic_dependencies()
         request = base_request()

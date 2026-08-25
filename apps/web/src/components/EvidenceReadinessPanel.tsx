@@ -4,10 +4,11 @@ import { StatusBadge } from "./StatusBadge";
 
 type EvidenceReadiness = NonNullable<AdvisorAnalyzeResponse["evidence_readiness"]>;
 type EvidenceReadinessItem = EvidenceReadiness["items"][number];
+export type EvidenceReadinessTarget = EvidenceReadinessItem["targets"][number];
 
 type Props = {
   readiness: AdvisorAnalyzeResponse["evidence_readiness"];
-  onOpenEvidenceTools: () => void;
+  onOpenEvidenceTools: (target?: EvidenceReadinessTarget) => void;
 };
 
 const TOOL_LABELS: Record<string, string> = {
@@ -53,9 +54,10 @@ function EvidenceReadinessRow({
   onOpenEvidenceTools
 }: {
   item: EvidenceReadinessItem;
-  onOpenEvidenceTools: () => void;
+  onOpenEvidenceTools: (target?: EvidenceReadinessTarget) => void;
 }) {
-  const toolLabel = item.evidence_tool ? TOOL_LABELS[item.evidence_tool] : null;
+  const actionableTarget = item.targets[0];
+  const toolLabel = readinessToolLabel(item);
   return (
     <li className="readiness-row">
       <div className="readiness-row-main">
@@ -76,13 +78,23 @@ function EvidenceReadinessRow({
           {item.targets.length > 4 && <li className="muted">+{item.targets.length - 4} more targets in diagnostics</li>}
         </ul>
       )}
-      {toolLabel && item.status !== "READY" && (
-        <button type="button" className="secondary-button" onClick={onOpenEvidenceTools}>
+      {toolLabel && item.status !== "READY" && actionableTarget && (
+        <button type="button" className="secondary-button" onClick={() => onOpenEvidenceTools(actionableTarget)}>
           {toolLabel}
         </button>
       )}
     </li>
   );
+}
+
+function readinessToolLabel(item: EvidenceReadinessItem): string | null {
+  if (
+    item.evidence_tool === "observation-recorder-review-import" &&
+    item.targets.some((target) => target.target_type === "ACTION_PROBABILITY_MODEL" && target.action_id)
+  ) {
+    return "Collect probability evidence";
+  }
+  return item.evidence_tool ? TOOL_LABELS[item.evidence_tool] : null;
 }
 
 function targetSummary(target: EvidenceReadinessItem["targets"][number]): string {
