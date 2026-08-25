@@ -25,6 +25,9 @@ Executable contracts live in `packages/shared/donniecraftshell_contracts/probabi
 - `DeterministicOperationEvidence`: deterministic operation component evidence, such as a guaranteed modifier family.
 - `OutcomeProbabilityModel`: model for an entire outcome set.
 - `ProbabilityProvider`: provider interface.
+- `AnalyticalProbabilityRule`: explicit verified-mechanic rule that may derive probabilities from an already-enumerated outcome set.
+- `AnalyticalProbabilityProvider`: applies only configured verified analytical rules and otherwise fails closed to UNKNOWN.
+- `CompositeProbabilityProvider`: applies providers in explicit precedence order without averaging or merging conflicting evidence.
 - `CurrentResearchProbabilityProvider`: Task 9A-compliant provider returning explicit unknown final probabilities for current real actions.
 
 Task 15A adds the empirical evidence pipeline in `empirical_probability.py`.
@@ -32,6 +35,18 @@ It loads offline outcome-count observations, validates context and
 provenance, and emits `EMPIRICAL_ESTIMATE` evidence through the existing
 `OutcomeProbabilityModel` contract. See
 [EMPIRICAL_PROBABILITY.md](EMPIRICAL_PROBABILITY.md).
+
+Task 22B adds the analytical-provider framework. Production configuration uses
+provider precedence:
+
+1. Verified analytical mechanic rules.
+2. Explicitly selected empirical probability datasets.
+3. Current research fallback (`UNKNOWN`).
+
+No production analytical rules are currently configured, because the existing
+source-of-truth does not verify uniform Annulment selection or Exalted modifier
+weights. The provider can be exercised by synthetic tests, but real actions
+remain UNKNOWN until a source-backed rule is added.
 
 ## Invariants
 
@@ -59,6 +74,31 @@ Final outcome probabilities remain `UNKNOWN` for:
 - Omen-modified Exalted and Annulment actions
 
 Essence of Hysteria carries deterministic evidence for the guaranteed Quiver modifier-family component, but final combined outcome probabilities remain `UNKNOWN` because random-removal probabilities are not source-backed.
+
+## Analytical Evidence Rules
+
+Analytical probabilities are allowed only when a rule explicitly states the
+verified mechanical selection law and carries provenance. The provider checks:
+
+- rule verification status is `VERIFIED`,
+- all rule provenance entries are `VERIFIED`,
+- action identity,
+- outcome-space completeness,
+- selection rule where specified,
+- source outcome-set identity where specified,
+- exact enumerated outcome IDs where specified.
+
+`AnalyticalProbabilityRule` construction rejects non-`VERIFIED` rules and
+non-`VERIFIED` provenance. The provider repeats those verification checks as a
+fail-closed guard. If any compatibility check fails, the provider returns the
+normal UNKNOWN research model and adds a warning. It never falls back to equal
+distribution merely because outcomes were enumerated.
+
+The initial supported rule type is `UNIFORM_ENUMERATED_OUTCOMES`, but it is
+only valid when a verified source establishes uniform selection over precisely
+that enumerated outcome set. This is not currently established for PoE2
+Annulment, Omen Annulment, Essence random removal, or Exalted-style modifier
+addition.
 
 ## EV Readiness
 

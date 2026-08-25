@@ -128,12 +128,24 @@ The orchestrator uses the injected probability provider. Probability context
 includes league, game version when supplied, crafting dataset version, modifier
 dataset version, and optional empirical evidence dataset version.
 
-The default provider path falls back to current research and returns `UNKNOWN`
-final outcome probabilities for real actions. An empirical provider may return
-`EMPIRICAL_ESTIMATE` evidence only when a compatible offline dataset is
+The default provider path is a composite:
+
+1. verified analytical mechanic rules,
+2. explicitly selected empirical evidence,
+3. current research `UNKNOWN` fallback.
+
+Task 22B configures no production analytical rules because current source
+evidence does not verify uniform Annulment selection or Exalted modifier
+weights. If a future verified rule is configured, it may clear
+`PROBABILITY_EVIDENCE_REQUIRED` for that action only. Empirical providers may
+return `EMPIRICAL_ESTIMATE` evidence only when a compatible offline dataset is
 explicitly configured/injected and selected. Missing, partial, synthetic-disabled,
 or context-incompatible evidence is surfaced as `PROBABILITY_EVIDENCE_REQUIRED`
 and does not unlock EV readiness.
+
+Provider outputs are never averaged. If multiple providers can return numeric
+evidence, explicit precedence decides the selected model and lower-precedence
+numeric disagreement is surfaced as a warning.
 
 Task 17A inserts an empirical dataset registry between curated dataset builds
 and Advisor selection. Registering a dataset only loads it into the running

@@ -104,3 +104,30 @@ Task 9B implements probability contracts and propagation only, not Exalted numer
 - Tests prove no equal distribution fallback exists.
 
 See [PROBABILITY_MODEL.md](PROBABILITY_MODEL.md).
+
+## Task 22B Analytical Provider Audit
+
+Task 22B re-audited the current repository contracts and documentation before
+adding any analytical rule. The audit found:
+
+- Annulment outcome space can be complete for known eligible explicit
+  modifiers, but the repository still does not contain verified evidence that
+  selection is uniform across those modifiers.
+- Sinistral/Dextral Annulment restrict eligible side, but uniform side-specific
+  selection is still not verified.
+- Greater Annulment still lacks verified simultaneous/sequential multi-removal
+  semantics.
+- Exalted-style outcome pools may be complete for scoped natural Quiver Base
+  modifiers, but modifier weights and selection formulas remain unavailable.
+- Essence of Hysteria has a deterministic guaranteed Quiver modifier component,
+  while random-removal probabilities remain unknown.
+
+Therefore Task 22B configures no production analytical probability rules. The
+new analytical provider is framework support only until a verified mechanic
+source can justify a specific numeric rule. Unsupported actions continue to emit
+`UNKNOWN` probability models and `PROBABILITY_EVIDENCE_REQUIRED` blockers.
+
+Analytical rules are a strict verified-mechanic trust boundary. A rule with
+`CURATED`, `PROVISIONAL`, or `NEEDS_VERIFICATION` status, or with non-verified
+provenance, must not produce numeric probabilities and must not clear Advisor
+probability blockers.
