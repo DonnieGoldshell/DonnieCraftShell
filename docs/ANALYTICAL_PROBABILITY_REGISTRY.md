@@ -18,6 +18,11 @@ data/normalized/probability/verified-analytical-mechanics-empty-2026-08-25/regis
 That dataset is intentionally empty. No real PoE2 Annulment, Omen, Essence
 random-removal, or Exalted-style probability rule is enabled.
 
+Task 23 re-reviewed ordinary Orb of Annulment as the first possible production
+mechanic promotion. The evidence remained insufficient to verify uniform
+selection or special-origin eligibility, so no rule was promoted. See
+[ANNULMENT_ANALYTICAL_PROBABILITY_EVIDENCE_2026-08-25.md](data/ANNULMENT_ANALYTICAL_PROBABILITY_EVIDENCE_2026-08-25.md).
+
 ## Registry Envelope
 
 ```json

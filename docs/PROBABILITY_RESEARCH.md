@@ -131,3 +131,25 @@ Analytical rules are a strict verified-mechanic trust boundary. A rule with
 `CURATED`, `PROVISIONAL`, or `NEEDS_VERIFICATION` status, or with non-verified
 provenance, must not produce numeric probabilities and must not clear Advisor
 probability blockers.
+
+## Task 23 Annulment Evidence Pass
+
+Task 23 re-reviewed ordinary Orb of Annulment as the first candidate for a
+production analytical rule. The decision is:
+
+```text
+INSUFFICIENT EVIDENCE — REMAINS UNKNOWN
+```
+
+Reviewed sources still establish random modifier removal and Omen side
+restrictions, but they do not verify that the selection law is uniform across
+eligible explicit modifiers. They also do not verify the ordinary Annulment
+eligibility treatment for crafted, desecrated, fractured, corruption-enhanced,
+or other special-origin modifiers in the First Playable Primed Quiver state.
+
+No production analytical rule was promoted. The production registry remains
+empty, real Annulment probability remains `UNKNOWN`, and Advisor probability
+blockers remain legitimate.
+
+See
+[ANNULMENT_ANALYTICAL_PROBABILITY_EVIDENCE_2026-08-25.md](data/ANNULMENT_ANALYTICAL_PROBABILITY_EVIDENCE_2026-08-25.md).
