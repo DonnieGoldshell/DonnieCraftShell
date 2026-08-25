@@ -143,6 +143,73 @@ class AnalyticalProbabilityRegistryTests(unittest.TestCase):
         self.assertEqual(registry.skipped_rule_ids, ("duplicate-rule-id", "duplicate-rule-id"))
         self.assertTrue(any("Duplicate analytical mechanic rule IDs" in warning for warning in registry.warnings))
 
+    def test_intra_file_action_conflict_cannot_be_masked_by_second_file(self):
+        with tempfile.TemporaryDirectory() as directory:
+            first_path = Path(directory) / "conflicting_registry.json"
+            second_path = Path(directory) / "valid_looking_registry.json"
+            first_path.write_text(
+                json.dumps(
+                    self._registry_payload(
+                        (
+                            self._valid_rule("same-file-conflict-a"),
+                            self._valid_rule("same-file-conflict-b"),
+                        )
+                    )
+                ),
+                encoding="utf-8",
+            )
+            second_path.write_text(
+                json.dumps(self._registry_payload((self._valid_rule("second-file-valid-looking"),))),
+                encoding="utf-8",
+            )
+
+            registry = AnalyticalMechanicRegistry.from_json_files((first_path, second_path))
+
+        self.assertEqual(registry.rules, ())
+        self.assertEqual(
+            set(registry.skipped_rule_ids),
+            {"same-file-conflict-a", "same-file-conflict-b", "second-file-valid-looking"},
+        )
+        self.assertTrue(any("Duplicate analytical mechanic action scopes" in warning for warning in registry.warnings))
+
+    def test_cross_file_duplicate_rule_ids_fail_closed(self):
+        with tempfile.TemporaryDirectory() as directory:
+            first_path = Path(directory) / "first_registry.json"
+            second_path = Path(directory) / "second_registry.json"
+            first_path.write_text(
+                json.dumps(self._registry_payload((self._valid_rule("shared-rule-id", action_id="dc:test:first-action"),))),
+                encoding="utf-8",
+            )
+            second_path.write_text(
+                json.dumps(self._registry_payload((self._valid_rule("shared-rule-id", action_id="dc:test:second-action"),))),
+                encoding="utf-8",
+            )
+
+            registry = AnalyticalMechanicRegistry.from_json_files((first_path, second_path))
+
+        self.assertEqual(registry.rules, ())
+        self.assertEqual(registry.skipped_rule_ids, ("shared-rule-id", "shared-rule-id"))
+        self.assertTrue(any("Duplicate analytical mechanic rule IDs" in warning for warning in registry.warnings))
+
+    def test_cross_file_duplicate_action_scopes_fail_closed(self):
+        with tempfile.TemporaryDirectory() as directory:
+            first_path = Path(directory) / "first_registry.json"
+            second_path = Path(directory) / "second_registry.json"
+            first_path.write_text(
+                json.dumps(self._registry_payload((self._valid_rule("first-action-scope-rule"),))),
+                encoding="utf-8",
+            )
+            second_path.write_text(
+                json.dumps(self._registry_payload((self._valid_rule("second-action-scope-rule"),))),
+                encoding="utf-8",
+            )
+
+            registry = AnalyticalMechanicRegistry.from_json_files((first_path, second_path))
+
+        self.assertEqual(registry.rules, ())
+        self.assertEqual(set(registry.skipped_rule_ids), {"first-action-scope-rule", "second-action-scope-rule"})
+        self.assertTrue(any("Duplicate analytical mechanic action scopes" in warning for warning in registry.warnings))
+
     def test_malformed_registry_surfaces_warning_without_rules(self):
         registry = analytical_mechanic_registry_from_dict({"dataset_id": "broken", "registry_version": "future"})
 
@@ -194,10 +261,14 @@ class AnalyticalProbabilityRegistryTests(unittest.TestCase):
             affix_capacity_dataset_version=AFFIX_CAPACITY_DATASET_ID,
         )
 
-    def _valid_rule(self, rule_id: str = "synthetic-verified-uniform-annulment") -> dict:
+    def _valid_rule(
+        self,
+        rule_id: str = "synthetic-verified-uniform-annulment",
+        action_id: str | None = None,
+    ) -> dict:
         return {
             "rule_id": rule_id,
-            "action_id": self.outcome_set.action_id,
+            "action_id": action_id or self.outcome_set.action_id,
             "rule_type": "UNIFORM_ENUMERATED_OUTCOMES",
             "methodology": "Synthetic test-only VERIFIED mechanic: uniform over enumerated outcomes.",
             "verification_status": "VERIFIED",

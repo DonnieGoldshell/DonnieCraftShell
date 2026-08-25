@@ -35,16 +35,25 @@ class AnalyticalMechanicRegistry:
     def from_json_files(cls, paths: tuple[str | Path, ...]) -> "AnalyticalMechanicRegistry":
         if not paths:
             return cls.empty()
-        registries = tuple(load_analytical_mechanic_registry(path) for path in paths)
         rules: list[AnalyticalProbabilityRule] = []
         skipped: list[str] = []
         warnings: list[str] = []
         dataset_ids: list[str] = []
-        for registry in registries:
-            dataset_ids.append(registry.dataset_id)
-            rules.extend(registry.rules)
-            skipped.extend(registry.skipped_rule_ids)
-            warnings.extend(registry.warnings)
+        for path in paths:
+            try:
+                payload = json.loads(Path(path).read_text(encoding="utf-8"))
+            except Exception as exc:
+                dataset_ids.append(str(path))
+                warnings.append(f"Analytical mechanic registry could not be read and was skipped: {exc}")
+                continue
+            dataset_id, loaded_rules, loaded_skipped, loaded_warnings = _rules_from_payload(
+                payload,
+                source_path=Path(path),
+            )
+            dataset_ids.append(dataset_id)
+            rules.extend(loaded_rules)
+            skipped.extend(loaded_skipped)
+            warnings.extend(loaded_warnings)
         unique_rules, duplicate_skipped, duplicate_warnings = _dedupe_rules(tuple(rules))
         return cls(
             dataset_id="+".join(dataset_ids),
@@ -70,29 +79,46 @@ def analytical_mechanic_registry_from_dict(
     payload: dict[str, Any],
     source_path: Path | None = None,
 ) -> AnalyticalMechanicRegistry:
-    warnings: list[str] = []
-    skipped: list[str] = []
+    dataset_id, rules, skipped, warnings = _rules_from_payload(payload, source_path=source_path)
+    unique_rules, duplicate_skipped, duplicate_warnings = _dedupe_rules(tuple(rules))
+    return AnalyticalMechanicRegistry(
+        dataset_id=dataset_id,
+        rules=unique_rules,
+        skipped_rule_ids=tuple((*skipped, *duplicate_skipped)),
+        warnings=tuple((*warnings, *duplicate_warnings)),
+    )
+
+
+def _rules_from_payload(
+    payload: dict[str, Any],
+    source_path: Path | None = None,
+) -> tuple[str, tuple[AnalyticalProbabilityRule, ...], tuple[str, ...], tuple[str, ...]]:
     if not isinstance(payload, dict):
-        return AnalyticalMechanicRegistry(
-            dataset_id=str(source_path or "unknown"),
-            rules=(),
-            warnings=("Analytical mechanic registry root must be an object; registry was skipped.",),
+        return (
+            str(source_path or "unknown"),
+            (),
+            (),
+            ("Analytical mechanic registry root must be an object; registry was skipped.",),
         )
     dataset_id = str(payload.get("dataset_id") or source_path or "unknown-analytical-mechanic-registry")
     if payload.get("registry_version") != ANALYTICAL_MECHANIC_REGISTRY_VERSION:
-        return AnalyticalMechanicRegistry(
-            dataset_id=dataset_id,
-            rules=(),
-            warnings=("Analytical mechanic registry_version is missing or incompatible; registry was skipped.",),
+        return (
+            dataset_id,
+            (),
+            (),
+            ("Analytical mechanic registry_version is missing or incompatible; registry was skipped.",),
         )
     records = payload.get("rules", ())
     if not isinstance(records, list):
-        return AnalyticalMechanicRegistry(
-            dataset_id=dataset_id,
-            rules=(),
-            warnings=("Analytical mechanic registry rules must be a list; registry was skipped.",),
+        return (
+            dataset_id,
+            (),
+            (),
+            ("Analytical mechanic registry rules must be a list; registry was skipped.",),
         )
     rules: list[AnalyticalProbabilityRule] = []
+    skipped: list[str] = []
+    warnings: list[str] = []
     for index, record in enumerate(records, start=1):
         rule_id = _record_rule_id(record, index)
         try:
@@ -102,13 +128,7 @@ def analytical_mechanic_registry_from_dict(
             warnings.append(f"Analytical mechanic rule {rule_id} was skipped: {exc}")
             continue
         rules.append(rule)
-    unique_rules, duplicate_skipped, duplicate_warnings = _dedupe_rules(tuple(rules))
-    return AnalyticalMechanicRegistry(
-        dataset_id=dataset_id,
-        rules=unique_rules,
-        skipped_rule_ids=tuple((*skipped, *duplicate_skipped)),
-        warnings=tuple((*warnings, *duplicate_warnings)),
-    )
+    return dataset_id, tuple(rules), tuple(skipped), tuple(warnings)
 
 
 def analytical_probability_rule_from_record(
