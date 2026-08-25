@@ -1,6 +1,16 @@
 "use client";
 
-import { FormEvent, type Dispatch, type SetStateAction, useMemo, useState } from "react";
+import {
+  FormEvent,
+  type Dispatch,
+  type RefObject,
+  type SetStateAction,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState
+} from "react";
 import {
   DEFAULT_AFFIX_CAPACITY_DATASET,
   DEFAULT_CRAFTING_DATASET,
@@ -30,6 +40,8 @@ const PLACEHOLDER = `Item Class: Quivers
 Rarity: Rare
 ...paste Path of Exile 2 Advanced Copy text here...`;
 
+type AdvancedToolNavigationTarget = "manual-valuation" | "economy-quotes" | "probability-workflow";
+
 export function AdvisorWorkbench() {
   const [clipboardText, setClipboardText] = useState("");
   const [league, setLeague] = useState(DEFAULT_LEAGUE);
@@ -46,6 +58,18 @@ export function AdvisorWorkbench() {
   const [loading, setLoading] = useState(false);
   const [advancedToolsOpen, setAdvancedToolsOpen] = useState(false);
   const [evidenceTarget, setEvidenceTarget] = useState<EvidenceReadinessSelection | null>(null);
+  const [pendingAdvancedNavigation, setPendingAdvancedNavigation] =
+    useState<AdvancedToolNavigationTarget | null>(null);
+
+  const openEvidenceTools = useCallback((target?: EvidenceReadinessSelection) => {
+    setEvidenceTarget(target ?? null);
+    setAdvancedToolsOpen(true);
+    setPendingAdvancedNavigation(advancedToolNavigationTarget(target));
+  }, []);
+
+  const clearPendingAdvancedNavigation = useCallback(() => {
+    setPendingAdvancedNavigation(null);
+  }, []);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -154,17 +178,11 @@ export function AdvisorWorkbench() {
                 selectedEmpiricalDatasetVersion={empiricalDataset}
                 bankroll={bankroll}
                 riskProfile={riskProfile}
-                onOpenEvidenceTools={(target) => {
-                  setEvidenceTarget(target ?? null);
-                  setAdvancedToolsOpen(true);
-                }}
+                onOpenEvidenceTools={openEvidenceTools}
               />
               <EvidenceReadinessPanel
                 readiness={analysis.evidence_readiness}
-                onOpenEvidenceTools={(target) => {
-                  setEvidenceTarget(target ?? null);
-                  setAdvancedToolsOpen(true);
-                }}
+                onOpenEvidenceTools={openEvidenceTools}
               />
               <ItemSummary item={analysis.item} affixState={analysis.affix_state} />
               <DecisionPanel decision={analysis.decision} riskDecision={analysis.risk_adjusted_decision} />
@@ -183,6 +201,8 @@ export function AdvisorWorkbench() {
                 advancedToolsOpen={advancedToolsOpen}
                 setAdvancedToolsOpen={setAdvancedToolsOpen}
                 evidenceTarget={evidenceTarget}
+                pendingNavigationTarget={pendingAdvancedNavigation}
+                onNavigationComplete={clearPendingAdvancedNavigation}
                 selectedEmpiricalDatasetVersion={empiricalDataset}
                 onSelectEmpiricalDataset={setEmpiricalDataset}
               />
@@ -209,6 +229,8 @@ export function AdvisorWorkbench() {
                 advancedToolsOpen={advancedToolsOpen}
                 setAdvancedToolsOpen={setAdvancedToolsOpen}
                 evidenceTarget={evidenceTarget}
+                pendingNavigationTarget={pendingAdvancedNavigation}
+                onNavigationComplete={clearPendingAdvancedNavigation}
                 selectedEmpiricalDatasetVersion={empiricalDataset}
                 onSelectEmpiricalDataset={setEmpiricalDataset}
               />
@@ -414,6 +436,8 @@ function AdvancedTools({
   advancedToolsOpen,
   setAdvancedToolsOpen,
   evidenceTarget,
+  pendingNavigationTarget,
+  onNavigationComplete,
   selectedEmpiricalDatasetVersion,
   onSelectEmpiricalDataset
 }: {
@@ -429,9 +453,14 @@ function AdvancedTools({
   advancedToolsOpen: boolean;
   setAdvancedToolsOpen: Dispatch<SetStateAction<boolean>>;
   evidenceTarget: EvidenceReadinessSelection | null;
+  pendingNavigationTarget: AdvancedToolNavigationTarget | null;
+  onNavigationComplete: () => void;
   selectedEmpiricalDatasetVersion: string;
   onSelectEmpiricalDataset: Dispatch<SetStateAction<string>>;
 }) {
+  const manualValuationRef = useRef<HTMLElement | null>(null);
+  const economyQuoteRef = useRef<HTMLElement | null>(null);
+  const probabilityWorkflowRef = useRef<HTMLElement | null>(null);
   const targetActionId =
     evidenceTarget?.target.target_type === "ACTION_PROBABILITY_MODEL" ? evidenceTarget.target.action_id ?? null : null;
   const outcomeValuationTarget =
@@ -447,6 +476,22 @@ function AdvancedTools({
     const item = analysis?.evidence_readiness?.items.find((readiness) => readiness.category === "CURRENT_ITEM_VALUATION");
     return item?.status ?? null;
   }, [analysis]);
+  const targetRef = advancedToolTargetRef(
+    pendingNavigationTarget,
+    manualValuationRef,
+    economyQuoteRef,
+    probabilityWorkflowRef
+  );
+
+  useEffect(() => {
+    if (!advancedToolsOpen || !pendingNavigationTarget) return;
+    const target = targetRef?.current;
+    if (!target) return;
+
+    target.focus({ preventScroll: true });
+    target.scrollIntoView?.({ behavior: "smooth", block: "start" });
+    onNavigationComplete();
+  }, [advancedToolsOpen, pendingNavigationTarget, targetRef, onNavigationComplete]);
 
   return (
     <details
@@ -467,6 +512,7 @@ function AdvancedTools({
           change Advisor recommendations unless their evidence is explicitly submitted.
         </p>
         <ManualValuationPanel
+          ref={manualValuationRef}
           actions={analysis?.actions ?? []}
           league={league}
           currentObservations={currentObservations}
@@ -520,10 +566,11 @@ function AdvancedTools({
             }))
           }
         />
-        <EconomyQuotePanel analysis={analysis} league={league} />
+        <EconomyQuotePanel ref={economyQuoteRef} analysis={analysis} league={league} />
         {analysis && (
           <>
             <CraftObservationRecorderPanel
+              ref={probabilityWorkflowRef}
               actions={analysis.actions}
               defaultBeforeText={clipboardText}
               league={league}
@@ -541,6 +588,41 @@ function AdvancedTools({
       </div>
     </details>
   );
+}
+
+function advancedToolNavigationTarget(
+  selection?: EvidenceReadinessSelection
+): AdvancedToolNavigationTarget | null {
+  if (!selection) return "manual-valuation";
+  switch (selection.target.target_type) {
+    case "CURRENT_ITEM":
+    case "OUTCOME_VALUATION":
+      return "manual-valuation";
+    case "ECONOMY_ASSET":
+      return "economy-quotes";
+    case "ACTION_PROBABILITY_MODEL":
+      return "probability-workflow";
+    default:
+      return "manual-valuation";
+  }
+}
+
+function advancedToolTargetRef(
+  target: AdvancedToolNavigationTarget | null,
+  manualValuationRef: RefObject<HTMLElement | null>,
+  economyQuoteRef: RefObject<HTMLElement | null>,
+  probabilityWorkflowRef: RefObject<HTMLElement | null>
+): RefObject<HTMLElement | null> | null {
+  switch (target) {
+    case "manual-valuation":
+      return manualValuationRef;
+    case "economy-quotes":
+      return economyQuoteRef;
+    case "probability-workflow":
+      return probabilityWorkflowRef;
+    default:
+      return null;
+  }
 }
 
 export type EditableManualListingObservation = ManualListingObservation & {

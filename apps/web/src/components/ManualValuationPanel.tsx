@@ -1,4 +1,4 @@
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { forwardRef, FormEvent, useEffect, useMemo, useState } from "react";
 import {
   DIVINE_ASSET_ID,
   EXALTED_ASSET_ID,
@@ -59,24 +59,27 @@ const emptyObservation = {
   notes: ""
 };
 
-export function ManualValuationPanel({
-  actions,
-  league,
-  currentObservations,
-  outcomeObservations,
-  outcomeValuationTarget,
-  currentValuationReadiness,
-  onAddCurrentObservation,
-  onAddOutcomeObservation,
-  onUpdateCurrentObservation,
-  onUpdateOutcomeObservation,
-  onRemoveCurrentObservation,
-  onRemoveOutcomeObservation,
-  onClearCurrentObservations,
-  onClearOutcomeObservations,
-  onReplaceCurrentObservations,
-  onReplaceOutcomeObservations
-}: Props) {
+export const ManualValuationPanel = forwardRef<HTMLElement, Props>(function ManualValuationPanel(
+  {
+    actions,
+    league,
+    currentObservations,
+    outcomeObservations,
+    outcomeValuationTarget,
+    currentValuationReadiness,
+    onAddCurrentObservation,
+    onAddOutcomeObservation,
+    onUpdateCurrentObservation,
+    onUpdateOutcomeObservation,
+    onRemoveCurrentObservation,
+    onRemoveOutcomeObservation,
+    onClearCurrentObservations,
+    onClearOutcomeObservations,
+    onReplaceCurrentObservations,
+    onReplaceOutcomeObservations
+  },
+  ref
+) {
   const outcomeOptions = useMemo(
     () =>
       actions.flatMap((action) =>
@@ -274,7 +277,7 @@ export function ManualValuationPanel({
   }
 
   return (
-    <section className="panel evidence-panel">
+    <section ref={ref} className="panel evidence-panel" aria-label="Manual valuation evidence workflow" tabIndex={-1}>
       <div className="section-heading">
         <h2>Manual Valuation Evidence</h2>
         <span className="count">
@@ -426,7 +429,7 @@ export function ManualValuationPanel({
       {preview && <ValuationPreview preview={preview} />}
     </section>
   );
-}
+});
 
 function EvidenceList({
   title,

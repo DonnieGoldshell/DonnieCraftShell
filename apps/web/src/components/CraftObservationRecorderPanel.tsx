@@ -1,4 +1,4 @@
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { forwardRef, FormEvent, useEffect, useMemo, useState } from "react";
 import {
   DEFAULT_CRAFTING_DATASET,
   DEFAULT_GAME_DATA_DATASET,
@@ -21,14 +21,17 @@ type Props = {
 
 type SavedObservation = CraftObservationRecordResponse;
 
-export function CraftObservationRecorderPanel({
-  actions,
-  defaultBeforeText,
-  league,
-  craftingDatasetVersion,
-  modifierDatasetVersion,
-  targetActionId
-}: Props) {
+export const CraftObservationRecorderPanel = forwardRef<HTMLElement, Props>(function CraftObservationRecorderPanel(
+  {
+    actions,
+    defaultBeforeText,
+    league,
+    craftingDatasetVersion,
+    modifierDatasetVersion,
+    targetActionId
+  },
+  ref
+) {
   const actionOptions = useMemo(
     () =>
       actions
@@ -118,7 +121,7 @@ export function CraftObservationRecorderPanel({
   }
 
   return (
-    <section className="panel recorder-panel">
+    <section ref={ref} className="panel recorder-panel" aria-label="Probability evidence workflow" tabIndex={-1}>
       <div className="section-heading">
         <h2>Craft Observation Recorder</h2>
         <span className="count">{saved.length}</span>
@@ -213,7 +216,7 @@ export function CraftObservationRecorderPanel({
       )}
     </section>
   );
-}
+});
 
 function optionalText(value: string): string | null {
   const trimmed = value.trim();
