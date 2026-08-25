@@ -13,6 +13,9 @@ import {
 } from "@/api/advisor";
 import { AdvisorWorkbench } from "./AdvisorWorkbench";
 
+const originalScrollIntoView = Element.prototype.scrollIntoView;
+const originalFocus = HTMLElement.prototype.focus;
+
 const quiverResponse: AdvisorAnalyzeResponse = {
   analysis_id: "019febcf-bf04-73e2-a845-1f2278b0ef05",
   status: "ANALYSIS_PARTIAL",
@@ -558,6 +561,8 @@ function manualPreviewResponse(
 
 describe("AdvisorWorkbench", () => {
   afterEach(() => {
+    Element.prototype.scrollIntoView = originalScrollIntoView;
+    vi.restoreAllMocks();
     vi.unstubAllGlobals();
   });
 
@@ -566,6 +571,37 @@ describe("AdvisorWorkbench", () => {
       return;
     }
     await user.click(screen.getByText(/advanced evidence & diagnostics/i));
+  }
+
+  function mockAdvancedToolNavigation() {
+    const scrollIntoView = vi.fn(function (this: Element, _options?: ScrollIntoViewOptions | boolean) {});
+    Object.defineProperty(Element.prototype, "scrollIntoView", {
+      configurable: true,
+      writable: true,
+      value: scrollIntoView
+    });
+    const focus = vi.spyOn(HTMLElement.prototype, "focus").mockImplementation(function (
+      this: HTMLElement,
+      options?: FocusOptions
+    ) {
+      originalFocus.call(this, options);
+    });
+    return { scrollIntoView, focus };
+  }
+
+  async function expectAdvancedToolNavigation(
+    navigation: ReturnType<typeof mockAdvancedToolNavigation>,
+    ariaLabel: string
+  ) {
+    let target: HTMLElement | undefined;
+    await waitFor(() => {
+      target = navigation.scrollIntoView.mock.contexts.find(
+        (context): context is HTMLElement =>
+          context instanceof HTMLElement && context.getAttribute("aria-label") === ariaLabel
+      );
+      expect(target).toBeTruthy();
+    });
+    expect(navigation.focus.mock.contexts).toContain(target);
   }
 
   it("renders partial Quiver analysis, action states, decision and missing requirements", async () => {
@@ -612,12 +648,15 @@ describe("AdvisorWorkbench", () => {
 
     expect(screen.getByRole("button", { name: /collect probability evidence/i })).toBeInTheDocument();
 
+    const navigation = mockAdvancedToolNavigation();
     await user.click(screen.getByRole("button", { name: /open current valuation workflow/i }));
+    await expectAdvancedToolNavigation(navigation, "Manual valuation evidence workflow");
     expect(screen.getByRole("button", { name: /add observation/i })).toBeVisible();
     expect(screen.getByLabelText(/evidence subject/i)).toHaveValue("current");
     expect(fetch).toHaveBeenCalledTimes(1);
 
     await user.click(screen.getByRole("button", { name: /collect probability evidence/i }));
+    await expectAdvancedToolNavigation(navigation, "Probability evidence workflow");
 
     expect(screen.getByRole("button", { name: /add observation/i })).toBeVisible();
     expect(screen.getByText(/targeted from evidence readiness: collect probability evidence for orb of annulment/i)).toBeVisible();
@@ -682,7 +721,9 @@ describe("AdvisorWorkbench", () => {
     expect(screen.getByRole("button", { name: /collect probability evidence for greater annulment/i })).toBeVisible();
     expect(screen.queryByRole("button", { name: /collect probability evidence for exalted orb/i })).not.toBeInTheDocument();
 
+    const navigation = mockAdvancedToolNavigation();
     await user.click(screen.getByRole("button", { name: /collect probability evidence for greater annulment/i }));
+    await expectAdvancedToolNavigation(navigation, "Probability evidence workflow");
     expect(await screen.findByText("Craft Observation Recorder")).toBeInTheDocument();
     expect(screen.getByText(/targeted from evidence readiness: collect probability evidence for greater annulment/i)).toBeVisible();
     expect((screen.getByLabelText(/craft action/i) as HTMLSelectElement).value).toBe(
@@ -760,7 +801,9 @@ describe("AdvisorWorkbench", () => {
     await user.type(screen.getByLabelText(/clipboard item text/i), "Item Class: Quivers\nRarity: Rare");
     await user.click(screen.getByRole("button", { name: /analyze quiver/i }));
     await screen.findByText("Primed Quiver");
+    const navigation = mockAdvancedToolNavigation();
     await user.click(screen.getByRole("button", { name: /open economy quote workflow/i }));
+    await expectAdvancedToolNavigation(navigation, "Local economy quote workflow");
 
     expect(screen.getByRole("region", { name: /local economy quote workflow/i })).toBeVisible();
     expect(screen.getByLabelText(/needed asset/i)).toHaveValue("dc:poe2:economy-asset:currency:orb-of-annulment");
@@ -1216,7 +1259,9 @@ describe("AdvisorWorkbench", () => {
       screen.queryByRole("button", { name: /add outcome valuation evidence for exalted orb outcome/i })
     ).not.toBeInTheDocument();
 
+    const navigation = mockAdvancedToolNavigation();
     await user.click(outcomeButtons[1]);
+    await expectAdvancedToolNavigation(navigation, "Manual valuation evidence workflow");
     await waitFor(() => expect(screen.getByLabelText(/^Outcome ID$/i)).toHaveValue("outcome-2"));
     expect(screen.getByLabelText(/evidence subject/i)).toHaveValue("outcome");
     expect(screen.getByLabelText("Targeted outcome valuation progress")).toHaveTextContent(

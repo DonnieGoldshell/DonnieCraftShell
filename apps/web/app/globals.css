@@ -510,6 +510,13 @@ th {
   padding: 14px;
 }
 
+.evidence-panel:focus-visible,
+.recorder-panel:focus-visible,
+.tool-card:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 4px;
+}
+
 .compact-form {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));

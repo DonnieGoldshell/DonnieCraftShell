@@ -1,4 +1,4 @@
-import { FormEvent, useMemo, useState } from "react";
+import { forwardRef, FormEvent, useMemo, useState } from "react";
 import {
   EXALTED_ASSET_ID,
   type AdvisorAnalyzeResponse,
@@ -29,7 +29,7 @@ const emptyDraft = {
   notes: ""
 };
 
-export function EconomyQuotePanel({ analysis, league }: Props) {
+export const EconomyQuotePanel = forwardRef<HTMLElement, Props>(function EconomyQuotePanel({ analysis, league }, ref) {
   const targets = useMemo(() => economyTargets(analysis), [analysis]);
   const firstTarget = targets[0]?.assetId ?? "";
   const [draft, setDraft] = useState({ ...emptyDraft, asset_id: firstTarget });
@@ -127,7 +127,7 @@ export function EconomyQuotePanel({ analysis, league }: Props) {
   }
 
   return (
-    <section className="tool-card" aria-label="Local economy quote workflow">
+    <section ref={ref} className="tool-card" aria-label="Local economy quote workflow" tabIndex={-1}>
       <div className="section-heading">
         <div>
           <h3>Local Economy Quotes</h3>
@@ -248,7 +248,7 @@ export function EconomyQuotePanel({ analysis, league }: Props) {
       {error && <p className="error-message">{error}</p>}
     </section>
   );
-}
+});
 
 function economyTargets(analysis: AdvisorAnalyzeResponse | null): EconomyTarget[] {
   const items = analysis?.evidence_readiness?.items ?? [];
