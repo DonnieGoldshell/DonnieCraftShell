@@ -16,7 +16,7 @@ import {
 import { ActionTable } from "./ActionTable";
 import { CraftObservationRecorderPanel } from "./CraftObservationRecorderPanel";
 import { DecisionPanel } from "./DecisionPanel";
-import { EvidenceReadinessPanel } from "./EvidenceReadinessPanel";
+import { EvidenceReadinessPanel, type EvidenceReadinessTarget } from "./EvidenceReadinessPanel";
 import { EconomyQuotePanel } from "./EconomyQuotePanel";
 import { ItemSummary } from "./ItemSummary";
 import { ManualValuationPanel } from "./ManualValuationPanel";
@@ -42,6 +42,7 @@ export function AdvisorWorkbench() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [advancedToolsOpen, setAdvancedToolsOpen] = useState(false);
+  const [evidenceTarget, setEvidenceTarget] = useState<EvidenceReadinessTarget | null>(null);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -125,7 +126,10 @@ export function AdvisorWorkbench() {
               <PlayerSummary analysis={analysis} />
               <EvidenceReadinessPanel
                 readiness={analysis.evidence_readiness}
-                onOpenEvidenceTools={() => setAdvancedToolsOpen(true)}
+                onOpenEvidenceTools={(target) => {
+                  setEvidenceTarget(target ?? null);
+                  setAdvancedToolsOpen(true);
+                }}
               />
               <ItemSummary item={analysis.item} affixState={analysis.affix_state} />
               <DecisionPanel decision={analysis.decision} riskDecision={analysis.risk_adjusted_decision} />
@@ -143,6 +147,9 @@ export function AdvisorWorkbench() {
                 setOutcomeObservations={setOutcomeObservations}
                 advancedToolsOpen={advancedToolsOpen}
                 setAdvancedToolsOpen={setAdvancedToolsOpen}
+                evidenceTarget={evidenceTarget}
+                selectedEmpiricalDatasetVersion={empiricalDataset}
+                onSelectEmpiricalDataset={setEmpiricalDataset}
               />
             </>
           ) : (
@@ -166,6 +173,9 @@ export function AdvisorWorkbench() {
                 setOutcomeObservations={setOutcomeObservations}
                 advancedToolsOpen={advancedToolsOpen}
                 setAdvancedToolsOpen={setAdvancedToolsOpen}
+                evidenceTarget={evidenceTarget}
+                selectedEmpiricalDatasetVersion={empiricalDataset}
+                onSelectEmpiricalDataset={setEmpiricalDataset}
               />
             </>
           )}
@@ -186,7 +196,10 @@ function AdvancedTools({
   setCurrentObservations,
   setOutcomeObservations,
   advancedToolsOpen,
-  setAdvancedToolsOpen
+  setAdvancedToolsOpen,
+  evidenceTarget,
+  selectedEmpiricalDatasetVersion,
+  onSelectEmpiricalDataset
 }: {
   analysis: AdvisorAnalyzeResponse | null;
   clipboardText: string;
@@ -199,7 +212,13 @@ function AdvancedTools({
   setOutcomeObservations: Dispatch<SetStateAction<Record<string, EditableManualListingObservation[]>>>;
   advancedToolsOpen: boolean;
   setAdvancedToolsOpen: Dispatch<SetStateAction<boolean>>;
+  evidenceTarget: EvidenceReadinessTarget | null;
+  selectedEmpiricalDatasetVersion: string;
+  onSelectEmpiricalDataset: Dispatch<SetStateAction<string>>;
 }) {
+  const targetActionId =
+    evidenceTarget?.target_type === "ACTION_PROBABILITY_MODEL" ? evidenceTarget.action_id ?? null : null;
+
   return (
     <details
       className="advanced-tools"
@@ -279,8 +298,13 @@ function AdvancedTools({
               league={league}
               craftingDatasetVersion={craftingDataset}
               modifierDatasetVersion={gameDataDataset}
+              targetActionId={targetActionId}
             />
-            <ObservationReviewPanel />
+            <ObservationReviewPanel
+              targetActionId={targetActionId}
+              selectedEmpiricalDatasetVersion={selectedEmpiricalDatasetVersion}
+              onSelectEmpiricalDataset={onSelectEmpiricalDataset}
+            />
           </>
         )}
       </div>

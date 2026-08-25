@@ -1,4 +1,4 @@
-import { FormEvent, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useState } from "react";
 import {
   DEFAULT_CRAFTING_DATASET,
   DEFAULT_GAME_DATA_DATASET,
@@ -16,6 +16,7 @@ type Props = {
   league: string;
   craftingDatasetVersion: string;
   modifierDatasetVersion: string;
+  targetActionId?: string | null;
 };
 
 type SavedObservation = CraftObservationRecordResponse;
@@ -25,7 +26,8 @@ export function CraftObservationRecorderPanel({
   defaultBeforeText,
   league,
   craftingDatasetVersion,
-  modifierDatasetVersion
+  modifierDatasetVersion,
+  targetActionId
 }: Props) {
   const actionOptions = useMemo(
     () =>
@@ -50,6 +52,15 @@ export function CraftObservationRecorderPanel({
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const selectedAction = actionOptions.find((action) => action.actionId === actionId);
+  const targetedAction = targetActionId
+    ? actionOptions.find((action) => action.actionId === targetActionId)
+    : undefined;
+
+  useEffect(() => {
+    if (targetActionId && actionOptions.some((action) => action.actionId === targetActionId)) {
+      setActionId(targetActionId);
+    }
+  }, [targetActionId, actionOptions]);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -116,6 +127,12 @@ export function CraftObservationRecorderPanel({
         Record real before/after craft observations manually. Recorded evidence is saved to the local observation
         workspace, but it does not affect probability readiness until reviewed, imported, registered, and explicitly selected.
       </p>
+      {targetedAction && (
+        <p className="muted">
+          Targeted from Evidence Readiness: collect probability evidence for {targetedAction.label}. Nothing is
+          recorded until you submit an observation.
+        </p>
+      )}
       <form className="recorder-form" onSubmit={submit}>
         <label>
           Craft action

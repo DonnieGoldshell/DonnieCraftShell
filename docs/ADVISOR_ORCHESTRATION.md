@@ -110,6 +110,19 @@ Completing every checklist item is not a guarantee that Advisor will recommend
 a craft. The normal gates still apply: probability, valuation, cost, mechanics,
 EV readiness, risk policy, and Advisor decision policy remain authoritative.
 
+For empirical probability blockers, Evidence Readiness must be driven only by
+existing `PROBABILITY_EVIDENCE_REQUIRED` missing requirements. The First
+Playable UI uses those targets to open the existing craft observation recorder
+and review/import workflow for the affected action. Non-applicable actions do
+not receive probability collection calls-to-action merely because their
+probability model is `UNKNOWN`; they must have an authoritative missing
+requirement first.
+
+The observation workflow can show loaded workspace/review progress such as raw,
+accepted, rejected, and unreviewed counts. These counts are operator guidance
+only. Sample-size readiness, context compatibility, and whether a selected
+empirical dataset can clear the blocker remain backend/domain decisions.
+
 ## Failure Isolation
 
 Action analysis is isolated per candidate. A failure in one action is surfaced as that action's warning and missing requirement; other actions continue through the pipeline.

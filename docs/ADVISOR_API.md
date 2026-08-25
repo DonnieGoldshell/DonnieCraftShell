@@ -146,6 +146,13 @@ dataset payload, such as a dataset returned by
 not alter Advisor analysis. The Advisor request must explicitly name the
 registered dataset ID in `empirical_probability_dataset_version`.
 
+The browser workflow intentionally keeps this as a two-step operator action.
+After a build/register succeeds, the UI surfaces the resulting dataset ID and
+offers an explicit "use for next analysis" action. It does not automatically
+select the dataset and does not rerun `/api/v1/advisor/analyze` until the
+operator asks for a rerun. This preserves the API contract that empirical
+evidence is consumed only when the request names the dataset.
+
 ## Response
 
 The response includes:
