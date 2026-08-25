@@ -126,3 +126,8 @@ Therefore Task 22B configures no production analytical probability rules. The
 new analytical provider is framework support only until a verified mechanic
 source can justify a specific numeric rule. Unsupported actions continue to emit
 `UNKNOWN` probability models and `PROBABILITY_EVIDENCE_REQUIRED` blockers.
+
+Analytical rules are a strict verified-mechanic trust boundary. A rule with
+`CURATED`, `PROVISIONAL`, or `NEEDS_VERIFICATION` status, or with non-verified
+provenance, must not produce numeric probabilities and must not clear Advisor
+probability blockers.

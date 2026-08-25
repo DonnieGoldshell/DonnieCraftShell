@@ -206,6 +206,30 @@ class AdvisorOrchestrationTests(unittest.TestCase):
         self.assertEqual(exalted.candidate.applicability.status.value, "NOT_APPLICABLE")
         self.assertFalse(any(requirement.affected_action_id == exalted.action_id for requirement in probability_requirements))
 
+    def test_non_verified_analytical_rule_cannot_clear_advisor_probability_blocker(self):
+        initial = self._orchestrator(parser=self._fixed_parser()).analyze(self._request())
+        annulment = self._action(initial, "dc:poe2:craft-action:orb-of-annulment")
+        with self.assertRaises(ValueError):
+            self._synthetic_uniform_rule(
+                annulment.outcome_set,
+                verification_status=VerificationStatus.NEEDS_VERIFICATION,
+            )
+
+        result = self._orchestrator(
+            parser=self._fixed_parser(),
+            probability_provider=AnalyticalProbabilityProvider(()),
+        ).analyze(self._request())
+        annulment = self._action(result, "dc:poe2:craft-action:orb-of-annulment")
+        probability_requirements = [
+            requirement
+            for requirement in result.missing_requirements
+            if requirement.kind == MissingRequirementKind.PROBABILITY_EVIDENCE_REQUIRED
+        ]
+
+        self.assertEqual(annulment.probability_model.probability_completeness, ProbabilityCompleteness.UNKNOWN)
+        self.assertTrue(all(entry.probability is None for entry in annulment.probability_model.outcome_probabilities))
+        self.assertTrue(any(requirement.affected_action_id == annulment.action_id for requirement in probability_requirements))
+
     def test_missing_economy_quote_keeps_action_applicable_but_blocks_ev(self):
         result = self._orchestrator(parser=self._fixed_parser()).analyze(self._request(current=self._valuation("current", "100")))
         annulment = self._action(result, "dc:poe2:craft-action:orb-of-annulment")
@@ -421,7 +445,12 @@ class AdvisorOrchestrationTests(unittest.TestCase):
         self.assertIsNotNone(result.evidence_readiness)
         return {item.category: item for item in result.evidence_readiness.items}
 
-    def _synthetic_uniform_rule(self, outcome_set):
+    def _synthetic_uniform_rule(
+        self,
+        outcome_set,
+        verification_status=VerificationStatus.VERIFIED,
+        provenance_status=VerificationStatus.VERIFIED,
+    ):
         return AnalyticalProbabilityRule(
             rule_id="synthetic-advisor-analytical-uniform-annulment-test-only",
             action_id=outcome_set.action_id,
@@ -431,7 +460,7 @@ class AdvisorOrchestrationTests(unittest.TestCase):
                 DataProvenance(
                     source_id="synthetic-advisor-analytical-rule",
                     source_type=SourceType.INTERNAL,
-                    verification_status=VerificationStatus.VERIFIED,
+                    verification_status=provenance_status,
                     notes="Synthetic test-only provenance; not real PoE2 mechanics.",
                 ),
             ),
@@ -440,6 +469,7 @@ class AdvisorOrchestrationTests(unittest.TestCase):
             crafting_dataset_version=CRAFTING_DATASET_ID,
             modifier_dataset_version=GAME_DATASET_ID,
             evidence_dataset_version="synthetic-advisor-analytical-probability-test-only",
+            verification_status=verification_status,
             warnings=("Synthetic test-only analytical rule; not production PoE2 probability evidence.",),
         )
 

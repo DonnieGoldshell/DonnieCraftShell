@@ -209,6 +209,20 @@ class ProbabilityContractTests(unittest.TestCase):
         self.assertTrue(all(probability.probability is None for probability in model.outcome_probabilities))
         self.assertTrue(any("No verified analytical probability rule" in warning for warning in model.warnings))
 
+    def test_analytical_rule_requires_verified_status(self):
+        item = parsed_fixture("quiver_6_crafted_desecrated_advanced.txt")
+        outcome_set = self._outcomes(item, "dc:poe2:craft-action:orb-of-annulment")
+
+        with self.assertRaises(ValueError):
+            self._synthetic_uniform_rule(outcome_set, verification_status=VerificationStatus.CURATED)
+
+    def test_analytical_rule_requires_verified_provenance(self):
+        item = parsed_fixture("quiver_6_crafted_desecrated_advanced.txt")
+        outcome_set = self._outcomes(item, "dc:poe2:craft-action:orb-of-annulment")
+
+        with self.assertRaises(ValueError):
+            self._synthetic_uniform_rule(outcome_set, provenance_status=VerificationStatus.NEEDS_VERIFICATION)
+
     def test_analytical_provider_applies_explicit_verified_rule_to_matching_outcomes(self):
         item = parsed_fixture("quiver_6_crafted_desecrated_advanced.txt")
         outcome_set = self._outcomes(item, "dc:poe2:craft-action:orb-of-annulment")
@@ -312,7 +326,12 @@ class ProbabilityContractTests(unittest.TestCase):
         self.assertEqual(item, before_item)
         self.assertEqual(outcome_set, before_outcome_set)
 
-    def _synthetic_uniform_rule(self, outcome_set):
+    def _synthetic_uniform_rule(
+        self,
+        outcome_set,
+        verification_status=VerificationStatus.VERIFIED,
+        provenance_status=VerificationStatus.VERIFIED,
+    ):
         return AnalyticalProbabilityRule(
             rule_id="synthetic-verified-analytical-uniform-annulment-test-only",
             action_id=outcome_set.action_id,
@@ -322,7 +341,7 @@ class ProbabilityContractTests(unittest.TestCase):
                 DataProvenance(
                     source_id="synthetic-analytical-probability-rule",
                     source_type=SourceType.INTERNAL,
-                    verification_status=VerificationStatus.VERIFIED,
+                    verification_status=provenance_status,
                     notes="Synthetic test-only provenance; not real PoE2 mechanics.",
                 ),
             ),
@@ -331,6 +350,7 @@ class ProbabilityContractTests(unittest.TestCase):
             crafting_dataset_version=CRAFTING_DATASET_VERSION,
             modifier_dataset_version=GAME_DATASET_VERSION,
             evidence_dataset_version="synthetic-analytical-probability-test-only",
+            verification_status=verification_status,
             warnings=("Synthetic test-only analytical rule; not production PoE2 probability evidence.",),
         )
 

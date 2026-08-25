@@ -80,15 +80,19 @@ Essence of Hysteria carries deterministic evidence for the guaranteed Quiver mod
 Analytical probabilities are allowed only when a rule explicitly states the
 verified mechanical selection law and carries provenance. The provider checks:
 
+- rule verification status is `VERIFIED`,
+- all rule provenance entries are `VERIFIED`,
 - action identity,
 - outcome-space completeness,
 - selection rule where specified,
 - source outcome-set identity where specified,
 - exact enumerated outcome IDs where specified.
 
-If any check fails, the provider returns the normal UNKNOWN research model and
-adds a warning. It never falls back to equal distribution merely because
-outcomes were enumerated.
+`AnalyticalProbabilityRule` construction rejects non-`VERIFIED` rules and
+non-`VERIFIED` provenance. The provider repeats those verification checks as a
+fail-closed guard. If any compatibility check fails, the provider returns the
+normal UNKNOWN research model and adds a warning. It never falls back to equal
+distribution merely because outcomes were enumerated.
 
 The initial supported rule type is `UNIFORM_ENUMERATED_OUTCOMES`, but it is
 only valid when a verified source establishes uniform selection over precisely

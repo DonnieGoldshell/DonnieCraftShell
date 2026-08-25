@@ -189,6 +189,10 @@ class AnalyticalProbabilityRule:
             raise ValueError("analytical probability rules require source provenance")
         if self.probability_type not in {ProbabilityType.EXACT_MECHANICAL, ProbabilityType.DERIVED_MECHANICAL}:
             raise ValueError("analytical probability rules must use exact or derived mechanical evidence")
+        if self.verification_status != VerificationStatus.VERIFIED:
+            raise ValueError("analytical probability rules must be VERIFIED")
+        if any(item.verification_status != VerificationStatus.VERIFIED for item in self.provenance):
+            raise ValueError("analytical probability rule provenance must be VERIFIED")
 
 
 class ProbabilityProvider(Protocol):
@@ -431,6 +435,10 @@ def _analytical_rule_incompatibilities(
 ) -> tuple[str, ...]:
     warnings: list[str] = []
     source_outcome_set_id = _outcome_set_identity(outcome_set)
+    if rule.verification_status != VerificationStatus.VERIFIED:
+        warnings.append("Analytical probability rule was not applied because the rule is not VERIFIED.")
+    if any(item.verification_status != VerificationStatus.VERIFIED for item in rule.provenance):
+        warnings.append("Analytical probability rule was not applied because rule provenance is not VERIFIED.")
     if outcome_set.outcome_space_completeness != rule.required_outcome_space_completeness:
         warnings.append(
             "Analytical probability rule was not applied because outcome-space completeness "
