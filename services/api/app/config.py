@@ -20,6 +20,7 @@ class ApiSettings:
     default_affix_capacity_dataset_id: str
     default_affix_capacity_path: Path
     economy_snapshot_paths: tuple[Path, ...]
+    analytical_mechanic_registry_paths: tuple[Path, ...]
     empirical_probability_dataset_paths: tuple[Path, ...]
     empirical_registry_storage_path: Path | None
     observation_workspace_storage_path: Path | None
@@ -42,6 +43,19 @@ def get_settings() -> ApiSettings:
         Path(value.strip())
         for value in os.getenv("DCS_EMPIRICAL_PROBABILITY_DATASET_PATHS", "").split(os.pathsep)
         if value.strip()
+    )
+    analytical_paths_env = os.getenv("DCS_ANALYTICAL_MECHANIC_REGISTRY_PATHS", "").strip()
+    analytical_paths = (
+        tuple(Path(value.strip()) for value in analytical_paths_env.split(os.pathsep) if value.strip())
+        if analytical_paths_env
+        else (
+            ROOT
+            / "data"
+            / "normalized"
+            / "probability"
+            / "verified-analytical-mechanics-empty-2026-08-25"
+            / "registry.json",
+        )
     )
     registry_path_value = os.getenv("DCS_EMPIRICAL_REGISTRY_PATH", str(ROOT / ".dcs" / "empirical_probability_registry.json")).strip()
     empirical_registry_storage_path = None if registry_path_value.lower() in {"", "disabled", "memory", ":memory:"} else Path(registry_path_value)
@@ -74,6 +88,7 @@ def get_settings() -> ApiSettings:
         default_affix_capacity_dataset_id=affix_id,
         default_affix_capacity_path=ROOT / "data" / "normalized" / "crafting" / affix_id / "capacity.json",
         economy_snapshot_paths=economy_paths,
+        analytical_mechanic_registry_paths=analytical_paths,
         empirical_probability_dataset_paths=empirical_paths,
         empirical_registry_storage_path=empirical_registry_storage_path,
         observation_workspace_storage_path=observation_workspace_storage_path,

@@ -43,10 +43,12 @@ provider precedence:
 2. Explicitly selected empirical probability datasets.
 3. Current research fallback (`UNKNOWN`).
 
+Task 22C adds the local verified-mechanic registry described in
+[ANALYTICAL_PROBABILITY_REGISTRY.md](ANALYTICAL_PROBABILITY_REGISTRY.md).
 No production analytical rules are currently configured, because the existing
 source-of-truth does not verify uniform Annulment selection or Exalted modifier
 weights. The provider can be exercised by synthetic tests, but real actions
-remain UNKNOWN until a source-backed rule is added.
+remain UNKNOWN until a source-backed `VERIFIED` registry rule is added.
 
 ## Invariants
 

@@ -1,0 +1,9 @@
+{
+  "dataset_id": "verified-analytical-mechanics-empty-2026-08-25",
+  "registry_version": "dc-analytical-mechanic-registry-v1",
+  "notes": "Intentionally empty production analytical mechanic registry. No PoE2 crafting mechanic currently has source-backed VERIFIED probability semantics in this repository.",
+  "rules": [],
+  "warnings": [
+    "No production analytical probability rules are enabled; real actions remain UNKNOWN unless future VERIFIED mechanic evidence is added."
+  ]
+}

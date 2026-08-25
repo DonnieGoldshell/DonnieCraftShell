@@ -103,6 +103,12 @@ configured analytical rule set is empty because existing mechanics do not verify
 uniform Annulment selection or Exalted weights. Providers are never averaged or
 merged; lower-precedence numeric conflicts are surfaced as warnings.
 
+Task 22C adds [ANALYTICAL_PROBABILITY_REGISTRY.md](ANALYTICAL_PROBABILITY_REGISTRY.md).
+Production analytical rules now load from a versioned local registry fixture.
+The committed fixture is intentionally empty; only `VERIFIED` records with
+`VERIFIED` provenance can become `AnalyticalProbabilityRule` objects, and
+duplicates or malformed records are skipped with warnings.
+
 Task 18A adds [OBSERVATION_WORKSPACE.md](OBSERVATION_WORKSPACE.md). Raw Task
 16A recorder records and Task 16B review decisions persist to local JSON before
 aggregation. Review metadata remains separate from raw evidence, conflicting

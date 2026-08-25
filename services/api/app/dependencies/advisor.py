@@ -6,6 +6,7 @@ from functools import lru_cache
 
 from packages.shared.donniecraftshell_contracts.advisor_orchestration import CraftAdvisorOrchestrator
 from packages.shared.donniecraftshell_contracts.affix_capacity import AffixStateResolver, load_affix_capacity_dataset
+from packages.shared.donniecraftshell_contracts.analytical_probability_registry import AnalyticalMechanicRegistry
 from packages.shared.donniecraftshell_contracts.crafting_actions import CraftActionEngine, load_crafting_dataset
 from packages.shared.donniecraftshell_contracts.economy_repository import EconomyRepository
 from packages.shared.donniecraftshell_contracts.economy_quote_workspace import (
@@ -64,6 +65,12 @@ def get_empirical_probability_registry() -> EmpiricalProbabilityDatasetRegistry:
 
 
 @lru_cache(maxsize=1)
+def get_analytical_mechanic_registry() -> AnalyticalMechanicRegistry:
+    settings = get_cached_settings()
+    return AnalyticalMechanicRegistry.from_json_files(settings.analytical_mechanic_registry_paths)
+
+
+@lru_cache(maxsize=1)
 def get_observation_workspace() -> ObservationWorkspaceRepository:
     settings = get_cached_settings()
     if settings.observation_workspace_storage_path is not None:
@@ -89,11 +96,20 @@ def get_economy_quote_workspace() -> EconomyQuoteWorkspaceRepository:
 
 @lru_cache(maxsize=1)
 def get_probability_provider() -> ProbabilityProvider:
+    analytical_registry = get_analytical_mechanic_registry()
     empirical_provider = EmpiricalProbabilityRegistryProvider(
         get_empirical_probability_registry(),
         allow_synthetic=False,
     )
-    return CompositeProbabilityProvider((AnalyticalProbabilityProvider(()), empirical_provider))
+    return CompositeProbabilityProvider(
+        (
+            AnalyticalProbabilityProvider(
+                analytical_registry.rules,
+                load_warnings=analytical_registry.warnings,
+            ),
+            empirical_provider,
+        )
+    )
 
 
 @lru_cache(maxsize=1)

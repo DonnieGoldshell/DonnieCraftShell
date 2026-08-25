@@ -212,9 +212,11 @@ class AnalyticalProbabilityProvider:
         self,
         rules: tuple[AnalyticalProbabilityRule, ...] = (),
         fallback_provider: ProbabilityProvider | None = None,
+        load_warnings: tuple[str, ...] = (),
     ) -> None:
         self._rules = rules
         self._fallback_provider = fallback_provider or CurrentResearchProbabilityProvider()
+        self._load_warnings = load_warnings
 
     def get_probability_model(
         self,
@@ -234,7 +236,20 @@ class AnalyticalProbabilityProvider:
         incompatibilities = _analytical_rule_incompatibilities(rule, outcome_set)
         if incompatibilities:
             return self._fallback(item, outcome_set, context, *incompatibilities)
-        return _analytical_model_from_rule(outcome_set, rule, context)
+        model = _analytical_model_from_rule(outcome_set, rule, context)
+        if not self._load_warnings:
+            return model
+        return OutcomeProbabilityModel(
+            action_id=model.action_id,
+            source_outcome_set_id=model.source_outcome_set_id,
+            outcome_probabilities=model.outcome_probabilities,
+            probability_completeness=model.probability_completeness,
+            methodology_summary=model.methodology_summary,
+            dataset_versions=model.dataset_versions,
+            provenance=model.provenance,
+            warnings=(*model.warnings, *self._load_warnings),
+            deterministic_operations=model.deterministic_operations,
+        )
 
     def _find_rule(self, outcome_set: CraftOutcomeSet) -> AnalyticalProbabilityRule | None:
         for rule in self._rules:
@@ -258,7 +273,7 @@ class AnalyticalProbabilityProvider:
             methodology_summary=model.methodology_summary,
             dataset_versions=model.dataset_versions,
             provenance=model.provenance,
-            warnings=(*model.warnings, *warnings),
+            warnings=(*model.warnings, *self._load_warnings, *warnings),
             deterministic_operations=model.deterministic_operations,
         )
 
