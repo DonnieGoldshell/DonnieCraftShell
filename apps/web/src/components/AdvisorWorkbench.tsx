@@ -24,6 +24,7 @@ import { MissingRequirements } from "./MissingRequirements";
 import { ObservationReviewPanel } from "./ObservationReviewPanel";
 import { PlayerSummary } from "./PlayerSummary";
 import { StatusBadge } from "./StatusBadge";
+import { displayStatus } from "@/lib/format";
 
 const PLACEHOLDER = `Item Class: Quivers
 Rarity: Rare
@@ -36,6 +37,8 @@ export function AdvisorWorkbench() {
   const [craftingDataset, setCraftingDataset] = useState(DEFAULT_CRAFTING_DATASET);
   const [affixDataset, setAffixDataset] = useState(DEFAULT_AFFIX_CAPACITY_DATASET);
   const [empiricalDataset, setEmpiricalDataset] = useState("");
+  const [bankroll, setBankroll] = useState("");
+  const [riskProfile, setRiskProfile] = useState("");
   const [currentObservations, setCurrentObservations] = useState<EditableManualListingObservation[]>([]);
   const [outcomeObservations, setOutcomeObservations] = useState<Record<string, EditableManualListingObservation[]>>({});
   const [analysis, setAnalysis] = useState<AdvisorAnalyzeResponse | null>(null);
@@ -56,6 +59,8 @@ export function AdvisorWorkbench() {
         crafting_dataset_version: craftingDataset,
         affix_capacity_dataset_version: affixDataset,
         empirical_probability_dataset_version: empiricalDataset.trim() || null,
+        bankroll: bankroll.trim() ? { amount: bankroll.trim(), unit: "EXALTED_ECONOMIC_UNIT" } : null,
+        risk_profile: riskProfile || null,
         current_valuation_evidence: buildManualEvidence(currentObservations),
         outcome_valuation_evidence: buildOutcomeEvidence(outcomeObservations)
       };
@@ -112,6 +117,24 @@ export function AdvisorWorkbench() {
                   placeholder="optional explicit dataset ID"
                 />
               </label>
+              <label>
+                Bankroll in Exalted units
+                <input
+                  inputMode="decimal"
+                  value={bankroll}
+                  onChange={(event) => setBankroll(event.target.value)}
+                  placeholder="optional for risk adjustment"
+                />
+              </label>
+              <label>
+                Risk profile
+                <select value={riskProfile} onChange={(event) => setRiskProfile(event.target.value)}>
+                  <option value="">Use backend default only if risk context is supplied</option>
+                  <option value="CONSERVATIVE">Conservative</option>
+                  <option value="BALANCED">Balanced</option>
+                  <option value="AGGRESSIVE">Aggressive</option>
+                </select>
+              </label>
             </div>
           </details>
           <button type="submit" disabled={loading || !clipboardText.trim()}>
@@ -124,6 +147,18 @@ export function AdvisorWorkbench() {
           {analysis ? (
             <>
               <PlayerSummary analysis={analysis} />
+              <ProductionEvidencePilotPanel
+                analysis={analysis}
+                currentObservations={currentObservations}
+                outcomeObservations={outcomeObservations}
+                selectedEmpiricalDatasetVersion={empiricalDataset}
+                bankroll={bankroll}
+                riskProfile={riskProfile}
+                onOpenEvidenceTools={(target) => {
+                  setEvidenceTarget(target ?? null);
+                  setAdvancedToolsOpen(true);
+                }}
+              />
               <EvidenceReadinessPanel
                 readiness={analysis.evidence_readiness}
                 onOpenEvidenceTools={(target) => {
@@ -183,6 +218,187 @@ export function AdvisorWorkbench() {
       </section>
     </main>
   );
+}
+
+function ProductionEvidencePilotPanel({
+  analysis,
+  currentObservations,
+  outcomeObservations,
+  selectedEmpiricalDatasetVersion,
+  bankroll,
+  riskProfile,
+  onOpenEvidenceTools
+}: {
+  analysis: AdvisorAnalyzeResponse;
+  currentObservations: EditableManualListingObservation[];
+  outcomeObservations: Record<string, EditableManualListingObservation[]>;
+  selectedEmpiricalDatasetVersion: string;
+  bankroll: string;
+  riskProfile: string;
+  onOpenEvidenceTools: (selection?: EvidenceReadinessSelection) => void;
+}) {
+  const readinessItems = analysis.evidence_readiness?.items ?? [];
+  const currentItemTarget = firstTarget(readinessItems, "CURRENT_ITEM_VALUATION");
+  const economyTarget = firstTarget(readinessItems, "ECONOMY_CRAFTING_COST");
+  const probabilityTarget = firstTarget(readinessItems, "PROBABILITY");
+  const outcomeTarget = firstTarget(readinessItems, "OUTCOME_VALUATION");
+  const currentSavedCount = currentObservations.filter((observation) => observation.evidence_id).length;
+  const outcomePreparedCount = Object.values(outcomeObservations).flat().length;
+  const outcomeSavedCount = Object.values(outcomeObservations)
+    .flat()
+    .filter((observation) => observation.evidence_id).length;
+  const totalOutcomeTargets = outcomeTarget?.outcome_ids.length ?? 0;
+  const preparedOutcomeTargets = outcomeTarget
+    ? outcomeTarget.outcome_ids.filter((outcomeId) => (outcomeObservations[outcomeId] ?? []).length > 0).length
+    : 0;
+  const summary = pilotSummary(analysis);
+
+  return (
+    <section className="panel pilot-panel" aria-label="Production evidence pilot">
+      <div className="section-heading">
+        <div>
+          <p className="eyebrow">Production evidence pilot</p>
+          <h2>{summary.title}</h2>
+          <p className="muted">{summary.description}</p>
+        </div>
+      </div>
+      <ul className="pilot-steps">
+        <PilotStep
+          title="Analyze pasted item"
+          status="READY"
+          detail={`${analysis.item?.base_type ?? "Item"} analyzed in ${analysis.context.league}.`}
+        />
+        <PilotStep
+          title="Current item valuation"
+          status={statusForCategory(readinessItems, "CURRENT_ITEM_VALUATION")}
+          detail={`${currentObservations.length} prepared for next rerun; ${currentSavedCount} saved locally.`}
+          actionLabel={currentItemTarget ? "Open current valuation workflow" : undefined}
+          onAction={currentItemTarget ? () => onOpenEvidenceTools({ target: currentItemTarget }) : undefined}
+        />
+        <PilotStep
+          title="Crafting material quote"
+          status={statusForCategory(readinessItems, "ECONOMY_CRAFTING_COST")}
+          detail="Local quote workspace evidence applies only after an explicit Advisor rerun."
+          actionLabel={economyTarget ? "Open local quote workspace" : undefined}
+          onAction={economyTarget ? () => onOpenEvidenceTools({ target: economyTarget }) : undefined}
+        />
+        <PilotStep
+          title="Probability evidence"
+          status={statusForCategory(readinessItems, "PROBABILITY")}
+          detail={
+            selectedEmpiricalDatasetVersion.trim()
+              ? `Selected for next rerun: ${selectedEmpiricalDatasetVersion.trim()}.`
+              : "No empirical dataset selected for the next rerun."
+          }
+          actionLabel={probabilityTarget ? "Open probability evidence workflow" : undefined}
+          onAction={probabilityTarget ? () => onOpenEvidenceTools({ target: probabilityTarget }) : undefined}
+        />
+        <PilotStep
+          title="Outcome valuations"
+          status={statusForCategory(readinessItems, "OUTCOME_VALUATION")}
+          detail={`${preparedOutcomeTargets}/${totalOutcomeTargets} blocked outcomes have prepared evidence; ${outcomePreparedCount} observations prepared; ${outcomeSavedCount} saved locally.`}
+          actionLabel={outcomeTarget ? "Open next outcome valuation" : undefined}
+          onAction={
+            outcomeTarget
+              ? () =>
+                  onOpenEvidenceTools({
+                    target: outcomeTarget,
+                    outcomeId: outcomeTarget.outcome_ids.find(
+                      (outcomeId) => !(outcomeObservations[outcomeId] ?? []).length
+                    ) ?? outcomeTarget.outcome_ids[0] ?? null
+                  })
+              : undefined
+          }
+        />
+        <PilotStep
+          title="Bankroll and risk context"
+          status={bankroll.trim() || riskProfile ? "READY" : "UNKNOWN"}
+          detail={
+            bankroll.trim() || riskProfile
+              ? `Next rerun includes ${bankroll.trim() ? `${bankroll.trim()} Ex bankroll` : "no bankroll"} and ${
+                  riskProfile ? displayStatus(riskProfile) : "backend default"
+                } risk profile. Risk affects risk adjustment, not raw EV.`
+              : "Optional. Add this in Advanced dataset and evidence context before rerun for risk adjustment."
+          }
+        />
+        <PilotStep
+          title="Explicit rerun"
+          status="UNKNOWN"
+          detail="Saved workspace evidence and selected dataset IDs do not affect Advisor output until you click Re-run Analysis."
+        />
+      </ul>
+    </section>
+  );
+}
+
+function PilotStep({
+  title,
+  status,
+  detail,
+  actionLabel,
+  onAction
+}: {
+  title: string;
+  status: string;
+  detail: string;
+  actionLabel?: string;
+  onAction?: () => void;
+}) {
+  return (
+    <li>
+      <div className="pilot-step-main">
+        <StatusBadge value={status} />
+        <div>
+          <strong>{title}</strong>
+          <small>{detail}</small>
+        </div>
+      </div>
+      {actionLabel && onAction && (
+        <button type="button" className="secondary-button" onClick={onAction}>
+          {actionLabel}
+        </button>
+      )}
+    </li>
+  );
+}
+
+function firstTarget(
+  items: NonNullable<AdvisorAnalyzeResponse["evidence_readiness"]>["items"],
+  category: string
+) {
+  return items.find((item) => item.category === category && item.status !== "READY")?.targets[0] ?? null;
+}
+
+function statusForCategory(
+  items: NonNullable<AdvisorAnalyzeResponse["evidence_readiness"]>["items"],
+  category: string
+): string {
+  return items.find((item) => item.category === category)?.status ?? "UNKNOWN";
+}
+
+function pilotSummary(analysis: AdvisorAnalyzeResponse): { title: string; description: string } {
+  if (analysis.status === "DECISION_READY") {
+    return {
+      title: "Decision ready - backend decision available",
+      description: "Raw and risk-adjusted decision state, when present, came back from the backend Advisor policy."
+    };
+  }
+  if (analysis.actions.some((action) => action.expected_value?.available)) {
+    return {
+      title: "EV ready - raw decision evidence exists",
+      description: "At least one action has backend EV output; inspect Advisor decision and risk adjustment separately."
+    };
+  }
+  if (analysis.status === "SCENARIO_READY") {
+    return {
+      title: "Scenario ready - EV unavailable",
+      description: "Outcome valuations can support descriptive scenario analysis, but missing inputs still block EV ranking."
+    };
+  }
+  return {
+    title: "Evidence incomplete - recommendation unavailable",
+    description: "Use the existing evidence tools, then explicitly rerun analysis. Partial and unknown states are expected."
+  };
 }
 
 function AdvancedTools({
