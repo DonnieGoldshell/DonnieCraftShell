@@ -5,10 +5,14 @@ import { StatusBadge } from "./StatusBadge";
 type EvidenceReadiness = NonNullable<AdvisorAnalyzeResponse["evidence_readiness"]>;
 type EvidenceReadinessItem = EvidenceReadiness["items"][number];
 export type EvidenceReadinessTarget = EvidenceReadinessItem["targets"][number];
+export type EvidenceReadinessSelection = {
+  target: EvidenceReadinessTarget;
+  outcomeId?: string | null;
+};
 
 type Props = {
   readiness: AdvisorAnalyzeResponse["evidence_readiness"];
-  onOpenEvidenceTools: (target?: EvidenceReadinessTarget) => void;
+  onOpenEvidenceTools: (selection?: EvidenceReadinessSelection) => void;
 };
 
 const TOOL_LABELS: Record<string, string> = {
@@ -54,11 +58,12 @@ function EvidenceReadinessRow({
   onOpenEvidenceTools
 }: {
   item: EvidenceReadinessItem;
-  onOpenEvidenceTools: (target?: EvidenceReadinessTarget) => void;
+  onOpenEvidenceTools: (selection?: EvidenceReadinessSelection) => void;
 }) {
   const actionableTarget = item.targets[0];
   const toolLabel = readinessToolLabel(item);
   const probabilityTargets = probabilityEvidenceTargets(item);
+  const outcomeValuationTargets = outcomeValuationEvidenceTargets(item);
   return (
     <li className="readiness-row">
       <div className="readiness-row-main">
@@ -86,15 +91,34 @@ function EvidenceReadinessRow({
               key={`${target.action_id}:${target.target_id}`}
               type="button"
               className="secondary-button"
-              onClick={() => onOpenEvidenceTools(target)}
+              onClick={() => onOpenEvidenceTools({ target })}
             >
               Collect probability evidence for {target.action_display_name ?? target.action_id}
             </button>
           ))}
         </div>
       )}
-      {probabilityTargets.length === 0 && toolLabel && item.status !== "READY" && actionableTarget && (
-        <button type="button" className="secondary-button" onClick={() => onOpenEvidenceTools(actionableTarget)}>
+      {outcomeValuationTargets.length > 0 && (
+        <div className="readiness-action-list">
+          {outcomeValuationTargets.map(({ target, outcomeId }) => (
+            <button
+              key={`${target.action_id}:${outcomeId}`}
+              type="button"
+              className="secondary-button"
+              onClick={() => onOpenEvidenceTools({ target, outcomeId })}
+            >
+              Add outcome valuation evidence for {target.action_display_name ?? target.action_id} outcome{" "}
+              {shortTargetId(outcomeId)}
+            </button>
+          ))}
+        </div>
+      )}
+      {probabilityTargets.length === 0 &&
+        outcomeValuationTargets.length === 0 &&
+        toolLabel &&
+        item.status !== "READY" &&
+        actionableTarget && (
+        <button type="button" className="secondary-button" onClick={() => onOpenEvidenceTools({ target: actionableTarget })}>
           {toolLabel}
         </button>
       )}
@@ -109,6 +133,17 @@ function probabilityEvidenceTargets(item: EvidenceReadinessItem): EvidenceReadin
   return item.targets.filter((target) => target.target_type === "ACTION_PROBABILITY_MODEL" && target.action_id);
 }
 
+function outcomeValuationEvidenceTargets(
+  item: EvidenceReadinessItem
+): { target: EvidenceReadinessTarget; outcomeId: string }[] {
+  if (item.evidence_tool !== "manual-outcome-valuation" || item.status === "READY") {
+    return [];
+  }
+  return item.targets
+    .filter((target) => target.target_type === "OUTCOME_VALUATION" && target.action_id)
+    .flatMap((target) => target.outcome_ids.map((outcomeId) => ({ target, outcomeId })));
+}
+
 function readinessToolLabel(item: EvidenceReadinessItem): string | null {
   if (
     item.evidence_tool === "observation-recorder-review-import" &&
@@ -117,6 +152,10 @@ function readinessToolLabel(item: EvidenceReadinessItem): string | null {
     return "Collect probability evidence";
   }
   return item.evidence_tool ? TOOL_LABELS[item.evidence_tool] : null;
+}
+
+function shortTargetId(id: string): string {
+  return id.length > 18 ? `${id.slice(0, 10)}...${id.slice(-6)}` : id;
 }
 
 function targetSummary(target: EvidenceReadinessItem["targets"][number]): string {

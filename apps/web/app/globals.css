@@ -161,6 +161,12 @@ textarea {
   color: var(--muted);
 }
 
+.readiness-action-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
 .section-heading {
   display: flex;
   align-items: center;
@@ -538,6 +544,20 @@ th {
   border-top: 1px solid var(--line);
   margin-top: 12px;
   padding-top: 12px;
+}
+
+.evidence-target-callout {
+  background: var(--accent-weak);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  display: grid;
+  gap: 6px;
+  margin: 12px 0;
+  padding: 10px;
+}
+
+.evidence-target-callout p {
+  margin: 0;
 }
 
 .compact-heading {

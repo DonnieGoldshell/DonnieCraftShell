@@ -123,6 +123,16 @@ accepted, rejected, and unreviewed counts. These counts are operator guidance
 only. Sample-size readiness, context compatibility, and whether a selected
 empirical dataset can clear the blocker remain backend/domain decisions.
 
+For outcome valuation blockers, Evidence Readiness is likewise authoritative.
+The UI may show one call-to-action per blocked outcome ID and preselect that
+target in the manual valuation workflow. It may also show compact progress such
+as blocked outcomes, saved compatible workspace evidence, still-missing
+outcomes, the currently targeted outcome, and current-item valuation readiness.
+Those counts are derived from backend/workspace state only. Saving manual
+valuation evidence is storage, not activation; the saved evidence affects
+Advisor output only when compatible evidence is explicitly submitted on a
+subsequent `/api/v1/advisor/analyze` request.
+
 ## Failure Isolation
 
 Action analysis is isolated per candidate. A failure in one action is surfaced as that action's warning and missing requirement; other actions continue through the pipeline.

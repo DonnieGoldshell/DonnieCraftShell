@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, type Dispatch, type SetStateAction, useState } from "react";
+import { FormEvent, type Dispatch, type SetStateAction, useMemo, useState } from "react";
 import {
   DEFAULT_AFFIX_CAPACITY_DATASET,
   DEFAULT_CRAFTING_DATASET,
@@ -16,7 +16,7 @@ import {
 import { ActionTable } from "./ActionTable";
 import { CraftObservationRecorderPanel } from "./CraftObservationRecorderPanel";
 import { DecisionPanel } from "./DecisionPanel";
-import { EvidenceReadinessPanel, type EvidenceReadinessTarget } from "./EvidenceReadinessPanel";
+import { EvidenceReadinessPanel, type EvidenceReadinessSelection } from "./EvidenceReadinessPanel";
 import { EconomyQuotePanel } from "./EconomyQuotePanel";
 import { ItemSummary } from "./ItemSummary";
 import { ManualValuationPanel } from "./ManualValuationPanel";
@@ -42,7 +42,7 @@ export function AdvisorWorkbench() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [advancedToolsOpen, setAdvancedToolsOpen] = useState(false);
-  const [evidenceTarget, setEvidenceTarget] = useState<EvidenceReadinessTarget | null>(null);
+  const [evidenceTarget, setEvidenceTarget] = useState<EvidenceReadinessSelection | null>(null);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -212,12 +212,25 @@ function AdvancedTools({
   setOutcomeObservations: Dispatch<SetStateAction<Record<string, EditableManualListingObservation[]>>>;
   advancedToolsOpen: boolean;
   setAdvancedToolsOpen: Dispatch<SetStateAction<boolean>>;
-  evidenceTarget: EvidenceReadinessTarget | null;
+  evidenceTarget: EvidenceReadinessSelection | null;
   selectedEmpiricalDatasetVersion: string;
   onSelectEmpiricalDataset: Dispatch<SetStateAction<string>>;
 }) {
   const targetActionId =
-    evidenceTarget?.target_type === "ACTION_PROBABILITY_MODEL" ? evidenceTarget.action_id ?? null : null;
+    evidenceTarget?.target.target_type === "ACTION_PROBABILITY_MODEL" ? evidenceTarget.target.action_id ?? null : null;
+  const outcomeValuationTarget =
+    evidenceTarget?.target.target_type === "OUTCOME_VALUATION"
+      ? {
+          actionId: evidenceTarget.target.action_id ?? null,
+          actionName: evidenceTarget.target.action_display_name ?? null,
+          outcomeId: evidenceTarget.outcomeId ?? evidenceTarget.target.outcome_ids[0] ?? null,
+          outcomeIds: evidenceTarget.target.outcome_ids
+        }
+      : null;
+  const currentValuationReadiness = useMemo(() => {
+    const item = analysis?.evidence_readiness?.items.find((readiness) => readiness.category === "CURRENT_ITEM_VALUATION");
+    return item?.status ?? null;
+  }, [analysis]);
 
   return (
     <details
@@ -242,6 +255,8 @@ function AdvancedTools({
           league={league}
           currentObservations={currentObservations}
           outcomeObservations={outcomeObservations}
+          outcomeValuationTarget={outcomeValuationTarget}
+          currentValuationReadiness={currentValuationReadiness}
           onAddCurrentObservation={(observation) =>
             setCurrentObservations((observations) => [...observations, observation])
           }
