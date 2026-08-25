@@ -1433,6 +1433,93 @@ class AdvisorApiTests(unittest.TestCase):
         self.assertEqual(exalted_after["applicability"], "NOT_APPLICABLE")
         self.assertFalse(exalted_after["missing_requirements"])
 
+    def test_first_playable_annulment_recommendation_ready_path_is_proven(self):
+        self._install_registry_backed_deterministic_dependencies()
+        initial = self.client.post("/api/v1/advisor/analyze", json=base_request()).json()
+        initial_annulment = self._action(initial, "dc:poe2:craft-action:orb-of-annulment")
+        initial_exalted = self._action(initial, "dc:poe2:craft-action:exalted-orb")
+
+        self.assertTrue(self._has_missing(initial, "CURRENT_VALUATION_EVIDENCE_REQUIRED", None))
+        self.assertTrue(self._has_missing(initial, "ECONOMY_QUOTE_REQUIRED", initial_annulment["action_id"]))
+        self.assertTrue(self._has_missing(initial, "PROBABILITY_EVIDENCE_REQUIRED", initial_annulment["action_id"]))
+        self.assertTrue(self._has_missing(initial, "OUTCOME_VALUATION_EVIDENCE_REQUIRED", initial_annulment["action_id"]))
+        self.assertFalse(initial_annulment["expected_value"]["available"])
+        self.assertEqual(initial_exalted["applicability"], "NOT_APPLICABLE")
+        self.assertFalse(initial_exalted["missing_requirements"])
+
+        missing_economy_request = base_request()
+        missing_economy_request["current_valuation_evidence"] = self._valuation_evidence("100")
+        missing_economy_request["outcome_valuation_evidence"] = [
+            {"outcome_id": outcome_id, "evidence": self._valuation_evidence("130")}
+            for outcome_id in initial_annulment["outcome_ids"]
+        ]
+        empirical_payload = self._registered_empirical_dataset_payload(initial)
+        registered = self.client.post(
+            "/api/v1/observations/empirical-datasets/register",
+            json={"dataset": empirical_payload},
+        )
+        missing_economy_request["empirical_probability_dataset_version"] = registered.json()["dataset_id"]
+        missing_economy = self.client.post("/api/v1/advisor/analyze", json=missing_economy_request).json()
+        missing_economy_annulment = self._action(missing_economy, initial_annulment["action_id"])
+
+        self.assertEqual(registered.status_code, 200)
+        self.assertFalse(missing_economy_annulment["expected_value"]["available"])
+        self.assertTrue(self._has_missing(missing_economy, "ECONOMY_QUOTE_REQUIRED", initial_annulment["action_id"]))
+        self.assertFalse(self._has_missing(missing_economy, "PROBABILITY_EVIDENCE_REQUIRED", initial_annulment["action_id"]))
+        self.assertFalse(self._has_missing(missing_economy, "OUTCOME_VALUATION_EVIDENCE_REQUIRED", initial_annulment["action_id"]))
+        self.assertNotEqual(missing_economy["decision"]["decision_type"], "CRAFT")
+
+        quote = self._save_local_annulment_quote("7.5")
+        missing_probability_request = copy.deepcopy(missing_economy_request)
+        missing_probability_request["empirical_probability_dataset_version"] = None
+        missing_probability = self.client.post("/api/v1/advisor/analyze", json=missing_probability_request).json()
+        missing_probability_annulment = self._action(missing_probability, initial_annulment["action_id"])
+
+        self.assertEqual(quote.status_code, 200)
+        self.assertFalse(missing_probability_annulment["expected_value"]["available"])
+        self.assertTrue(self._has_missing(missing_probability, "PROBABILITY_EVIDENCE_REQUIRED", initial_annulment["action_id"]))
+        self.assertFalse(self._has_missing(missing_probability, "ECONOMY_QUOTE_REQUIRED", initial_annulment["action_id"]))
+        self.assertFalse(self._has_missing(missing_probability, "OUTCOME_VALUATION_EVIDENCE_REQUIRED", initial_annulment["action_id"]))
+        self.assertNotEqual(missing_probability["decision"]["decision_type"], "CRAFT")
+
+        missing_outcome_request = copy.deepcopy(missing_economy_request)
+        missing_outcome_request["outcome_valuation_evidence"] = missing_outcome_request["outcome_valuation_evidence"][:-1]
+        missing_outcome = self.client.post("/api/v1/advisor/analyze", json=missing_outcome_request).json()
+        missing_outcome_annulment = self._action(missing_outcome, initial_annulment["action_id"])
+        outcome_readiness = self._readiness_item(missing_outcome, "OUTCOME_VALUATION")
+
+        self.assertFalse(missing_outcome_annulment["expected_value"]["available"])
+        self.assertTrue(self._has_missing(missing_outcome, "OUTCOME_VALUATION_EVIDENCE_REQUIRED", initial_annulment["action_id"]))
+        self.assertEqual(outcome_readiness["status"], "PARTIAL")
+        self.assertIn(initial_annulment["outcome_ids"][-1], outcome_readiness["targets"][0]["outcome_ids"])
+        self.assertNotEqual(missing_outcome["decision"]["decision_type"], "CRAFT")
+
+        ready_request = copy.deepcopy(missing_economy_request)
+        ready_request["bankroll"] = {"amount": "1000", "unit": "EXALTED_ECONOMIC_UNIT"}
+        ready_request["risk_profile"] = "AGGRESSIVE"
+        ready = self.client.post("/api/v1/advisor/analyze", json=ready_request).json()
+        ready_annulment = self._action(ready, initial_annulment["action_id"])
+        ready_exalted = self._action(ready, initial_exalted["action_id"])
+
+        self.assertEqual(ready["status"], "DECISION_READY")
+        self.assertEqual(ready_annulment["material_cost"]["complete"], True)
+        self.assertEqual(ready_annulment["probability"]["completeness"], "COMPLETE")
+        self.assertEqual(ready_annulment["probability"]["known_outcome_count"], ready_annulment["outcome_count"])
+        self.assertEqual(ready_annulment["scenario"]["readiness"], "EV_READY")
+        self.assertEqual(ready_annulment["scenario"]["valued_outcome_count"], ready_annulment["outcome_count"])
+        self.assertTrue(ready_annulment["expected_value"]["available"])
+        self.assertEqual(ready_annulment["expected_value"]["net_expected_value"]["amount"], "122.5000000000000000000000001")
+        self.assertEqual(ready_annulment["advisor_candidate_status"], "RANKABLE_EV")
+        self.assertEqual(ready["decision"]["decision_type"], "CRAFT")
+        self.assertEqual(ready["decision"]["selected_candidate_id"], f"advisor-candidate:craft:{initial_annulment['action_id']}")
+        self.assertEqual(ready["risk_adjusted_decision"]["decision_type"], "CRAFT")
+        self.assertFalse(self._has_missing(ready, "ECONOMY_QUOTE_REQUIRED", initial_annulment["action_id"]))
+        self.assertFalse(self._has_missing(ready, "PROBABILITY_EVIDENCE_REQUIRED", initial_annulment["action_id"]))
+        self.assertFalse(self._has_missing(ready, "OUTCOME_VALUATION_EVIDENCE_REQUIRED", initial_annulment["action_id"]))
+        self.assertFalse(self._has_missing(ready, "VERIFIED_MECHANIC_REQUIRED", initial_annulment["action_id"]))
+        self.assertEqual(ready_exalted["applicability"], "NOT_APPLICABLE")
+        self.assertFalse(ready_exalted["missing_requirements"])
+
     def test_unknown_empirical_dataset_selection_surfaces_warning_not_fallback(self):
         self._install_registry_backed_deterministic_dependencies()
         request = base_request()
@@ -2212,6 +2299,28 @@ class AdvisorApiTests(unittest.TestCase):
 
     def _readiness_item(self, body: dict, category: str) -> dict:
         return next(item for item in body["evidence_readiness"]["items"] if item["category"] == category)
+
+    def _has_missing(self, body: dict, requirement_type: str, action_id: str | None) -> bool:
+        return any(
+            requirement["type"] == requirement_type and requirement.get("action_id") == action_id
+            for requirement in body["missing_requirements"]
+        )
+
+    def _save_local_annulment_quote(self, amount: str):
+        return self.client.post(
+            "/api/v1/advisor/economy-quotes/workspace/quotes",
+            json={
+                "record": {
+                    "evidence_id": f"local-annulment-{amount}",
+                    "league": LEAGUE,
+                    "asset_id": "dc:poe2:economy-asset:currency:orb-of-annulment",
+                    "amount": amount,
+                    "currency_asset_id": "dc:poe2:economy-asset:currency:exalted-orb",
+                    "observed_at": AS_OF,
+                    "source_type": "MANUAL_RESEARCH",
+                }
+            },
+        )
 
     def _manual_workspace_record_to_observation(self, record: dict) -> dict:
         return {
