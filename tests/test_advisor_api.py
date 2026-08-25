@@ -1336,6 +1336,103 @@ class AdvisorApiTests(unittest.TestCase):
         self.assertEqual(selected_exalted["applicability"], "NOT_APPLICABLE")
         self.assertFalse(selected_exalted["missing_requirements"])
 
+    def test_first_playable_outcome_valuation_workspace_requires_explicit_rerun_selection(self):
+        self._install_registry_backed_deterministic_dependencies()
+        initial = self.client.post("/api/v1/advisor/analyze", json=base_request()).json()
+        payload = self._registered_empirical_dataset_payload(initial)
+        self.client.post("/api/v1/observations/empirical-datasets/register", json={"dataset": payload})
+        selected_request = base_request()
+        selected_request["empirical_probability_dataset_version"] = payload["dataset_id"]
+        selected_request["current_valuation_evidence"] = self._valuation_evidence("100")
+        before_save = self.client.post("/api/v1/advisor/analyze", json=selected_request).json()
+        annulment_before = self._action(before_save, "dc:poe2:craft-action:orb-of-annulment")
+        outcome_id = annulment_before["outcome_ids"][0]
+
+        self.assertEqual(annulment_before["probability"]["completeness"], "COMPLETE")
+        self.assertEqual(annulment_before["scenario"]["valued_outcome_count"], 0)
+        readiness_before = self._readiness_item(before_save, "OUTCOME_VALUATION")
+        self.assertIn(outcome_id, readiness_before["targets"][0]["outcome_ids"])
+
+        preview = self.client.post(
+            "/api/v1/advisor/manual-valuation/preview",
+            json={
+                "subject_id": f"outcome:{outcome_id}",
+                "subject_type": "HYPOTHETICAL_OUTCOME",
+                "outcome_id": outcome_id,
+                "league": LEAGUE,
+                "as_of": AS_OF,
+                "evidence": self._valuation_evidence("110"),
+            },
+        )
+        saved = self.client.post(
+            "/api/v1/advisor/manual-valuation/workspace/evidence",
+            json={
+                "record": self._manual_workspace_record(
+                    evidence_id="first-playable-outcome-listing",
+                    subject_id=f"outcome:{outcome_id}",
+                    subject_type="HYPOTHETICAL_OUTCOME",
+                    outcome_id=outcome_id,
+                    amount="110",
+                    external_listing_id="first-playable-outcome-listing",
+                )
+            },
+        )
+        without_explicit_evidence = self.client.post("/api/v1/advisor/analyze", json=selected_request).json()
+        without_explicit_annulment = self._action(without_explicit_evidence, "dc:poe2:craft-action:orb-of-annulment")
+        listed = self.client.get(
+            "/api/v1/advisor/manual-valuation/workspace/evidence",
+            params={"subject_id": f"outcome:{outcome_id}"},
+        ).json()
+
+        rerun_request = copy.deepcopy(selected_request)
+        rerun_request["outcome_valuation_evidence"] = [
+            {
+                "outcome_id": outcome_id,
+                "evidence": {
+                    "strategy": "STRICT",
+                    "observations": [
+                        self._manual_workspace_record_to_observation(record)
+                        for record in listed["records"]
+                    ],
+                    "notes": "Synthetic test-only saved outcome valuation evidence submitted explicitly.",
+                },
+            }
+        ]
+        after_rerun = self.client.post("/api/v1/advisor/analyze", json=rerun_request).json()
+        annulment_after = self._action(after_rerun, "dc:poe2:craft-action:orb-of-annulment")
+        exalted_after = self._action(after_rerun, "dc:poe2:craft-action:exalted-orb")
+        readiness_after = self._readiness_item(after_rerun, "OUTCOME_VALUATION")
+
+        self.assertEqual(preview.status_code, 200)
+        self.assertEqual(saved.status_code, 200)
+        self.assertEqual(saved.json()["record"]["subject_id"], f"outcome:{outcome_id}")
+        self.assertEqual(without_explicit_annulment["scenario"]["valued_outcome_count"], 0)
+        self.assertTrue(
+            any(
+                requirement["type"] == "OUTCOME_VALUATION_REQUIRED"
+                and requirement["action_id"] == annulment_before["action_id"]
+                for requirement in without_explicit_evidence["missing_requirements"]
+            )
+            or any(
+                requirement["type"] == "OUTCOME_VALUATION_EVIDENCE_REQUIRED"
+                and requirement["action_id"] == annulment_before["action_id"]
+                for requirement in without_explicit_evidence["missing_requirements"]
+            )
+        )
+        self.assertTrue(
+            any(
+                requirement["type"] == "OUTCOME_VALUATION_EVIDENCE_REQUIRED"
+                and requirement["action_id"] == annulment_after["action_id"]
+                and "1/6" in requirement["reason"]
+                for requirement in after_rerun["missing_requirements"]
+            )
+        )
+        self.assertEqual(readiness_after["status"], "PARTIAL")
+        self.assertNotIn(outcome_id, readiness_after["targets"][0]["outcome_ids"])
+        self.assertIn(annulment_after["outcome_ids"][1], readiness_after["targets"][0]["outcome_ids"])
+        self.assertEqual(exalted_after["applicability"], "NOT_APPLICABLE")
+        self.assertFalse(exalted_after["missing_requirements"])
+
     def test_unknown_empirical_dataset_selection_surfaces_warning_not_fallback(self):
         self._install_registry_backed_deterministic_dependencies()
         request = base_request()
@@ -2112,6 +2209,19 @@ class AdvisorApiTests(unittest.TestCase):
 
     def _action(self, body: dict, action_id: str) -> dict:
         return next(action for action in body["actions"] if action["action_id"] == action_id)
+
+    def _readiness_item(self, body: dict, category: str) -> dict:
+        return next(item for item in body["evidence_readiness"]["items"] if item["category"] == category)
+
+    def _manual_workspace_record_to_observation(self, record: dict) -> dict:
+        return {
+            "amount": record["amount"],
+            "currency_asset_id": record["currency_asset_id"],
+            "external_listing_id": record.get("external_listing_id"),
+            "observed_at": record.get("observed_at"),
+            "item_summary": record.get("item_summary"),
+            "notes": record.get("notes"),
+        }
 
     def _registered_empirical_dataset_payload(self, analysis_body: dict) -> dict:
         annulment = self._action(analysis_body, "dc:poe2:craft-action:orb-of-annulment")

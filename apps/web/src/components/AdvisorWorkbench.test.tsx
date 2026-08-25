@@ -997,6 +997,135 @@ describe("AdvisorWorkbench", () => {
     ]);
   });
 
+  it("targets outcome valuation readiness blockers without auto-submitting saved evidence", async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => quiverResponse
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () =>
+          manualPreviewResponse({
+            subject_id: "outcome:outcome-2",
+            subject_type: "HYPOTHETICAL_OUTCOME",
+            outcome_id: "outcome-2",
+            evidence_set_id: "manual-preview-outcome-2",
+            estimated_value: { amount: "110", unit: "EXALTED_ECONOMIC_UNIT" },
+            plausible_low: { amount: "110", unit: "EXALTED_ECONOMIC_UNIT" },
+            plausible_high: { amount: "110", unit: "EXALTED_ECONOMIC_UNIT" }
+          })
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          workspace_version: "dc-manual-valuation-workspace-v1",
+          status: "SAVED",
+          evidence_id: "persisted-outcome-2",
+          record: {
+            evidence_id: "persisted-outcome-2",
+            subject_id: "outcome:outcome-2",
+            subject_type: "HYPOTHETICAL_OUTCOME",
+            outcome_id: "outcome-2",
+            league: DEFAULT_LEAGUE,
+            strategy: "STRICT",
+            amount: "110",
+            currency_asset_id: EXALTED_ASSET_ID,
+            external_listing_id: "outcome-2-listing",
+            observed_at: "2026-08-13T10:00:00Z",
+            item_summary: "synthetic targeted outcome comparable",
+            notes: "synthetic test-only outcome valuation evidence",
+            created_at: "2026-08-13T10:00:00Z",
+            updated_at: "2026-08-13T10:00:00Z"
+          },
+          persistence: {
+            storage_version: "dc-manual-valuation-workspace-storage-v1",
+            storage_mode: "FILE",
+            persistence_enabled: true,
+            loaded_record_count: 1,
+            skipped_record_count: 0,
+            warnings: []
+          },
+          warnings: []
+        })
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => valuedQuiverResponse
+      });
+    vi.stubGlobal("fetch", fetchMock);
+    const user = userEvent.setup();
+
+    render(<AdvisorWorkbench />);
+    await user.type(screen.getByLabelText(/clipboard item text/i), "Item Class: Quivers\nRarity: Rare");
+    await user.click(screen.getByRole("button", { name: /analyze quiver/i }));
+    await screen.findByText("Primed Quiver");
+
+    const outcomeButtons = screen.getAllByRole("button", {
+      name: /add outcome valuation evidence for orb of annulment outcome/i
+    });
+    expect(outcomeButtons).toHaveLength(6);
+    expect(
+      screen.queryByRole("button", { name: /add outcome valuation evidence for exalted orb outcome/i })
+    ).not.toBeInTheDocument();
+
+    await user.click(outcomeButtons[1]);
+    await waitFor(() => expect(screen.getByLabelText(/^Outcome ID$/i)).toHaveValue("outcome-2"));
+    expect(screen.getByLabelText(/evidence subject/i)).toHaveValue("outcome");
+    expect(screen.getByLabelText("Targeted outcome valuation progress")).toHaveTextContent(
+      "0/6 blocked outcomes have saved local evidence"
+    );
+    expect(screen.getByLabelText("Targeted outcome valuation progress")).toHaveTextContent(
+      "Current item valuation: Missing"
+    );
+
+    await user.clear(screen.getByLabelText(/listing amount/i));
+    await user.type(screen.getByLabelText(/listing amount/i), "110");
+    await user.selectOptions(screen.getAllByLabelText(/^currency$/i)[0], EXALTED_ASSET_ID);
+    await user.type(screen.getByLabelText(/listing id/i), "outcome-2-listing");
+    await user.type(screen.getByLabelText(/evidence notes/i), "synthetic test-only outcome valuation evidence");
+    await user.click(screen.getByRole("button", { name: /add observation/i }));
+    await user.click(screen.getByRole("button", { name: /preview valuation evidence/i }));
+    expect(await screen.findByText("Outcome outcome-2 Valuation")).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: /save subject evidence/i }));
+    expect(await screen.findByText(/saved 1 observation locally/i)).toBeInTheDocument();
+    expect(screen.getByLabelText("Targeted outcome valuation progress")).toHaveTextContent(
+      "1/6 blocked outcomes have saved local evidence"
+    );
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+    expect(screen.getByText("Analysis Partial")).toBeInTheDocument();
+    expect(screen.queryByText("Scenario Ready")).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: /re-run analysis/i }));
+    await screen.findByText("Scenario Ready");
+    const previewBody = JSON.parse(fetchMock.mock.calls[1][1].body as string);
+    const saveBody = JSON.parse(fetchMock.mock.calls[2][1].body as string);
+    const rerunBody = JSON.parse(fetchMock.mock.calls[3][1].body as string);
+    expect(previewBody).toEqual(expect.objectContaining({ subject_id: "outcome:outcome-2", outcome_id: "outcome-2" }));
+    expect(saveBody.record).toEqual(
+      expect.objectContaining({ subject_id: "outcome:outcome-2", outcome_id: "outcome-2" })
+    );
+    expect(rerunBody.outcome_valuation_evidence).toEqual([
+      {
+        outcome_id: "outcome-2",
+        evidence: {
+          strategy: "STRICT",
+          notes: "User-entered manual outcome comparable listing evidence.",
+          observations: [
+            expect.objectContaining({
+              amount: "110",
+              currency_asset_id: EXALTED_ASSET_ID,
+              external_listing_id: "outcome-2-listing"
+            })
+          ]
+        }
+      }
+    ]);
+    expect(JSON.stringify(rerunBody)).not.toContain("persisted-outcome-2");
+  });
+
   it("previews outcome manual valuation evidence without leaking it to the current item subject", async () => {
     const fetchMock = vi
       .fn()

@@ -103,6 +103,14 @@ warnings. The preview uses the same manual provider and aggregation path as
 Advisor analysis. It does not scrape Trade, fabricate prices, or accept a final
 price override.
 
+For `HYPOTHETICAL_OUTCOME` subjects, the `subject_id` must be
+`outcome:{outcome_id}`. Persisted workspace evidence remains inactive until it
+is submitted as `outcome_valuation_evidence` in a later
+`POST /api/v1/advisor/analyze` request. The response's
+`evidence_readiness.items[].targets[].outcome_ids` list is the authoritative set
+of still-blocked outcomes; clients should not create outcome valuation CTAs for
+non-authoritative or non-applicable actions.
+
 ## Empirical Probability Evidence
 
 `empirical_probability_dataset_version` selects an explicitly registered or

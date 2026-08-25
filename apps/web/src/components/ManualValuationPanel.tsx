@@ -1,4 +1,4 @@
-import { FormEvent, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useState } from "react";
 import {
   DIVINE_ASSET_ID,
   EXALTED_ASSET_ID,
@@ -26,6 +26,13 @@ type Props = {
   league: string;
   currentObservations: EditableManualListingObservation[];
   outcomeObservations: Record<string, EditableManualListingObservation[]>;
+  outcomeValuationTarget?: {
+    actionId: string | null;
+    actionName: string | null;
+    outcomeId: string | null;
+    outcomeIds: string[];
+  } | null;
+  currentValuationReadiness?: string | null;
   onAddCurrentObservation: (observation: EditableManualListingObservation) => void;
   onAddOutcomeObservation: (outcomeId: string, observation: EditableManualListingObservation) => void;
   onUpdateCurrentObservation: (index: number, observation: EditableManualListingObservation) => void;
@@ -57,6 +64,8 @@ export function ManualValuationPanel({
   league,
   currentObservations,
   outcomeObservations,
+  outcomeValuationTarget,
+  currentValuationReadiness,
   onAddCurrentObservation,
   onAddOutcomeObservation,
   onUpdateCurrentObservation,
@@ -87,6 +96,23 @@ export function ManualValuationPanel({
   const [previewBusy, setPreviewBusy] = useState(false);
   const [persistenceStatus, setPersistenceStatus] = useState<string | null>(null);
   const [persistenceBusy, setPersistenceBusy] = useState(false);
+  const targetedOutcomeIsAvailable = Boolean(
+    outcomeValuationTarget?.outcomeId &&
+      outcomeOptions.some((option) => option.outcomeId === outcomeValuationTarget.outcomeId)
+  );
+  const targetedOutcomeProgress = useMemo(
+    () => buildOutcomeProgress(outcomeValuationTarget, outcomeObservations),
+    [outcomeValuationTarget, outcomeObservations]
+  );
+
+  useEffect(() => {
+    if (targetedOutcomeIsAvailable && outcomeValuationTarget?.outcomeId) {
+      setTarget("outcome");
+      setOutcomeId(outcomeValuationTarget.outcomeId);
+      setError(null);
+      setPreview(null);
+    }
+  }, [outcomeValuationTarget?.outcomeId, targetedOutcomeIsAvailable]);
 
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -259,6 +285,31 @@ export function ManualValuationPanel({
         Enter comparable listing observations only. The API converts and aggregates evidence; listing-derived
         estimates are not guaranteed sale prices.
       </p>
+      {outcomeValuationTarget && (
+        <div className="evidence-target-callout" aria-label="Targeted outcome valuation progress">
+          <strong>
+            Targeted outcome evidence
+            {outcomeValuationTarget.actionName ? `: ${outcomeValuationTarget.actionName}` : ""}
+          </strong>
+          {targetedOutcomeIsAvailable && outcomeValuationTarget.outcomeId ? (
+            <p>
+              Outcome {shortId(outcomeValuationTarget.outcomeId)} selected. {targetedOutcomeProgress.saved}/
+              {targetedOutcomeProgress.total} blocked outcomes have saved local evidence;{" "}
+              {targetedOutcomeProgress.missing} still need outcome valuation evidence. Current item valuation:{" "}
+              {currentValuationReadiness ? titleCase(currentValuationReadiness) : "Unknown"}.
+            </p>
+          ) : (
+            <p>
+              The selected readiness target is no longer present in the current analysis. Re-run analysis before saving
+              outcome evidence for it.
+            </p>
+          )}
+          <small>
+            Preview and save are explicit steps. Saved manual evidence is still inactive until it is submitted with a
+            deliberate Advisor rerun.
+          </small>
+        </div>
+      )}
       <form className="evidence-form" onSubmit={submit}>
         <label>
           Evidence subject
@@ -613,4 +664,24 @@ function titleCase(value: string): string {
 
 function shortId(id: string): string {
   return id.length > 18 ? `${id.slice(0, 10)}...${id.slice(-6)}` : id;
+}
+
+function buildOutcomeProgress(
+  target:
+    | {
+        outcomeIds: string[];
+      }
+    | null
+    | undefined,
+  outcomeObservations: Record<string, EditableManualListingObservation[]>
+): { total: number; saved: number; missing: number } {
+  const outcomeIds = target?.outcomeIds ?? [];
+  const saved = outcomeIds.filter((outcomeId) =>
+    (outcomeObservations[outcomeId] ?? []).some((observation) => Boolean(observation.evidence_id))
+  ).length;
+  return {
+    total: outcomeIds.length,
+    saved,
+    missing: Math.max(outcomeIds.length - saved, 0)
+  };
 }

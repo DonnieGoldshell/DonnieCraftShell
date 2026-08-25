@@ -82,3 +82,19 @@ Unconvertible observations remain in the evidence set and reduce readiness; they
 ## Local Evidence Workspace
 
 Manual comparable observations can be persisted locally through the Task 19B manual valuation workspace. The workspace is backup-friendly JSON under `.dcs/` by default, partitioned by canonical subject identity, and deliberately separate from Advisor submission. Loading persisted evidence into the Manual Valuation panel does not submit it to Advisor until the operator explicitly runs analysis. Details: [MANUAL_VALUATION_WORKSPACE.md](MANUAL_VALUATION_WORKSPACE.md).
+
+## Outcome-Valuation Blockers
+
+Task 25 makes outcome valuation evidence operational from the First Playable UI. `OUTCOME_VALUATION_EVIDENCE_REQUIRED` readiness targets are authoritative: the UI opens the Manual Valuation panel for the exact blocked action/outcome ID supplied by the backend, not for a guessed modifier or display name.
+
+The workflow remains explicit:
+
+```text
+blocked outcome target
+-> add manual comparable rows for that outcome
+-> preview through backend valuation aggregation
+-> save to the local manual valuation workspace
+-> explicitly re-run Advisor analysis with the selected outcome evidence
+```
+
+Saving workspace evidence does not activate it, rerun analysis, or copy it to any other outcome. On rerun, only compatible submitted outcome evidence can reduce the backend-reported missing outcome list; partial coverage remains partial.
