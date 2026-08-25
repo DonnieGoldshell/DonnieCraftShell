@@ -58,6 +58,7 @@ function EvidenceReadinessRow({
 }) {
   const actionableTarget = item.targets[0];
   const toolLabel = readinessToolLabel(item);
+  const probabilityTargets = probabilityEvidenceTargets(item);
   return (
     <li className="readiness-row">
       <div className="readiness-row-main">
@@ -78,13 +79,34 @@ function EvidenceReadinessRow({
           {item.targets.length > 4 && <li className="muted">+{item.targets.length - 4} more targets in diagnostics</li>}
         </ul>
       )}
-      {toolLabel && item.status !== "READY" && actionableTarget && (
+      {probabilityTargets.length > 0 && (
+        <div className="readiness-action-list">
+          {probabilityTargets.map((target) => (
+            <button
+              key={`${target.action_id}:${target.target_id}`}
+              type="button"
+              className="secondary-button"
+              onClick={() => onOpenEvidenceTools(target)}
+            >
+              Collect probability evidence for {target.action_display_name ?? target.action_id}
+            </button>
+          ))}
+        </div>
+      )}
+      {probabilityTargets.length === 0 && toolLabel && item.status !== "READY" && actionableTarget && (
         <button type="button" className="secondary-button" onClick={() => onOpenEvidenceTools(actionableTarget)}>
           {toolLabel}
         </button>
       )}
     </li>
   );
+}
+
+function probabilityEvidenceTargets(item: EvidenceReadinessItem): EvidenceReadinessTarget[] {
+  if (item.evidence_tool !== "observation-recorder-review-import" || item.status === "READY") {
+    return [];
+  }
+  return item.targets.filter((target) => target.target_type === "ACTION_PROBABILITY_MODEL" && target.action_id);
 }
 
 function readinessToolLabel(item: EvidenceReadinessItem): string | null {

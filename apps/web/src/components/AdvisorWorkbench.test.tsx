@@ -367,6 +367,71 @@ const empiricalQuiverResponse: AdvisorAnalyzeResponse = {
   )
 };
 
+const multiProbabilityTargetResponse: AdvisorAnalyzeResponse = {
+  ...quiverResponse,
+  actions: [
+    quiverResponse.actions[0],
+    {
+      ...quiverResponse.actions[0],
+      action_id: "dc:poe2:craft-action:omen-greater-annulment-orb-of-annulment",
+      display_name: "Greater Annulment",
+      required_materials: [
+        { asset_id: "dc:poe2:economy-asset:currency:orb-of-annulment", quantity: "1" },
+        { asset_id: "dc:poe2:economy-asset:ritual:omen-of-greater-annulment", quantity: "1" }
+      ],
+      outcome_ids: ["greater-outcome-1", "greater-outcome-2"],
+      outcome_count: 2,
+      probability: {
+        ...quiverResponse.actions[0].probability!,
+        source_outcome_set_id: "outcome-set:greater-annulment",
+        outcome_count: 2,
+        outcome_probabilities: []
+      },
+      missing_requirements: [
+        {
+          type: "PROBABILITY_EVIDENCE_REQUIRED",
+          action_id: "dc:poe2:craft-action:omen-greater-annulment-orb-of-annulment",
+          blocks: ["EXPECTED_VALUE", "ADVISOR_RANKING"],
+          reason: "No source-backed numeric probability model is available."
+        }
+      ]
+    },
+    quiverResponse.actions[1]
+  ],
+  evidence_readiness: {
+    ...quiverResponse.evidence_readiness!,
+    items: quiverResponse.evidence_readiness!.items.map((item) =>
+      item.category === "PROBABILITY"
+        ? {
+            ...item,
+            summary: "2 action probability models need evidence.",
+            targets: [
+              item.targets[0],
+              {
+                target_type: "ACTION_PROBABILITY_MODEL",
+                target_id: "outcome-set:greater-annulment",
+                action_id: "dc:poe2:craft-action:omen-greater-annulment-orb-of-annulment",
+                action_display_name: "Greater Annulment",
+                outcome_ids: ["greater-outcome-1", "greater-outcome-2"],
+                reason: "Greater Annulment probability model is UNKNOWN with 2 unknown outcome probabilities.",
+                blocks: ["Expected Value"]
+              }
+            ]
+          }
+        : item
+    )
+  },
+  missing_requirements: [
+    ...quiverResponse.missing_requirements,
+    {
+      type: "PROBABILITY_EVIDENCE_REQUIRED",
+      action_id: "dc:poe2:craft-action:omen-greater-annulment-orb-of-annulment",
+      blocks: ["EXPECTED_VALUE", "ADVISOR_RANKING"],
+      reason: "No source-backed numeric probability model is available."
+    }
+  ]
+};
+
 function manualPreviewResponse(
   overrides: Partial<ManualValuationPreviewResponse> = {}
 ): ManualValuationPreviewResponse {
@@ -477,6 +542,41 @@ describe("AdvisorWorkbench", () => {
 
     expect(screen.getByText(/listing-derived estimates are not guaranteed sale prices/i)).toBeVisible();
     expect(screen.getByRole("button", { name: /add observation/i })).toBeVisible();
+  });
+
+  it("opens probability collection per authoritative blocked action target only", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => multiProbabilityTargetResponse
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    const user = userEvent.setup();
+
+    render(<AdvisorWorkbench />);
+    await user.type(screen.getByLabelText(/clipboard item text/i), "Item Class: Quivers\nRarity: Rare");
+    await user.click(screen.getByRole("button", { name: /analyze quiver/i }));
+
+    expect(await screen.findByText("Primed Quiver")).toBeInTheDocument();
+    expect(screen.getAllByRole("button", { name: /collect probability evidence for/i })).toHaveLength(2);
+    expect(screen.getByRole("button", { name: /collect probability evidence for orb of annulment/i })).toBeVisible();
+    expect(screen.getByRole("button", { name: /collect probability evidence for greater annulment/i })).toBeVisible();
+    expect(screen.queryByRole("button", { name: /collect probability evidence for exalted orb/i })).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: /collect probability evidence for greater annulment/i }));
+    expect(await screen.findByText("Craft Observation Recorder")).toBeInTheDocument();
+    expect(screen.getByText(/targeted from evidence readiness: collect probability evidence for greater annulment/i)).toBeVisible();
+    expect((screen.getByLabelText(/craft action/i) as HTMLSelectElement).value).toBe(
+      "dc:poe2:craft-action:omen-greater-annulment-orb-of-annulment"
+    );
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+
+    await user.click(screen.getByRole("button", { name: /collect probability evidence for orb of annulment/i }));
+    expect(screen.getByText(/targeted from evidence readiness: collect probability evidence for orb of annulment/i)).toBeVisible();
+    expect((screen.getByLabelText(/craft action/i) as HTMLSelectElement).value).toBe(
+      "dc:poe2:craft-action:orb-of-annulment"
+    );
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect((screen.getByLabelText(/empirical evidence dataset/i) as HTMLInputElement).value).toBe("");
   });
 
   it("opens local economy quote workflow from readiness without rerunning analysis on save", async () => {
