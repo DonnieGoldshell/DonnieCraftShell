@@ -40,6 +40,7 @@ A manual observation preserves:
 - observed timestamp,
 - optional listing ID,
 - item summary,
+- optional comparable Advanced Copy text and parsed comparable item state,
 - provenance/warnings.
 
 Examples such as `5 Divine` or `2400 Exalted` can be normalized only when EconomyRepository has a usable quote or identity conversion. Invalid or unconvertible currency remains unavailable, not zero.
@@ -78,6 +79,8 @@ Comparable evidence is not valuation. Listing price is not realized sale price.
 Manual observations should include warnings when synthetic/test-only, stale, duplicated, unconvertible, or otherwise questionable. Task 10C aggregation may produce a listing-derived estimate from usable normalized manual observations, but it still does not infer completed-sale value or expected sale price.
 
 Unconvertible observations remain in the evidence set and reduce readiness; they are never treated as zero.
+
+Price-only observations remain supported for backwards compatibility. They are useful market notes, but they are not structurally verified comparables. Operators should paste the comparable item's Advanced Copy text when available so DonnieCraftShell can parse and retain item class, base, item level, affixes, special states, and other parser-supported item semantics beside the asking price.
 
 ## Local Evidence Workspace
 

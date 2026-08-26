@@ -606,6 +606,7 @@ export interface components {
         ComparableResultPreviewDto: {
             /** Comparable Id */
             comparable_id: string;
+            comparable_item?: components["schemas"]["StructuredComparableItemDto"] | null;
             /** Economy Freshness */
             economy_freshness: string;
             /** Economy Snapshot Id */
@@ -1193,6 +1194,9 @@ export interface components {
              * @description Decimal listing amount encoded as string.
              */
             amount: string;
+            /** Comparable Clipboard Text */
+            comparable_clipboard_text?: string | null;
+            comparable_item?: components["schemas"]["StructuredComparableItemDto"] | null;
             /** Currency Asset Id */
             currency_asset_id: string;
             /** External Listing Id */
@@ -1349,6 +1353,9 @@ export interface components {
              * @description Decimal listing amount encoded as string.
              */
             amount: string;
+            /** Comparable Clipboard Text */
+            comparable_clipboard_text?: string | null;
+            comparable_item?: components["schemas"]["StructuredComparableItemDto"] | null;
             /** Created At */
             created_at?: string | null;
             /** Currency Asset Id */
@@ -1963,6 +1970,27 @@ export interface components {
              */
             valued_outcome_count: number;
             worst_valuated_outcome?: components["schemas"]["EconomicValueDto"] | null;
+        };
+        /** StructuredComparableItemDto */
+        StructuredComparableItemDto: {
+            /** Detected Format */
+            detected_format: string;
+            /** Item */
+            item: {
+                [key: string]: unknown;
+            };
+            /** Raw Clipboard Text */
+            raw_clipboard_text: string;
+            /**
+             * Unparsed Sections
+             * @default []
+             */
+            unparsed_sections: string[];
+            /**
+             * Warnings
+             * @default []
+             */
+            warnings: string[];
         };
         /** ValidationError */
         ValidationError: {

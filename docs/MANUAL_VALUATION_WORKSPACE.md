@@ -26,11 +26,15 @@ Each record preserves:
 - optional `external_listing_id`
 - optional `observed_at`
 - optional `item_summary`
+- optional `comparable_clipboard_text`
+- optional `comparable_item` parsed from the comparable Advanced Copy text
 - optional `notes`
 - `created_at`
 - `updated_at`
 
 Listing prices remain manual listing observations. They are not realized sale prices.
+
+`comparable_clipboard_text` is the raw Advanced Copy evidence supplied by the operator. `comparable_item` is the parser-derived structured item state stored with the market observation. The API parses this field before save/update; the repository rejects raw comparable text that lacks parsed item state. Price-only records remain allowed, but they are not structurally verified comparable evidence.
 
 ## Persistence
 
@@ -66,3 +70,5 @@ These endpoints never read arbitrary filesystem paths and never call external tr
 ## Frontend Workflow
 
 The Manual Valuation panel can load, save, update, remove, and clear persisted evidence for the currently selected subject. Evidence is submitted to Advisor only when the user runs analysis. Persisted evidence alone is intentionally not enough to produce valuation readiness or Advisor ranking.
+
+The panel also accepts comparable Advanced Copy text. Preview/save shows the parsed comparable item state so an operator can confirm item class, base, item level, and modifier structure without replacing or rerunning analysis for the current item.

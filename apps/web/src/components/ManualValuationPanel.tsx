@@ -56,6 +56,7 @@ const emptyObservation = {
   external_listing_id: "",
   observed_at: "",
   item_summary: "",
+  comparable_clipboard_text: "",
   notes: ""
 };
 
@@ -136,6 +137,7 @@ export const ManualValuationPanel = forwardRef<HTMLElement, Props>(function Manu
       external_listing_id: optionalText(draft.external_listing_id),
       observed_at: optionalText(draft.observed_at),
       item_summary: optionalText(draft.item_summary),
+      comparable_clipboard_text: optionalText(draft.comparable_clipboard_text),
       notes: optionalText(draft.notes)
     };
     if (target === "current") {
@@ -383,6 +385,15 @@ export const ManualValuationPanel = forwardRef<HTMLElement, Props>(function Manu
           />
         </label>
         <label className="wide-field">
+          Comparable Advanced Copy
+          <textarea
+            value={draft.comparable_clipboard_text}
+            onChange={(event) => setDraft({ ...draft, comparable_clipboard_text: event.target.value })}
+            placeholder="optional full Advanced Copy text from the comparable listing"
+            rows={7}
+          />
+        </label>
+        <label className="wide-field">
           Evidence notes
           <input
             value={draft.notes}
@@ -502,6 +513,13 @@ function EvidenceList({
                 {[observation.observed_at, observation.item_summary, observation.notes].filter(Boolean).join(" · ") ||
                   "manual observation"}
               </small>
+              {observation.comparable_item ? (
+                <ComparableItemSummary comparable={observation.comparable_item} />
+              ) : observation.comparable_clipboard_text ? (
+                <small>Comparable item text attached; preview or save parses and verifies the structured item state.</small>
+              ) : (
+                <small>Price-only evidence; not structurally verified against parsed comparable item state.</small>
+              )}
             </li>
           ))}
         </ul>
@@ -553,12 +571,34 @@ function ValuationPreview({ preview }: { preview: ManualValuationPreviewResponse
                 {result.listing_price} {currencyLabel(result.listing_currency_asset_id)}
               </span>
               <strong>{result.normalized_value ? formatEconomicValue(result.normalized_value) : "Unconvertible"}</strong>
+              {result.comparable_item && <ComparableItemSummary comparable={result.comparable_item} />}
               {result.warnings.length > 0 && <small>{result.warnings.join(" ")}</small>}
             </li>
           ))}
         </ul>
       )}
       {preview.warnings.length > 0 && <p className="muted">{preview.warnings.join(" ")}</p>}
+    </div>
+  );
+}
+
+type StructuredComparableItem = NonNullable<ManualListingObservation["comparable_item"]>;
+
+function ComparableItemSummary({ comparable }: { comparable: StructuredComparableItem }) {
+  const item = comparable.item;
+  const explicitCount =
+    ((item.prefixes as unknown[] | undefined)?.length ?? 0) + ((item.suffixes as unknown[] | undefined)?.length ?? 0);
+  return (
+    <div className="comparable-item-summary" aria-label="Parsed comparable item state">
+      <strong>
+        {[item.item_name, item.base_type].filter(Boolean).join(", ") || "Parsed comparable item"}
+      </strong>
+      <small>
+        {[item.rarity, item.item_class, item.item_level ? `ilvl ${item.item_level}` : null, `${explicitCount} explicit modifiers`]
+          .filter(Boolean)
+          .join(" · ")}
+      </small>
+      {comparable.warnings.length > 0 && <small>{comparable.warnings.join(" ")}</small>}
     </div>
   );
 }
@@ -580,6 +620,8 @@ function workspaceRecordToObservation(record: ManualValuationWorkspaceRecord): E
     external_listing_id: record.external_listing_id,
     observed_at: record.observed_at,
     item_summary: record.item_summary,
+    comparable_clipboard_text: record.comparable_clipboard_text,
+    comparable_item: record.comparable_item,
     notes: record.notes
   };
 }
@@ -602,6 +644,8 @@ function observationToWorkspaceRecord(
     external_listing_id: observation.external_listing_id ?? null,
     observed_at: observation.observed_at ?? null,
     item_summary: observation.item_summary ?? null,
+    comparable_clipboard_text: observation.comparable_clipboard_text ?? null,
+    comparable_item: observation.comparable_item ?? null,
     notes: observation.notes ?? null,
     created_at: null,
     updated_at: null

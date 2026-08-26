@@ -863,6 +863,64 @@ describe("AdvisorWorkbench", () => {
     expect(body.outcome_valuation_evidence).toEqual([]);
   });
 
+  it("adds and inspects structured comparable Advanced Copy evidence without rerunning analysis", async () => {
+    const structuredComparable = {
+      raw_clipboard_text: "Item Class: Quivers\nRarity: Rare",
+      detected_format: "ADVANCED",
+      item: quiverResponse.item ?? {},
+      warnings: [],
+      unparsed_sections: []
+    };
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () =>
+        manualPreviewResponse({
+          comparable_results: [
+            {
+              comparable_id: "manual-preview-current:0",
+              external_listing_id: "structured-comparable",
+              listing_price: "450",
+              listing_currency_asset_id: DIVINE_ASSET_ID,
+              normalized_value: { amount: "450", unit: "EXALTED_ECONOMIC_UNIT" },
+              economy_freshness: "FRESH",
+              economy_snapshot_id: "economy-snapshot-currency",
+              observed_at: "2026-08-13T10:00:00Z",
+              comparable_item: structuredComparable,
+              warnings: ["Manual API observation; listing price is not a realized sale."]
+            }
+          ]
+        })
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    const user = userEvent.setup();
+
+    render(<AdvisorWorkbench />);
+    await openAdvancedTools(user);
+    await user.type(screen.getByLabelText(/listing amount/i), "450");
+    await user.type(screen.getByLabelText(/listing id/i), "structured-comparable");
+    await user.type(
+      screen.getByLabelText(/comparable advanced copy/i),
+      "Item Class: Quivers\n--------\nRarity: Rare\nBramble Spike\nPrimed Quiver"
+    );
+    await user.click(screen.getByRole("button", { name: /add observation/i }));
+
+    expect(screen.getByText(/comparable item text attached/i)).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: /preview valuation evidence/i }));
+
+    expect(await screen.findByLabelText(/parsed comparable item state/i)).toHaveTextContent("Primed Quiver");
+    expect(screen.getByLabelText(/parsed comparable item state/i)).toHaveTextContent("Quivers");
+    const previewBody = JSON.parse(fetchMock.mock.calls[0][1].body as string);
+    expect(previewBody.evidence.observations[0]).toEqual(
+      expect.objectContaining({
+        amount: "450",
+        external_listing_id: "structured-comparable",
+        comparable_clipboard_text: expect.stringContaining("Primed Quiver")
+      })
+    );
+    expect(fetchMock.mock.calls[0][0]).toContain("/api/v1/advisor/manual-valuation/preview");
+    expect(fetchMock.mock.calls.filter((call) => String(call[0]).includes("/api/v1/advisor/analyze"))).toHaveLength(0);
+  });
+
   it("edits, removes, previews, and resubmits current-item manual valuation evidence", async () => {
     const fetchMock = vi
       .fn()

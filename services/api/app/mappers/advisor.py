@@ -23,10 +23,12 @@ from packages.shared.donniecraftshell_contracts.domain import (
 from packages.shared.donniecraftshell_contracts.economy import EXALTED_ECONOMIC_UNIT
 from packages.shared.donniecraftshell_contracts.economy_repository import EconomyRepository
 from packages.shared.donniecraftshell_contracts.game_data import ItemEnrichment, ResolutionStatus
+from packages.shared.donniecraftshell_contracts.parser import parse_clipboard_item
 from packages.shared.donniecraftshell_contracts.valuation import (
     ComparableQuery,
     ManualListingObservation,
     ManualTradeProvider,
+    StructuredComparableItem,
     ValuationAggregator,
     ValuationEvidencePolicy,
     ValuationResult,
@@ -61,6 +63,7 @@ from services.api.app.schemas.advisor import (
     ProbabilitySummaryDto,
     RiskAdjustedDecisionDto,
     ScenarioSummaryDto,
+    StructuredComparableItemDto,
     ValuationConfidenceDto,
 )
 
@@ -191,6 +194,7 @@ def manual_valuation_preview_to_dto(
                 listing_price=str(result.listing_price),
                 listing_currency_asset_id=result.listing_currency_asset_id,
                 normalized_value=economic_value_to_dto(result.normalized_value),
+                comparable_item=_structured_comparable_to_dto(result.comparable_item),
                 economy_freshness=result.economy_freshness.value,
                 economy_snapshot_id=result.economy_snapshot_id,
                 observed_at=result.observed_at,
@@ -200,6 +204,15 @@ def manual_valuation_preview_to_dto(
         ],
         warnings=list((*evidence_set.warnings, *valuation.warnings)),
     )
+
+
+def manual_valuation_workspace_record_to_storage(record) -> dict:
+    payload = record.model_dump(mode="json", exclude_none=True)
+    comparable = _structured_comparable_from_observation(record, record.league)
+    if comparable is not None:
+        payload["comparable_clipboard_text"] = comparable.raw_clipboard_text
+        payload["comparable_item"] = _structured_comparable_to_dto(comparable).model_dump(mode="json")
+    return payload
 
 
 def _valuation_from_evidence(
@@ -244,6 +257,7 @@ def _manual_evidence_set(
                 observed_at=observation.observed_at or as_of,
                 external_listing_id=observation.external_listing_id,
                 item_summary=observation.item_summary,
+                comparable_item=_structured_comparable_from_observation(observation, league),
                 provenance=(
                     DataProvenance(
                         source_id="api-manual-valuation-evidence",
@@ -261,6 +275,35 @@ def _manual_evidence_set(
         for index, observation in enumerate(evidence.observations)
     )
     return evidence_set_from_results(query, provider.provider_name, results, ValuationEvidencePolicy())
+
+
+def _structured_comparable_from_observation(observation, league: str) -> StructuredComparableItem | None:
+    raw = getattr(observation, "comparable_clipboard_text", None)
+    if raw is None or not str(raw).strip():
+        return None
+    parse_result = parse_clipboard_item(str(raw), GameContext(game="Path of Exile 2", league=league))
+    if parse_result.item is None:
+        message = parse_result.error.message if parse_result.error else "Comparable clipboard text could not be parsed."
+        raise ValueError(f"comparable_clipboard_text could not be parsed: {message}")
+    return StructuredComparableItem(
+        raw_clipboard_text=parse_result.item.raw_clipboard_text,
+        parsed_item=parse_result.item,
+        detected_format=parse_result.detected_format.value,
+        warnings=parse_result.warnings,
+        unparsed_sections=parse_result.unparsed_sections,
+    )
+
+
+def _structured_comparable_to_dto(comparable: StructuredComparableItem | None) -> StructuredComparableItemDto | None:
+    if comparable is None:
+        return None
+    return StructuredComparableItemDto(
+        raw_clipboard_text=comparable.raw_clipboard_text,
+        detected_format=comparable.detected_format,
+        item=to_jsonable(comparable.parsed_item),
+        warnings=list(comparable.warnings),
+        unparsed_sections=list(comparable.unparsed_sections),
+    )
 
 
 def _risk_context(request: AdvisorAnalyzeRequestDto) -> AdvisorRiskContext | None:
