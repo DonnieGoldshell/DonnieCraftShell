@@ -113,6 +113,63 @@ class Poe2QuiverParserTests(unittest.TestCase):
         self.assertEqual(desecrated.affix_type, AffixType.SUFFIX)
         self.assertEqual(desecrated.display_name, "of the Archer")
 
+    def test_structured_comparable_gloom_barb_parses_explicit_modifier_state(self):
+        result = parse_clipboard_item(fixture("gloom_barb_visceral_quiver_comparable_advanced.txt"))
+        item = result.item
+
+        self.assertIsNone(result.error)
+        self.assertEqual(result.unparsed_sections, ())
+        assert item is not None
+        self.assertEqual(item.clipboard_format, ClipboardFormat.ADVANCED)
+        self.assertEqual(item.rarity, Rarity.RARE)
+        self.assertEqual(item.item_class, "Quivers")
+        self.assertEqual(item.item_name, "Gloom Barb")
+        self.assertEqual(item.base_type, "Visceral Quiver")
+        self.assertEqual(item.required_level, 65)
+        self.assertEqual(item.item_level, 82)
+        self.assertIn(ItemSpecialState.FRACTURED, item.special_states)
+        self.assertEqual(item.trade_note, "~b/o 450 divine")
+        self.assertEqual(len(item.implicit_modifiers), 1)
+        self.assertEqual(len(item.explicit_modifiers), 6)
+        self.assertEqual(len(item.affix_state.known_prefixes), 3)
+        self.assertEqual(len(item.affix_state.known_suffixes), 3)
+
+        implicit = item.implicit_modifiers[0]
+        self.assertEqual(implicit.affix_type, AffixType.IMPLICIT)
+        self.assertEqual(implicit.origin, ModifierOrigin.IMPLICIT)
+        self.assertEqual(implicit.normalized_text, "30(20-30)% increased Critical Hit Chance for Attacks")
+        self.assertEqual(implicit.allowed_range[0].min_value, Decimal("20"))
+        self.assertEqual(implicit.allowed_range[0].max_value, Decimal("30"))
+
+        by_name = {modifier.display_name: modifier for modifier in item.explicit_modifiers}
+        self.assertEqual(by_name["Nimble"].affix_type, AffixType.PREFIX)
+        self.assertEqual(by_name["Nimble"].tier, "1")
+        self.assertEqual(by_name["Nimble"].tags, ("Speed",))
+        self.assertEqual(by_name["Nimble"].allowed_range[0].min_value, Decimal("42"))
+        self.assertEqual(by_name["Nimble"].allowed_range[0].max_value, Decimal("46"))
+        self.assertEqual(by_name["Entombing"].affix_type, AffixType.PREFIX)
+        self.assertEqual(by_name["Entombing"].tier, "1")
+        self.assertEqual(len(by_name["Entombing"].observed_rolls), 2)
+        self.assertEqual(by_name["Lacerating"].affix_type, AffixType.PREFIX)
+        self.assertEqual(by_name["Lacerating"].tier, "2")
+
+        fractured = by_name["of Destruction"]
+        self.assertEqual(fractured.affix_type, AffixType.SUFFIX)
+        self.assertEqual(fractured.origin, ModifierOrigin.FRACTURED)
+        self.assertEqual(fractured.tier, "1")
+        self.assertEqual(fractured.allowed_range[0].max_value, Decimal("39"))
+
+        normal_suffix = by_name["of Unmaking"]
+        self.assertEqual(normal_suffix.affix_type, AffixType.SUFFIX)
+        self.assertEqual(normal_suffix.origin, ModifierOrigin.NATURAL)
+        self.assertEqual(normal_suffix.tier, "1")
+
+        desecrated = by_name["of the Archer"]
+        self.assertEqual(desecrated.affix_type, AffixType.SUFFIX)
+        self.assertEqual(desecrated.origin, ModifierOrigin.DESECRATED)
+        self.assertEqual(desecrated.tier, "1")
+        self.assertEqual(desecrated.normalized_text, "+1 to Level of all Projectile Skills")
+
     def test_twice_corrupted_and_corruption_enhancements_are_preserved_separately(self):
         item = parse_clipboard_item(fixture("quiver_7_twice_corrupted_advanced.txt")).item
 

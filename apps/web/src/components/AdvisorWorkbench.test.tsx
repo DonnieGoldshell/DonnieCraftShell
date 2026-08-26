@@ -865,9 +865,101 @@ describe("AdvisorWorkbench", () => {
 
   it("adds and inspects structured comparable Advanced Copy evidence without rerunning analysis", async () => {
     const structuredComparable = {
-      raw_clipboard_text: "Item Class: Quivers\nRarity: Rare",
+      raw_clipboard_text: "Item Class: Quivers\nRarity: Rare\nGloom Barb\nVisceral Quiver",
       detected_format: "ADVANCED",
-      item: quiverResponse.item ?? {},
+      item: {
+        rarity: "RARE",
+        item_name: "Gloom Barb",
+        base_type: "Visceral Quiver",
+        item_class: "Quivers",
+        item_level: 82,
+        required_level: 65,
+        special_states: ["FRACTURED"],
+        implicit_modifiers: [
+          {
+            display_name: null,
+            tier: null,
+            affix_type: "IMPLICIT",
+            origin: "IMPLICIT",
+            tags: ["Attack", "Critical"],
+            raw_text:
+              "{ Implicit Modifier — Attack, Critical }\n30(20-30)% increased Critical Hit Chance for Attacks",
+            resolution_status: null,
+            canonical_id: null
+          }
+        ],
+        prefixes: [
+          {
+            display_name: "Nimble",
+            tier: "1",
+            affix_type: "PREFIX",
+            origin: "NATURAL",
+            tags: ["Speed"],
+            raw_text: '{ Prefix Modifier "Nimble" (Tier: 1) — Speed }\n45(42-46)% increased Projectile Speed',
+            resolution_status: null,
+            canonical_id: null
+          },
+          {
+            display_name: "Entombing",
+            tier: "1",
+            affix_type: "PREFIX",
+            origin: "NATURAL",
+            tags: ["Damage", "Elemental", "Cold", "Attack"],
+            raw_text:
+              '{ Prefix Modifier "Entombing" (Tier: 1) — Damage, Elemental, Cold, Attack }\nAdds 23(21-24) to 36(32-37) Cold damage to Attacks',
+            resolution_status: null,
+            canonical_id: null
+          },
+          {
+            display_name: "Lacerating",
+            tier: "2",
+            affix_type: "PREFIX",
+            origin: "NATURAL",
+            tags: ["Damage"],
+            raw_text:
+              '{ Prefix Modifier "Lacerating" (Tier: 2) — Damage }\n48(43-50)% increased Damage with Bow Skills',
+            resolution_status: null,
+            canonical_id: null
+          }
+        ],
+        suffixes: [
+          {
+            display_name: "of Destruction",
+            tier: "1",
+            affix_type: "SUFFIX",
+            origin: "FRACTURED",
+            tags: ["Damage", "Attack", "Critical"],
+            raw_text:
+              '{ Fractured Suffix Modifier "of Destruction" (Tier: 1) — Damage, Attack, Critical }\n39(35-39)% increased Critical Damage Bonus for Attack Damage',
+            resolution_status: null,
+            canonical_id: null
+          },
+          {
+            display_name: "of Unmaking",
+            tier: "1",
+            affix_type: "SUFFIX",
+            origin: "NATURAL",
+            tags: ["Attack", "Critical"],
+            raw_text:
+              '{ Suffix Modifier "of Unmaking" (Tier: 1) — Attack, Critical }\n37(35-38)% increased Critical Hit Chance for Attacks',
+            resolution_status: null,
+            canonical_id: null
+          },
+          {
+            display_name: "of the Archer",
+            tier: "1",
+            affix_type: "SUFFIX",
+            origin: "DESECRATED",
+            tags: [],
+            raw_text:
+              '{ Desecrated Suffix Modifier "of the Archer" (Tier: 1) }\n+1 to Level of all Projectile Skills',
+            resolution_status: null,
+            canonical_id: null
+          }
+        ],
+        corruption_enhancements: [],
+        unparsed_lines: []
+      },
       warnings: [],
       unparsed_sections: []
     };
@@ -900,21 +992,23 @@ describe("AdvisorWorkbench", () => {
     await user.type(screen.getByLabelText(/listing id/i), "structured-comparable");
     await user.type(
       screen.getByLabelText(/comparable advanced copy/i),
-      "Item Class: Quivers\n--------\nRarity: Rare\nBramble Spike\nPrimed Quiver"
+      "Item Class: Quivers\nRarity: Rare\nGloom Barb\nVisceral Quiver"
     );
     await user.click(screen.getByRole("button", { name: /add observation/i }));
 
     expect(screen.getByText(/comparable item text attached/i)).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: /preview valuation evidence/i }));
 
-    expect(await screen.findByLabelText(/parsed comparable item state/i)).toHaveTextContent("Primed Quiver");
+    expect(await screen.findByLabelText(/parsed comparable item state/i)).toHaveTextContent("Gloom Barb, Visceral Quiver");
     expect(screen.getByLabelText(/parsed comparable item state/i)).toHaveTextContent("Quivers");
+    expect(screen.getByLabelText(/parsed comparable item state/i)).toHaveTextContent("ilvl 82");
+    expect(screen.getByLabelText(/parsed comparable item state/i)).toHaveTextContent("6 explicit modifiers");
     const previewBody = JSON.parse(fetchMock.mock.calls[0][1].body as string);
     expect(previewBody.evidence.observations[0]).toEqual(
       expect.objectContaining({
         amount: "450",
         external_listing_id: "structured-comparable",
-        comparable_clipboard_text: expect.stringContaining("Primed Quiver")
+        comparable_clipboard_text: expect.stringContaining("Visceral Quiver")
       })
     );
     expect(fetchMock.mock.calls[0][0]).toContain("/api/v1/advisor/manual-valuation/preview");

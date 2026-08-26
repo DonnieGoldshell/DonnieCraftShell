@@ -300,7 +300,7 @@ def _structured_comparable_to_dto(comparable: StructuredComparableItem | None) -
     return StructuredComparableItemDto(
         raw_clipboard_text=comparable.raw_clipboard_text,
         detected_format=comparable.detected_format,
-        item=to_jsonable(comparable.parsed_item),
+        item=_parsed_item_summary(comparable.parsed_item).model_dump(mode="json"),
         warnings=list(comparable.warnings),
         unparsed_sections=list(comparable.unparsed_sections),
     )
@@ -325,6 +325,14 @@ def _item_summary(result: AdvisorAnalysisResult) -> ItemSummaryDto | None:
     if item is None:
         return None
     resolutions = _resolution_by_raw(result.item_enrichment)
+    return _parsed_item_summary(item, resolutions)
+
+
+def _parsed_item_summary(
+    item,
+    resolutions: dict[str, tuple[str, str | None]] | None = None,
+) -> ItemSummaryDto:
+    resolutions = resolutions or {}
     return ItemSummaryDto(
         rarity=item.rarity.value,
         item_name=item.item_name,

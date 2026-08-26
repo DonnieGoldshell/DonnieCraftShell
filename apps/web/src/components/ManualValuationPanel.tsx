@@ -570,6 +570,7 @@ function ValuationPreview({ preview }: { preview: ManualValuationPreviewResponse
               <span>
                 {result.listing_price} {currencyLabel(result.listing_currency_asset_id)}
               </span>
+              {" "}
               <strong>{result.normalized_value ? formatEconomicValue(result.normalized_value) : "Unconvertible"}</strong>
               {result.comparable_item && <ComparableItemSummary comparable={result.comparable_item} />}
               {result.warnings.length > 0 && <small>{result.warnings.join(" ")}</small>}

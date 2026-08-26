@@ -55,6 +55,14 @@ Task 53 extends manual comparable evidence with optional full PoE2 Advanced Copy
 
 Price-only/manual rows remain backward compatible, but they are not structurally verified comparable evidence. Notes such as "similar quiver" remain prose context only; machine-readable comparability comes from parsed item state.
 
+Structured comparable parsing uses the same PoE2 parser as current-item analysis.
+For Advanced Copy quivers, the returned comparable summary preserves supported
+base metadata, implicit modifiers, explicit prefix/suffix modifiers, tiers,
+tags, roll/range observations, and modifier origins such as `NATURAL`,
+`CRAFTED`, `FRACTURED`, and `DESECRATED`. Item-state lines such as `Fractured
+Item` are retained as special state rather than causing supported modifier
+blocks to degrade into unparsed text.
+
 Malformed comparable clipboard text is rejected during preview/save/update rather than persisted as trusted structure.
 
 ## Advisor API Preview

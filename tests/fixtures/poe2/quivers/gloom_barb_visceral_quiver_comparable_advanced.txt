@@ -1,0 +1,30 @@
+Item Class: Quivers
+Rarity: Rare
+Gloom Barb
+Visceral Quiver
+--------
+Requires: Level 65
+--------
+Item Level: 82
+--------
+{ Implicit Modifier — Attack, Critical }
+30(20-30)% increased Critical Hit Chance for Attacks
+--------
+{ Prefix Modifier "Nimble" (Tier: 1) — Speed }
+45(42-46)% increased Projectile Speed
+{ Prefix Modifier "Entombing" (Tier: 1) — Damage, Elemental, Cold, Attack }
+Adds 23(21-24) to 36(32-37) Cold damage to Attacks
+{ Prefix Modifier "Lacerating" (Tier: 2) — Damage }
+48(43-50)% increased Damage with Bow Skills
+{ Fractured Suffix Modifier "of Destruction" (Tier: 1) — Damage, Attack, Critical }
+39(35-39)% increased Critical Damage Bonus for Attack Damage
+{ Suffix Modifier "of Unmaking" (Tier: 1) — Attack, Critical }
+37(35-38)% increased Critical Hit Chance for Attacks
+{ Desecrated Suffix Modifier "of the Archer" (Tier: 1) }
++1 to Level of all Projectile Skills
+--------
+Can only be equipped if you are wielding a Bow.
+--------
+Fractured Item
+--------
+Note: ~b/o 450 divine
