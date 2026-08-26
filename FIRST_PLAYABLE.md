@@ -62,6 +62,12 @@ Logs are written to:
 .dcs/logs/first-playable-web.err.log
 ```
 
+The launcher is restart-safe for stale DonnieCraftShell-owned child processes.
+Before failing on the configured API or web port, it inspects the listening
+process and command line. It only stops a listener when it can conservatively
+identify it as this repository's First Playable API or web process on the
+configured port. Unknown or unrelated listeners are never killed automatically.
+
 ## Smoke Check Only
 
 If the API and web app are already running:
@@ -133,3 +139,9 @@ powershell -ExecutionPolicy Bypass -File scripts\start_first_playable.ps1 -ApiPo
 ```
 
 Then open the URL printed by the launcher.
+
+If the port belongs to a stale DonnieCraftShell child from a previous First
+Playable run, the launcher should stop it, wait for the port to release, and
+continue startup. If ownership is uncertain, the launcher fails closed and
+prints the port, PID, process name, and command-line summary so you can inspect
+or stop that process yourself.
