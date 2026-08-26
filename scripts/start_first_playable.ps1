@@ -37,23 +37,226 @@ function Assert-Path {
     }
 }
 
-function Assert-PortAvailable {
+function Get-CommandLineSummary {
+    param([string]$CommandLine)
+
+    if ([string]::IsNullOrWhiteSpace($CommandLine)) {
+        return "<empty command line>"
+    }
+    $singleLine = ($CommandLine -replace "\s+", " ").Trim()
+    if ($singleLine.Length -le 180) {
+        return $singleLine
+    }
+    return "$($singleLine.Substring(0, 177))..."
+}
+
+function Get-ListeningProcessInfo {
+    param([int]$Port)
+
+    $connections = @(Get-NetTCPConnection -LocalPort $Port -State Listen -ErrorAction SilentlyContinue)
+    $listeners = @()
+    foreach ($connection in $connections) {
+        $process = Get-CimInstance Win32_Process -Filter "ProcessId = $($connection.OwningProcess)" -ErrorAction SilentlyContinue
+        if ($null -eq $process) {
+            $listeners += [pscustomobject]@{
+                Port = $Port
+                ProcessId = $connection.OwningProcess
+                ProcessName = "<unknown>"
+                CommandLine = ""
+                CommandLineSummary = "<process disappeared before inspection>"
+            }
+            continue
+        }
+        $listeners += [pscustomobject]@{
+            Port = $Port
+            ProcessId = [int]$process.ProcessId
+            ParentProcessId = [int]$process.ParentProcessId
+            ProcessName = $process.Name
+            CommandLine = [string]$process.CommandLine
+            CommandLineSummary = Get-CommandLineSummary -CommandLine ([string]$process.CommandLine)
+        }
+    }
+    return $listeners
+}
+
+function Test-IsExpectedApiProcess {
     param(
         [int]$Port,
-        [string]$Name
+        [string]$CommandLine
     )
-    $listener = $null
-    try {
-        $listener = [System.Net.Sockets.TcpListener]::new([System.Net.IPAddress]::Loopback, $Port)
-        $listener.Start()
+
+    if ([string]::IsNullOrWhiteSpace($CommandLine)) {
+        return $false
     }
-    catch {
-        Fail-FirstPlayable "$Name port $Port is already in use. Stop the process using that port or pass a different port, for example -ApiPort 8010 -WebPort 3010."
+    return (
+        $CommandLine -match "(^|\s)-m\s+uvicorn(\s|$)" -and
+        $CommandLine -like "*services.api.app.main:app*" -and
+        $CommandLine -match "(^|\s)--port\s+$Port(\s|$)"
+    )
+}
+
+function Test-IsExpectedWebProcess {
+    param(
+        [int]$ProcessId,
+        [int]$Port,
+        [string]$CommandLine,
+        [string]$RepoRoot
+    )
+
+    if ([string]::IsNullOrWhiteSpace($CommandLine)) {
+        return $false
     }
-    finally {
-        if ($null -ne $listener) {
-            $listener.Stop()
+
+    $normalizedCommandLine = $CommandLine.ToLowerInvariant().Replace("/", "\")
+    $normalizedRepoRoot = ([string]$RepoRoot).ToLowerInvariant().Replace("/", "\")
+    $hasRepoEvidence = $normalizedCommandLine.Contains($normalizedRepoRoot) -or $normalizedCommandLine.Contains("donniecraftshell")
+    $hasNextEvidence = (
+        $normalizedCommandLine.Contains("npm") -or
+        $normalizedCommandLine.Contains("next") -or
+        $normalizedCommandLine.Contains("node_modules\next")
+    )
+    $hasDirectPortEvidence = (
+        $CommandLine -match "(^|\s)--port\s+$Port(\s|$)" -or
+        $CommandLine -match "(^|\s)-p\s+$Port(\s|$)" -or
+        $CommandLine -match "(^|\s)$Port(\s|$)"
+    )
+    $hasAncestorPortEvidence = Test-ExpectedWebAncestor -ProcessId $ProcessId -Port $Port -RepoRoot $RepoRoot
+
+    return ($hasRepoEvidence -and $hasNextEvidence -and ($hasDirectPortEvidence -or $hasAncestorPortEvidence))
+}
+
+function Test-ExpectedWebAncestor {
+    param(
+        [int]$ProcessId,
+        [int]$Port,
+        [string]$RepoRoot
+    )
+
+    $normalizedRepoRoot = ([string]$RepoRoot).ToLowerInvariant().Replace("/", "\")
+    $current = Get-CimInstance Win32_Process -Filter "ProcessId = $ProcessId" -ErrorAction SilentlyContinue
+    for ($i = 0; $i -lt 8 -and $null -ne $current -and $current.ParentProcessId -ne 0; $i++) {
+        $parent = Get-CimInstance Win32_Process -Filter "ProcessId = $($current.ParentProcessId)" -ErrorAction SilentlyContinue
+        if ($null -eq $parent) {
+            return $false
         }
+
+        $parentCommandLine = [string]$parent.CommandLine
+        $normalizedParentCommandLine = $parentCommandLine.ToLowerInvariant().Replace("/", "\")
+        $hasRepoEvidence = $normalizedParentCommandLine.Contains($normalizedRepoRoot) -or $normalizedParentCommandLine.Contains("donniecraftshell")
+        $hasNextEvidence = (
+            $normalizedParentCommandLine.Contains("npm") -or
+            $normalizedParentCommandLine.Contains("next") -or
+            $normalizedParentCommandLine.Contains("node_modules\next")
+        )
+        $hasPortEvidence = (
+            $parentCommandLine -match "(^|\s)--port\s+$Port(\s|$)" -or
+            $parentCommandLine -match "(^|\s)-p\s+$Port(\s|$)" -or
+            $parentCommandLine -match "(^|\s)$Port(\s|$)"
+        )
+        if ($hasRepoEvidence -and $hasNextEvidence -and $hasPortEvidence) {
+            return $true
+        }
+        $current = $parent
+    }
+
+    return $false
+}
+
+function Get-ChildProcessIds {
+    param([int]$ParentProcessId)
+
+    $children = @(Get-CimInstance Win32_Process -Filter "ParentProcessId = $ParentProcessId" -ErrorAction SilentlyContinue)
+    $ids = @()
+    foreach ($child in $children) {
+        $ids += Get-ChildProcessIds -ParentProcessId ([int]$child.ProcessId)
+        $ids += [int]$child.ProcessId
+    }
+    return $ids
+}
+
+function Stop-ProcessTreeSafely {
+    param(
+        [int]$ProcessId,
+        [string]$Reason
+    )
+
+    $processIds = @()
+    $processIds += Get-ChildProcessIds -ParentProcessId $ProcessId
+    $processIds += $ProcessId
+    $processIds = @($processIds | Select-Object -Unique)
+
+    foreach ($id in $processIds) {
+        $process = Get-Process -Id $id -ErrorAction SilentlyContinue
+        if ($null -ne $process -and -not $process.HasExited) {
+            Write-Host "Stopping DonnieCraftShell process $id ($($process.ProcessName)): $Reason" -ForegroundColor Yellow
+            Stop-Process -Id $id -ErrorAction SilentlyContinue
+        }
+    }
+
+    foreach ($id in $processIds) {
+        try {
+            Wait-Process -Id $id -Timeout 5 -ErrorAction SilentlyContinue
+        }
+        catch {
+            # A terminating wait error is handled the same way as a timeout: verify below.
+        }
+        $process = Get-Process -Id $id -ErrorAction SilentlyContinue
+        if ($null -ne $process -and -not $process.HasExited) {
+            Stop-Process -Id $id -Force -ErrorAction SilentlyContinue
+        }
+    }
+}
+
+function Wait-PortReleased {
+    param(
+        [int]$Port,
+        [int]$TimeoutSeconds = 15
+    )
+
+    $deadline = (Get-Date).AddSeconds($TimeoutSeconds)
+    while ((Get-Date) -lt $deadline) {
+        $listeners = @(Get-ListeningProcessInfo -Port $Port)
+        if ($listeners.Count -eq 0) {
+            return $true
+        }
+        Start-Sleep -Milliseconds 250
+    }
+    return $false
+}
+
+function Assert-PortAvailableOrCleanStale {
+    param(
+        [int]$Port,
+        [string]$Name,
+        [string]$Kind,
+        [string]$RepoRoot
+    )
+
+    $listeners = @(Get-ListeningProcessInfo -Port $Port)
+    if ($listeners.Count -eq 0) {
+        return
+    }
+
+    foreach ($listener in $listeners) {
+        $isExpected = $false
+        if ($Kind -eq "api") {
+            $isExpected = Test-IsExpectedApiProcess -Port $Port -CommandLine $listener.CommandLine
+        }
+        elseif ($Kind -eq "web") {
+            $isExpected = Test-IsExpectedWebProcess -ProcessId $listener.ProcessId -Port $Port -CommandLine $listener.CommandLine -RepoRoot $RepoRoot
+        }
+
+        if (-not $isExpected) {
+            Fail-FirstPlayable "$Name port $Port is already in use by PID $($listener.ProcessId) ($($listener.ProcessName)): $($listener.CommandLineSummary). This process is not confidently identified as a stale DonnieCraftShell $Kind child, so it will not be terminated automatically. Stop it manually or pass alternate ports, for example -ApiPort 8010 -WebPort 3010."
+        }
+    }
+
+    foreach ($listener in $listeners) {
+        Stop-ProcessTreeSafely -ProcessId $listener.ProcessId -Reason "stale DonnieCraftShell $Name listener on port $Port"
+    }
+
+    if (-not (Wait-PortReleased -Port $Port -TimeoutSeconds 15)) {
+        Fail-FirstPlayable "$Name port $Port is still in use after stopping stale DonnieCraftShell processes. Stop the remaining process manually or pass alternate ports, for example -ApiPort 8010 -WebPort 3010."
     }
 }
 
@@ -87,8 +290,8 @@ if (-not $SkipInstallCheck) {
 
 $apiUrl = "http://localhost:$ApiPort"
 $webUrl = "http://localhost:$WebPort"
-Assert-PortAvailable -Port $ApiPort -Name "API"
-Assert-PortAvailable -Port $WebPort -Name "Web"
+Assert-PortAvailableOrCleanStale -Port $ApiPort -Name "API" -Kind "api" -RepoRoot $repoRoot
+Assert-PortAvailableOrCleanStale -Port $WebPort -Name "Web" -Kind "web" -RepoRoot $repoRoot
 
 Write-Host "Starting DonnieCraftShell First Playable..." -ForegroundColor Cyan
 Write-Host "  API: $apiUrl"
@@ -153,7 +356,7 @@ try {
 finally {
     foreach ($process in @($apiProcess, $webProcess)) {
         if ($null -ne $process -and -not $process.HasExited) {
-            Stop-Process -Id $process.Id -Force
+            Stop-ProcessTreeSafely -ProcessId $process.Id -Reason "First Playable launcher shutdown"
         }
     }
 }

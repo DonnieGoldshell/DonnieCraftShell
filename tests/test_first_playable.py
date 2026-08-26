@@ -64,11 +64,48 @@ class FirstPlayableTests(unittest.TestCase):
 
         self.assertIn("uvicorn", start_script)
         self.assertIn("npm", start_script)
+        self.assertIn("Assert-PortAvailableOrCleanStale", start_script)
+        self.assertIn("Get-NetTCPConnection", start_script)
+        self.assertIn("Get-CimInstance Win32_Process", start_script)
+        self.assertIn("services.api.app.main:app", start_script)
+        self.assertIn("Test-IsExpectedWebProcess", start_script)
+        self.assertIn("Stop-ProcessTreeSafely", start_script)
         self.assertIn("smoke_first_playable.py", smoke_script)
         self.assertIn("/api/v1/health", smoke_python)
         self.assertIn("/api/v1/items/parse", smoke_python)
         self.assertIn("/api/v1/advisor/analyze", smoke_python)
         self.assertIn("first_playable_quiver_sample.txt", smoke_python)
+
+    def test_first_playable_launcher_fails_closed_for_unknown_port_owners(self):
+        start_script = START_SCRIPT.read_text(encoding="utf-8")
+
+        self.assertIn("This process is not confidently identified as a stale DonnieCraftShell", start_script)
+        self.assertIn("will not be terminated automatically", start_script)
+        self.assertIn("PID $($listener.ProcessId)", start_script)
+        self.assertIn("$($listener.ProcessName)", start_script)
+        self.assertIn("$($listener.CommandLineSummary)", start_script)
+
+    def test_first_playable_launcher_supports_alternate_port_cleanup(self):
+        start_script = START_SCRIPT.read_text(encoding="utf-8")
+
+        self.assertIn("[int]$ApiPort = 8000", start_script)
+        self.assertIn("[int]$WebPort = 3000", start_script)
+        self.assertIn("--port\", \"$ApiPort", start_script)
+        self.assertIn("--port\", \"$WebPort", start_script)
+        self.assertIn("Test-IsExpectedApiProcess -Port $Port", start_script)
+        self.assertIn("Test-IsExpectedWebProcess -ProcessId $listener.ProcessId -Port $Port", start_script)
+        self.assertIn("Test-ExpectedWebAncestor", start_script)
+        self.assertIn("Wait-PortReleased -Port $Port", start_script)
+
+    def test_first_playable_launcher_stops_owned_child_process_trees_on_shutdown(self):
+        start_script = START_SCRIPT.read_text(encoding="utf-8")
+
+        self.assertIn("function Get-ChildProcessIds", start_script)
+        self.assertIn("ParentProcessId = $ParentProcessId", start_script)
+        self.assertIn("function Stop-ProcessTreeSafely", start_script)
+        self.assertIn("First Playable launcher shutdown", start_script)
+        self.assertNotIn("Stop-Process -Name node", start_script)
+        self.assertNotIn("Stop-Process -Name python", start_script)
 
 
 if __name__ == "__main__":
