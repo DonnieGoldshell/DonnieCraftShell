@@ -110,6 +110,8 @@ class AdvisorApiTests(unittest.TestCase):
         self.assertIn("ManualValuationPreviewRequestDto", schema_names)
         self.assertIn("ManualValuationPreviewResponseDto", schema_names)
         self.assertIn("StructuredComparableItemDto", schema_names)
+        self.assertIn("ComparableRelevanceDto", schema_names)
+        self.assertIn("ComparableModifierRelevanceDto", schema_names)
         self.assertIn("/api/v1/advisor/manual-valuation/preview", openapi["paths"])
         self.assertIn("/api/v1/advisor/manual-valuation/workspace/evidence", openapi["paths"])
         self.assertIn("/api/v1/advisor/manual-valuation/workspace/evidence/{evidence_id}", openapi["paths"])
@@ -537,6 +539,7 @@ class AdvisorApiTests(unittest.TestCase):
             json={
                 "subject_id": "current",
                 "subject_type": "CURRENT_ITEM",
+                "subject_clipboard_text": fixture("quiver_6_crafted_desecrated_advanced.txt"),
                 "league": LEAGUE,
                 "as_of": AS_OF,
                 "evidence": evidence,
@@ -564,6 +567,7 @@ class AdvisorApiTests(unittest.TestCase):
             json={
                 "subject_id": "current",
                 "subject_type": "CURRENT_ITEM",
+                "subject_clipboard_text": fixture("quiver_6_crafted_desecrated_advanced.txt"),
                 "league": LEAGUE,
                 "as_of": AS_OF,
                 "evidence": evidence,
@@ -597,6 +601,58 @@ class AdvisorApiTests(unittest.TestCase):
         self.assertEqual(suffixes["of Destruction"]["origin"], "FRACTURED")
         self.assertEqual(suffixes["of Unmaking"]["origin"], "NATURAL")
         self.assertEqual(suffixes["of the Archer"]["origin"], "DESECRATED")
+        relevance = result["comparable_relevance"]
+        self.assertEqual(relevance["band"], "HIGH")
+        self.assertGreaterEqual(Decimal(relevance["score"]), Decimal("0.75"))
+        self.assertTrue(any("Base type differs" in reason for reason in relevance["base_similarity"]))
+        self.assertTrue(any("Special item states differ" in reason for reason in relevance["base_similarity"]))
+        projectile_speed = next(
+            item for item in relevance["matched_modifiers"]
+            if item["current_display_name"] == "Nimble"
+        )
+        self.assertTrue(projectile_speed["tag_match"])
+        self.assertFalse(projectile_speed["roll_observation_match"])
+        self.assertTrue(projectile_speed["current_roll_values"])
+        self.assertTrue(projectile_speed["comparable_roll_values"])
+        tier_differences = [
+            item for item in relevance["differing_modifiers"]
+            if item["relationship"] == "TIER_DIFFERENCE"
+        ]
+        self.assertTrue(
+            any(
+                item["current_display_name"] == "of Calamity"
+                and item["comparable_display_name"] == "of Unmaking"
+                and item["current_tier"] == "3"
+                and item["comparable_tier"] == "1"
+                for item in tier_differences
+            )
+        )
+        self.assertTrue(
+            any(
+                item["current_display_name"] == "of Destruction"
+                and item["comparable_origin"] == "FRACTURED"
+                for item in relevance["differing_modifiers"]
+            )
+        )
+
+    def test_manual_valuation_preview_price_only_evidence_has_no_relevance_score(self):
+        response = self.client.post(
+            "/api/v1/advisor/manual-valuation/preview",
+            json={
+                "subject_id": "current",
+                "subject_type": "CURRENT_ITEM",
+                "subject_clipboard_text": fixture("quiver_6_crafted_desecrated_advanced.txt"),
+                "league": LEAGUE,
+                "as_of": AS_OF,
+                "evidence": self._valuation_evidence("450"),
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        result = response.json()["comparable_results"][0]
+        self.assertIsNone(result["comparable_item"])
+        self.assertIsNone(result["comparable_relevance"])
+        self.assertTrue(any("not structurally verified" in warning for warning in result["warnings"]))
 
     def test_manual_valuation_preview_rejects_malformed_comparable_clipboard_text(self):
         evidence = self._valuation_evidence("100")

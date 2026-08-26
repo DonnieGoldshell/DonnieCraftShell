@@ -15,6 +15,8 @@ from packages.shared.donniecraftshell_contracts.parser import parse_clipboard_it
 from packages.shared.donniecraftshell_contracts.poe_show_economy import load_normalized_economy_snapshot
 from packages.shared.donniecraftshell_contracts.valuation import (
     ComparableExclusionReason,
+    ComparableRelevanceAssessor,
+    ComparableRelevanceBand,
     ComparableResult,
     ListingStatus,
     LiquidityStatus,
@@ -23,6 +25,8 @@ from packages.shared.donniecraftshell_contracts.valuation import (
     ModifierComparableRole,
     ModifierComparableRoleAssignment,
     ModifierMatchMode,
+    ModifierRelevanceRelationship,
+    StructuredComparableItem,
     ValuationAggregator,
     ValuationAggregationPolicy,
     ValuationEvidencePolicy,
@@ -51,6 +55,19 @@ def parsed_fixture(name: str):
     result = parse_clipboard_item((FIXTURE_DIR / name).read_text(encoding="utf-8"))
     assert result.item is not None
     return result.item
+
+
+def structured_comparable(name: str) -> StructuredComparableItem:
+    raw = (FIXTURE_DIR / name).read_text(encoding="utf-8")
+    result = parse_clipboard_item(raw)
+    assert result.item is not None
+    return StructuredComparableItem(
+        raw_clipboard_text=result.item.raw_clipboard_text,
+        parsed_item=result.item,
+        detected_format=result.detected_format.value,
+        warnings=result.warnings,
+        unparsed_sections=result.unparsed_sections,
+    )
 
 
 def action_by_id(dataset, action_id: str):
@@ -88,6 +105,94 @@ class ValuationContractTests(unittest.TestCase):
         self.item = parsed_fixture("quiver_6_crafted_desecrated_advanced.txt")
         self.provider = ManualTradeProvider()
         self.economy_repo = EconomyRepository((load_normalized_economy_snapshot(ECONOMY_SNAPSHOT),))
+
+    def test_gloom_barb_is_high_relevance_structural_comparable_for_quiver_6(self):
+        comparable = structured_comparable("gloom_barb_visceral_quiver_comparable_advanced.txt")
+
+        relevance = ComparableRelevanceAssessor().assess(self.item, comparable)
+
+        self.assertEqual(relevance.band, ComparableRelevanceBand.HIGH)
+        self.assertGreaterEqual(relevance.score, Decimal("0.75"))
+        self.assertTrue(any("Both items are Quivers" in reason for reason in relevance.base_similarity))
+        self.assertTrue(any("Base type differs" in reason for reason in relevance.base_similarity))
+        self.assertTrue(any("Special item states differ" in reason for reason in relevance.base_similarity))
+        self.assertGreaterEqual(len(relevance.matched_modifiers), 3)
+        projectile_speed = next(
+            item for item in relevance.matched_modifiers
+            if item.current_display_name == "Nimble"
+        )
+        self.assertTrue(projectile_speed.tag_match)
+        self.assertFalse(projectile_speed.roll_observation_match)
+        self.assertTrue(projectile_speed.current_roll_values)
+        self.assertTrue(projectile_speed.comparable_roll_values)
+        relationships = {item.relationship for item in relevance.differing_modifiers}
+        self.assertIn(ModifierRelevanceRelationship.TIER_DIFFERENCE, relationships)
+        self.assertIn(ModifierRelevanceRelationship.ORIGIN_DIFFERENCE, relationships)
+        crit_difference = next(
+            item for item in relevance.differing_modifiers
+            if item.current_display_name == "of Calamity"
+        )
+        self.assertEqual(crit_difference.comparable_display_name, "of Unmaking")
+        self.assertEqual(crit_difference.current_tier, "3")
+        self.assertEqual(crit_difference.comparable_tier, "1")
+        destruction_difference = next(
+            item for item in relevance.differing_modifiers
+            if item.current_display_name == "of Destruction"
+        )
+        self.assertEqual(destruction_difference.current_origin, "NATURAL")
+        self.assertEqual(destruction_difference.comparable_origin, "FRACTURED")
+
+    def test_weaker_same_class_quiver_scores_lower_than_gloom_barb(self):
+        assessor = ComparableRelevanceAssessor()
+        strong = assessor.assess(self.item, structured_comparable("gloom_barb_visceral_quiver_comparable_advanced.txt"))
+        weak = assessor.assess(self.item, structured_comparable("quiver_4_magic_advanced.txt"))
+
+        assert strong.score is not None and weak.score is not None
+        self.assertLess(weak.score, strong.score)
+        self.assertIn(weak.band, {ComparableRelevanceBand.LOW, ComparableRelevanceBand.MEDIUM})
+        self.assertTrue(weak.missing_modifiers)
+
+    def test_structurally_unrelated_quiver_scores_low(self):
+        relevance = ComparableRelevanceAssessor().assess(
+            self.item,
+            structured_comparable("quiver_1_rare_standard_advanced.txt"),
+        )
+
+        self.assertEqual(relevance.band, ComparableRelevanceBand.LOW)
+        self.assertLess(relevance.score, Decimal("0.45"))
+        self.assertGreaterEqual(len(relevance.missing_modifiers), 5)
+        self.assertGreaterEqual(len(relevance.extra_modifiers), 5)
+
+    def test_unrelated_non_quiver_is_not_comparable(self):
+        comparable_item = replace(
+            self.item,
+            item_class="Rings",
+            base_type="Ruby Ring",
+            item_level=10,
+            explicit_modifiers=(),
+            modifiers=(),
+        )
+        comparable = StructuredComparableItem(
+            raw_clipboard_text=comparable_item.raw_clipboard_text,
+            parsed_item=comparable_item,
+            detected_format="ADVANCED",
+        )
+
+        relevance = ComparableRelevanceAssessor().assess(self.item, comparable)
+
+        self.assertEqual(relevance.band, ComparableRelevanceBand.INSUFFICIENT_STATE)
+        self.assertIsNone(relevance.score)
+
+    def test_price_only_observation_has_no_fabricated_relevance(self):
+        result = self.provider.result_from_observation(
+            self._observation(Decimal("450"), DIVINE_ASSET_ID),
+            self.economy_repo,
+            AS_OF,
+        )
+
+        self.assertIsNone(result.comparable_item)
+        self.assertIsNone(result.comparable_relevance)
+        self.assertTrue(any("not structurally verified" in warning for warning in result.warnings))
 
     def test_current_item_to_valuation_subject(self):
         subject = subject_from_parsed_item(self.item, dataset_versions=(GAME_DATASET_VERSION,))

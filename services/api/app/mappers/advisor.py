@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from dataclasses import replace
 from datetime import datetime, timezone
 from decimal import Decimal
 
@@ -26,6 +27,8 @@ from packages.shared.donniecraftshell_contracts.game_data import ItemEnrichment,
 from packages.shared.donniecraftshell_contracts.parser import parse_clipboard_item
 from packages.shared.donniecraftshell_contracts.valuation import (
     ComparableQuery,
+    ComparableRelevance,
+    ComparableRelevanceAssessor,
     ManualListingObservation,
     ManualTradeProvider,
     StructuredComparableItem,
@@ -44,6 +47,8 @@ from services.api.app.schemas.advisor import (
     AdvisorDecisionDto,
     AdvisorEvidenceReadinessDto,
     AffixStateDto,
+    ComparableModifierRelevanceDto,
+    ComparableRelevanceDto,
     EnrichmentSummaryDto,
     EvidenceReadinessItemDto,
     EvidenceReadinessTargetDto,
@@ -160,6 +165,7 @@ def manual_valuation_preview_to_dto(
         request.league,
         economy_repository,
         as_of,
+        request.subject_clipboard_text,
     )
     valuation = ValuationAggregator().aggregate(evidence_set)
     return ManualValuationPreviewResponseDto(
@@ -195,6 +201,7 @@ def manual_valuation_preview_to_dto(
                 listing_currency_asset_id=result.listing_currency_asset_id,
                 normalized_value=economic_value_to_dto(result.normalized_value),
                 comparable_item=_structured_comparable_to_dto(result.comparable_item),
+                comparable_relevance=_comparable_relevance_to_dto(result.comparable_relevance),
                 economy_freshness=result.economy_freshness.value,
                 economy_snapshot_id=result.economy_snapshot_id,
                 observed_at=result.observed_at,
@@ -234,6 +241,7 @@ def _manual_evidence_set(
     league: str,
     economy_repository: EconomyRepository,
     as_of: datetime,
+    subject_clipboard_text: str | None = None,
 ):
     strategy = ComparableStrategy(evidence.strategy)
     query = ComparableQuery(
@@ -246,8 +254,11 @@ def _manual_evidence_set(
         warnings=("API manual valuation evidence does not bypass aggregation.",),
     )
     provider = ManualTradeProvider()
-    results = tuple(
-        provider.result_from_observation(
+    subject_item = _parsed_subject_item(subject_clipboard_text, league)
+    relevance_assessor = ComparableRelevanceAssessor()
+    results = []
+    for index, observation in enumerate(evidence.observations):
+        result = provider.result_from_observation(
             ManualListingObservation(
                 observation_id=f"{query.query_id}:{index}",
                 query_id=query.query_id,
@@ -272,9 +283,60 @@ def _manual_evidence_set(
             economy_repository,
             as_of,
         )
-        for index, observation in enumerate(evidence.observations)
+        if subject_item is not None and result.comparable_item is not None:
+            result = replace(
+                result,
+                comparable_relevance=relevance_assessor.assess(subject_item, result.comparable_item),
+            )
+        results.append(result)
+    return evidence_set_from_results(query, provider.provider_name, tuple(results), ValuationEvidencePolicy())
+
+
+def _comparable_relevance_to_dto(relevance: ComparableRelevance | None) -> ComparableRelevanceDto | None:
+    if relevance is None:
+        return None
+    return ComparableRelevanceDto(
+        score=str(relevance.score) if relevance.score is not None else None,
+        band=relevance.band.value,
+        base_similarity=list(relevance.base_similarity),
+        matched_modifiers=[_modifier_relevance_to_dto(item) for item in relevance.matched_modifiers],
+        differing_modifiers=[_modifier_relevance_to_dto(item) for item in relevance.differing_modifiers],
+        missing_modifiers=[_modifier_relevance_to_dto(item) for item in relevance.missing_modifiers],
+        extra_modifiers=[_modifier_relevance_to_dto(item) for item in relevance.extra_modifiers],
+        warnings=list(relevance.warnings),
+        policy_id=relevance.policy_id,
     )
-    return evidence_set_from_results(query, provider.provider_name, results, ValuationEvidencePolicy())
+
+
+def _modifier_relevance_to_dto(item) -> ComparableModifierRelevanceDto:
+    return ComparableModifierRelevanceDto(
+        relationship=item.relationship.value,
+        semantic_identity=item.semantic_identity,
+        affix_type=item.affix_type.value,
+        current_display_name=item.current_display_name,
+        comparable_display_name=item.comparable_display_name,
+        current_tier=item.current_tier,
+        comparable_tier=item.comparable_tier,
+        current_origin=item.current_origin,
+        comparable_origin=item.comparable_origin,
+        current_tags=list(item.current_tags),
+        comparable_tags=list(item.comparable_tags),
+        current_roll_values=list(item.current_roll_values),
+        comparable_roll_values=list(item.comparable_roll_values),
+        tag_match=item.tag_match,
+        roll_observation_match=item.roll_observation_match,
+        reasons=list(item.reasons),
+    )
+
+
+def _parsed_subject_item(raw_clipboard_text: str | None, league: str):
+    if raw_clipboard_text is None or not raw_clipboard_text.strip():
+        return None
+    parse_result = parse_clipboard_item(raw_clipboard_text, GameContext(game="Path of Exile 2", league=league))
+    if parse_result.item is None:
+        message = parse_result.error.message if parse_result.error else "Subject clipboard text could not be parsed."
+        raise ValueError(f"subject_clipboard_text could not be parsed: {message}")
+    return parse_result.item
 
 
 def _structured_comparable_from_observation(observation, league: str) -> StructuredComparableItem | None:

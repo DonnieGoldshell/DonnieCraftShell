@@ -515,6 +515,7 @@ function AdvancedTools({
           ref={manualValuationRef}
           actions={analysis?.actions ?? []}
           league={league}
+          clipboardText={clipboardText}
           currentObservations={currentObservations}
           outcomeObservations={outcomeObservations}
           outcomeValuationTarget={outcomeValuationTarget}

@@ -602,11 +602,101 @@ export interface components {
              */
             reliable_no_result: boolean;
         };
+        /** ComparableModifierRelevanceDto */
+        ComparableModifierRelevanceDto: {
+            /** Affix Type */
+            affix_type: string;
+            /** Comparable Display Name */
+            comparable_display_name?: string | null;
+            /** Comparable Origin */
+            comparable_origin?: string | null;
+            /**
+             * Comparable Roll Values
+             * @default []
+             */
+            comparable_roll_values: string[];
+            /**
+             * Comparable Tags
+             * @default []
+             */
+            comparable_tags: string[];
+            /** Comparable Tier */
+            comparable_tier?: string | null;
+            /** Current Display Name */
+            current_display_name?: string | null;
+            /** Current Origin */
+            current_origin?: string | null;
+            /**
+             * Current Roll Values
+             * @default []
+             */
+            current_roll_values: string[];
+            /**
+             * Current Tags
+             * @default []
+             */
+            current_tags: string[];
+            /** Current Tier */
+            current_tier?: string | null;
+            /**
+             * Reasons
+             * @default []
+             */
+            reasons: string[];
+            /** Relationship */
+            relationship: string;
+            /** Roll Observation Match */
+            roll_observation_match?: boolean | null;
+            /** Semantic Identity */
+            semantic_identity: string;
+            /** Tag Match */
+            tag_match?: boolean | null;
+        };
+        /** ComparableRelevanceDto */
+        ComparableRelevanceDto: {
+            /** Band */
+            band: string;
+            /**
+             * Base Similarity
+             * @default []
+             */
+            base_similarity: string[];
+            /**
+             * Differing Modifiers
+             * @default []
+             */
+            differing_modifiers: components["schemas"]["ComparableModifierRelevanceDto"][];
+            /**
+             * Extra Modifiers
+             * @default []
+             */
+            extra_modifiers: components["schemas"]["ComparableModifierRelevanceDto"][];
+            /**
+             * Matched Modifiers
+             * @default []
+             */
+            matched_modifiers: components["schemas"]["ComparableModifierRelevanceDto"][];
+            /**
+             * Missing Modifiers
+             * @default []
+             */
+            missing_modifiers: components["schemas"]["ComparableModifierRelevanceDto"][];
+            /** Policy Id */
+            policy_id: string;
+            /** Score */
+            score?: string | null;
+            /**
+             * Warnings
+             * @default []
+             */
+            warnings: string[];
+        };
         /** ComparableResultPreviewDto */
         ComparableResultPreviewDto: {
             /** Comparable Id */
             comparable_id: string;
             comparable_item?: components["schemas"]["StructuredComparableItemDto"] | null;
+            comparable_relevance?: components["schemas"]["ComparableRelevanceDto"] | null;
             /** Economy Freshness */
             economy_freshness: string;
             /** Economy Snapshot Id */
@@ -1232,6 +1322,8 @@ export interface components {
             league: string;
             /** Outcome Id */
             outcome_id?: string | null;
+            /** Subject Clipboard Text */
+            subject_clipboard_text?: string | null;
             /**
              * Subject Id
              * @default current

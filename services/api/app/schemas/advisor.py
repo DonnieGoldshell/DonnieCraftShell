@@ -45,6 +45,7 @@ class ManualValuationPreviewRequestDto(ApiModel):
     subject_id: str = "current"
     subject_type: str = "CURRENT_ITEM"
     outcome_id: str | None = None
+    subject_clipboard_text: str | None = None
     league: str
     as_of: datetime | None = None
     evidence: ManualValuationEvidenceDto
@@ -75,6 +76,7 @@ class ComparableResultPreviewDto(ApiModel):
     listing_currency_asset_id: str
     normalized_value: EconomicValueDto | None = None
     comparable_item: "StructuredComparableItemDto | None" = None
+    comparable_relevance: "ComparableRelevanceDto | None" = None
     economy_freshness: str
     economy_snapshot_id: str | None = None
     observed_at: datetime
@@ -155,6 +157,37 @@ class StructuredComparableItemDto(ApiModel):
     item: dict[str, Any]
     warnings: list[str] = []
     unparsed_sections: list[str] = []
+
+
+class ComparableModifierRelevanceDto(ApiModel):
+    relationship: str
+    semantic_identity: str
+    affix_type: str
+    current_display_name: str | None = None
+    comparable_display_name: str | None = None
+    current_tier: str | None = None
+    comparable_tier: str | None = None
+    current_origin: str | None = None
+    comparable_origin: str | None = None
+    current_tags: list[str] = []
+    comparable_tags: list[str] = []
+    current_roll_values: list[str] = []
+    comparable_roll_values: list[str] = []
+    tag_match: bool | None = None
+    roll_observation_match: bool | None = None
+    reasons: list[str] = []
+
+
+class ComparableRelevanceDto(ApiModel):
+    score: str | None = None
+    band: str
+    base_similarity: list[str] = []
+    matched_modifiers: list[ComparableModifierRelevanceDto] = []
+    differing_modifiers: list[ComparableModifierRelevanceDto] = []
+    missing_modifiers: list[ComparableModifierRelevanceDto] = []
+    extra_modifiers: list[ComparableModifierRelevanceDto] = []
+    warnings: list[str] = []
+    policy_id: str
 
 
 class ManualValuationWorkspacePersistenceStatusDto(ApiModel):

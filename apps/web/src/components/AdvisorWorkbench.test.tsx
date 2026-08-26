@@ -978,6 +978,91 @@ describe("AdvisorWorkbench", () => {
               economy_snapshot_id: "economy-snapshot-currency",
               observed_at: "2026-08-13T10:00:00Z",
               comparable_item: structuredComparable,
+              comparable_relevance: {
+                score: "0.8609",
+                band: "HIGH",
+                base_similarity: ["Both items are Quivers.", "Base type differs: Primed Quiver vs Visceral Quiver."],
+                matched_modifiers: [
+                  {
+                    relationship: "EXACT_MATCH",
+                    semantic_identity: "PREFIX:#% increased projectile speed",
+                    affix_type: "PREFIX",
+                    current_display_name: "Nimble",
+                    comparable_display_name: "Nimble",
+                    current_tier: "1",
+                    comparable_tier: "1",
+                    current_origin: "NATURAL",
+                    comparable_origin: "NATURAL",
+                    current_tags: ["speed"],
+                    comparable_tags: ["speed"],
+                    current_roll_values: ["value=42;range=40:45"],
+                    comparable_roll_values: ["value=45;range=40:45"],
+                    tag_match: true,
+                    roll_observation_match: false,
+                    reasons: ["Same parsed modifier identity, tier, side, and origin."]
+                  },
+                  {
+                    relationship: "EXACT_MATCH",
+                    semantic_identity: "PREFIX:adds # to # cold damage to attacks",
+                    affix_type: "PREFIX",
+                    current_display_name: "Entombing",
+                    comparable_display_name: "Entombing",
+                    current_tier: "1",
+                    comparable_tier: "1",
+                    current_origin: "NATURAL",
+                    comparable_origin: "NATURAL",
+                    current_tags: ["cold"],
+                    comparable_tags: ["cold"],
+                    current_roll_values: ["value=22;range=22:24", "value=37;range=35:37"],
+                    comparable_roll_values: ["value=23;range=22:24", "value=36;range=35:37"],
+                    tag_match: true,
+                    roll_observation_match: false,
+                    reasons: ["Same parsed modifier identity, tier, side, and origin."]
+                  },
+                  {
+                    relationship: "EXACT_MATCH",
+                    semantic_identity: "SUFFIX:+# to level of all projectile skills",
+                    affix_type: "SUFFIX",
+                    current_display_name: "of the Archer",
+                    comparable_display_name: "of the Archer",
+                    current_tier: "1",
+                    comparable_tier: "1",
+                    current_origin: "DESECRATED",
+                    comparable_origin: "DESECRATED",
+                    current_tags: ["gem"],
+                    comparable_tags: ["gem"],
+                    current_roll_values: ["value=1"],
+                    comparable_roll_values: ["value=1"],
+                    tag_match: true,
+                    roll_observation_match: true,
+                    reasons: ["Same parsed modifier identity, tier, side, and origin."]
+                  }
+                ],
+                differing_modifiers: [
+                  {
+                    relationship: "TIER_DIFFERENCE",
+                    semantic_identity: "SUFFIX:#% increased critical hit chance for attacks",
+                    affix_type: "SUFFIX",
+                    current_display_name: "of Calamity",
+                    comparable_display_name: "of Unmaking",
+                    current_tier: "3",
+                    comparable_tier: "1",
+                    current_origin: "NATURAL",
+                    comparable_origin: "NATURAL",
+                    current_tags: ["critical"],
+                    comparable_tags: ["critical"],
+                    current_roll_values: ["value=37;range=35:39"],
+                    comparable_roll_values: ["value=49;range=48:50"],
+                    tag_match: true,
+                    roll_observation_match: false,
+                    reasons: ["Same parsed modifier identity and origin, but tier differs."]
+                  }
+                ],
+                missing_modifiers: [],
+                extra_modifiers: [],
+                warnings: [],
+                policy_id: "comparable-relevance-policy-v1"
+              },
               warnings: ["Manual API observation; listing price is not a realized sale."]
             }
           ]
@@ -987,6 +1072,7 @@ describe("AdvisorWorkbench", () => {
     const user = userEvent.setup();
 
     render(<AdvisorWorkbench />);
+    await user.type(screen.getByLabelText(/clipboard item text/i), "Item Class: Quivers\nRarity: Rare\nBramble Spike\nPrimed Quiver");
     await openAdvancedTools(user);
     await user.type(screen.getByLabelText(/listing amount/i), "450");
     await user.type(screen.getByLabelText(/listing id/i), "structured-comparable");
@@ -1003,7 +1089,11 @@ describe("AdvisorWorkbench", () => {
     expect(screen.getByLabelText(/parsed comparable item state/i)).toHaveTextContent("Quivers");
     expect(screen.getByLabelText(/parsed comparable item state/i)).toHaveTextContent("ilvl 82");
     expect(screen.getByLabelText(/parsed comparable item state/i)).toHaveTextContent("6 explicit modifiers");
+    expect(screen.getByLabelText(/comparable relevance assessment/i)).toHaveTextContent("HIGH relevance");
+    expect(screen.getByLabelText(/comparable relevance assessment/i)).toHaveTextContent("3 matched modifiers");
+    expect(screen.getByLabelText(/comparable relevance assessment/i)).toHaveTextContent("TIER_DIFFERENCE");
     const previewBody = JSON.parse(fetchMock.mock.calls[0][1].body as string);
+    expect(previewBody.subject_clipboard_text).toContain("Bramble Spike");
     expect(previewBody.evidence.observations[0]).toEqual(
       expect.objectContaining({
         amount: "450",
