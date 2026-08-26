@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from datetime import datetime
 from decimal import Decimal
+from typing import Any
 
 from pydantic import Field, field_validator, model_validator
 
@@ -18,6 +19,8 @@ class ManualListingObservationDto(ApiModel):
     external_listing_id: str | None = None
     observed_at: datetime | None = None
     item_summary: str | None = None
+    comparable_clipboard_text: str | None = None
+    comparable_item: "StructuredComparableItemDto | None" = None
     notes: str | None = None
 
     @field_validator("amount")
@@ -71,6 +74,7 @@ class ComparableResultPreviewDto(ApiModel):
     listing_price: str
     listing_currency_asset_id: str
     normalized_value: EconomicValueDto | None = None
+    comparable_item: "StructuredComparableItemDto | None" = None
     economy_freshness: str
     economy_snapshot_id: str | None = None
     observed_at: datetime
@@ -116,6 +120,8 @@ class ManualValuationWorkspaceRecordDto(ApiModel):
     external_listing_id: str | None = None
     observed_at: datetime | None = None
     item_summary: str | None = None
+    comparable_clipboard_text: str | None = None
+    comparable_item: "StructuredComparableItemDto | None" = None
     notes: str | None = None
     created_at: datetime | None = None
     updated_at: datetime | None = None
@@ -141,6 +147,14 @@ class ManualValuationWorkspaceRecordDto(ApiModel):
                 raise ValueError("hypothetical-outcome valuation evidence requires subject_id outcome:{outcome_id}")
             return self
         raise ValueError("subject_type must be CURRENT_ITEM or HYPOTHETICAL_OUTCOME")
+
+
+class StructuredComparableItemDto(ApiModel):
+    raw_clipboard_text: str
+    detected_format: str
+    item: dict[str, Any]
+    warnings: list[str] = []
+    unparsed_sections: list[str] = []
 
 
 class ManualValuationWorkspacePersistenceStatusDto(ApiModel):

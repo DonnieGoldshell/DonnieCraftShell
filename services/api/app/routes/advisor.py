@@ -29,6 +29,7 @@ from services.api.app.mappers.advisor import (
     advisor_request_to_domain,
     advisor_result_to_dto,
     manual_valuation_preview_to_dto,
+    manual_valuation_workspace_record_to_storage,
 )
 from services.api.app.schemas.advisor import (
     AdvisorAnalyzeRequestDto,
@@ -196,7 +197,11 @@ def save_manual_valuation_evidence(
     request: ManualValuationWorkspaceSaveRequestDto,
     workspace: ManualValuationWorkspaceRepository = Depends(get_manual_valuation_workspace),
 ) -> ManualValuationWorkspaceSaveResponseDto:
-    result = workspace.save_record(request.record.model_dump(mode="json", exclude_none=True))
+    try:
+        record = manual_valuation_workspace_record_to_storage(request.record)
+    except ValueError as exc:
+        _bad_request("Manual valuation workspace evidence was rejected.", (str(exc),))
+    result = workspace.save_record(record)
     if result.status == ManualValuationWorkspaceSaveStatus.REJECTED:
         _bad_request("Manual valuation workspace evidence was rejected.", result.warnings)
     return _workspace_save_response(result, workspace)
@@ -208,7 +213,11 @@ def update_manual_valuation_evidence(
     request: ManualValuationWorkspaceSaveRequestDto,
     workspace: ManualValuationWorkspaceRepository = Depends(get_manual_valuation_workspace),
 ) -> ManualValuationWorkspaceSaveResponseDto:
-    result = workspace.update_record(evidence_id, request.record.model_dump(mode="json", exclude_none=True))
+    try:
+        record = manual_valuation_workspace_record_to_storage(request.record)
+    except ValueError as exc:
+        _bad_request("Manual valuation workspace evidence update was rejected.", (str(exc),))
+    result = workspace.update_record(evidence_id, record)
     if result.status in {ManualValuationWorkspaceSaveStatus.REJECTED, ManualValuationWorkspaceSaveStatus.NOT_FOUND}:
         _bad_request("Manual valuation workspace evidence update was rejected.", result.warnings)
     return _workspace_save_response(result, workspace)

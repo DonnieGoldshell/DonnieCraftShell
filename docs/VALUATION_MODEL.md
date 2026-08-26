@@ -25,7 +25,8 @@ Executable contracts live in `packages/shared/donniecraftshell_contracts/valuati
 - `ModifierConstraint`: query-level modifier requirement.
 - `ComparableQuery`: DonnieCraftShell query definition, not a Trade API payload.
 - `ManualTradeProvider`: no-network provider for manual comparable observations.
-- `ManualListingObservation`: user-entered listing observation.
+- `StructuredComparableItem`: optional parsed Advanced Copy item state for a comparable listing.
+- `ManualListingObservation`: user-entered listing observation, optionally including `StructuredComparableItem`.
 - `ComparableResult`: normalized listing evidence when currency conversion is available.
 - `ComparableEvidenceSet`: query plus comparable results and readiness.
 - `ValuationAggregationPolicy`: configurable readiness, quantile, duplicate, stale, and outlier policy.
@@ -48,6 +49,14 @@ Manual listing observations preserve original amount and currency. The provider 
 
 If conversion is missing, normalized value remains unavailable. Missing conversion is never zero.
 
+## Structured Comparable Item State
+
+Task 53 extends manual comparable evidence with optional full PoE2 Advanced Copy text for the comparable listing. The API parses that text through the canonical item parser and stores the resulting structured item state beside listing metadata.
+
+Price-only/manual rows remain backward compatible, but they are not structurally verified comparable evidence. Notes such as "similar quiver" remain prose context only; machine-readable comparability comes from parsed item state.
+
+Malformed comparable clipboard text is rejected during preview/save/update rather than persisted as trusted structure.
+
 ## Advisor API Preview
 
 The Advisor API exposes a thin manual-evidence preview endpoint for the web
@@ -62,7 +71,9 @@ manual `ComparableQuery`, converts `ManualListingObservation` rows through
 `ManualTradeProvider`, creates a `ComparableEvidenceSet`, and runs
 `ValuationAggregator`. Current-item evidence and hypothetical-outcome evidence
 remain separate by subject ID; outcome evidence must carry the deterministic
-`outcome_id`.
+`outcome_id`. If an observation includes `comparable_clipboard_text`, the
+endpoint parses and returns a structured comparable item summary in each
+`ComparableResult`.
 
 ## Listing Evidence
 

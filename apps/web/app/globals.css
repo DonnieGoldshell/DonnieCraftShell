@@ -517,6 +517,16 @@ th {
   outline-offset: 4px;
 }
 
+.comparable-item-summary {
+  background: rgba(124, 58, 237, 0.08);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  display: grid;
+  gap: 4px;
+  margin-top: 8px;
+  padding: 10px;
+}
+
 .compact-form {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));

@@ -358,6 +358,15 @@ def _normalized_record(record: dict[str, Any]) -> dict[str, Any]:
         raise ValueError("listing amount cannot be negative")
     if not copied.get("currency_asset_id"):
         raise ValueError("currency_asset_id is required")
+    comparable_text = str(copied.get("comparable_clipboard_text") or "").strip()
+    if comparable_text:
+        comparable_item = copied.get("comparable_item")
+        if not isinstance(comparable_item, dict) or not comparable_item.get("item"):
+            raise ValueError("comparable_clipboard_text requires parsed comparable_item state")
+        copied["comparable_clipboard_text"] = comparable_text
+    else:
+        copied.pop("comparable_clipboard_text", None)
+        copied.pop("comparable_item", None)
     copied["amount"] = str(amount)
     copied["outcome_id"] = outcome_id
     copied["observed_at"] = _iso_or_none(copied.get("observed_at")) or _now_iso()
@@ -383,6 +392,7 @@ def _derive_evidence_id(record: dict[str, Any]) -> str:
             str(record.get("currency_asset_id")),
             str(record.get("observed_at")),
             str(record.get("item_summary") or ""),
+            str(record.get("comparable_clipboard_text") or ""),
             str(record.get("notes") or ""),
         )
     )

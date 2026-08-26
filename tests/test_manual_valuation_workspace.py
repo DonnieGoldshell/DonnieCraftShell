@@ -100,6 +100,17 @@ class ManualValuationWorkspaceTests(unittest.TestCase):
         self.assertEqual(conflict.status, ManualValuationWorkspaceSaveStatus.REJECTED)
         self.assertEqual(repository.list_records()[0]["amount"], "100")
 
+    def test_comparable_clipboard_text_requires_parsed_item_state(self):
+        repository = ManualValuationWorkspaceRepository()
+        payload = record(evidence_id="structured-comparable")
+        payload["comparable_clipboard_text"] = "Item Class: Quivers\nRarity: Rare"
+
+        result = repository.save_record(payload)
+
+        self.assertEqual(result.status, ManualValuationWorkspaceSaveStatus.REJECTED)
+        self.assertIn("requires parsed comparable_item state", result.warnings[0])
+        self.assertEqual(repository.list_records(), ())
+
     def test_update_and_delete_are_subject_scoped_by_record_identity(self):
         repository = ManualValuationWorkspaceRepository()
         repository.save_record(record(evidence_id="current-evidence"))

@@ -109,6 +109,7 @@ class AdvisorApiTests(unittest.TestCase):
         self.assertIn("EvidenceReadinessTargetDto", schema_names)
         self.assertIn("ManualValuationPreviewRequestDto", schema_names)
         self.assertIn("ManualValuationPreviewResponseDto", schema_names)
+        self.assertIn("StructuredComparableItemDto", schema_names)
         self.assertIn("/api/v1/advisor/manual-valuation/preview", openapi["paths"])
         self.assertIn("/api/v1/advisor/manual-valuation/workspace/evidence", openapi["paths"])
         self.assertIn("/api/v1/advisor/manual-valuation/workspace/evidence/{evidence_id}", openapi["paths"])
@@ -518,6 +519,56 @@ class AdvisorApiTests(unittest.TestCase):
                 for warning in result["warnings"]
             )
         )
+        self.assertTrue(
+            any(
+                "not structurally verified" in warning
+                for result in body["comparable_results"]
+                for warning in result["warnings"]
+            )
+        )
+
+    def test_manual_valuation_preview_parses_structured_comparable_item_state(self):
+        comparable_text = fixture("quiver_6_crafted_desecrated_advanced.txt")
+        evidence = self._valuation_evidence("100")
+        evidence["observations"][0]["comparable_clipboard_text"] = comparable_text
+
+        response = self.client.post(
+            "/api/v1/advisor/manual-valuation/preview",
+            json={
+                "subject_id": "current",
+                "subject_type": "CURRENT_ITEM",
+                "league": LEAGUE,
+                "as_of": AS_OF,
+                "evidence": evidence,
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        comparable = response.json()["comparable_results"][0]["comparable_item"]
+        self.assertIsNotNone(comparable)
+        self.assertEqual(comparable["detected_format"], "ADVANCED")
+        self.assertEqual(comparable["item"]["item_class"], "Quivers")
+        self.assertEqual(comparable["item"]["base_type"], "Primed Quiver")
+        self.assertEqual(comparable["item"]["item_level"], 82)
+        self.assertGreaterEqual(len(comparable["item"]["explicit_modifiers"]), 1)
+
+    def test_manual_valuation_preview_rejects_malformed_comparable_clipboard_text(self):
+        evidence = self._valuation_evidence("100")
+        evidence["observations"][0]["comparable_clipboard_text"] = "not a Path of Exile item"
+
+        response = self.client.post(
+            "/api/v1/advisor/manual-valuation/preview",
+            json={
+                "subject_id": "current",
+                "subject_type": "CURRENT_ITEM",
+                "league": LEAGUE,
+                "as_of": AS_OF,
+                "evidence": evidence,
+            },
+        )
+
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("comparable_clipboard_text could not be parsed", response.json()["detail"]["message"])
 
     def test_manual_valuation_preview_missing_conversion_is_unavailable_not_zero(self):
         response = self.client.post(
@@ -596,6 +647,25 @@ class AdvisorApiTests(unittest.TestCase):
         self.assertEqual(listed.json()["records"][0]["subject_id"], "current")
         self.assertEqual(outcome_listed.json()["records"], [])
         self.assertEqual(listed.json()["persistence"]["storage_mode"], "FILE")
+
+    def test_manual_valuation_workspace_persists_structured_comparable_item_state(self):
+        record = self._manual_workspace_record(evidence_id="structured-current-listing")
+        record["comparable_clipboard_text"] = fixture("quiver_6_crafted_desecrated_advanced.txt")
+
+        saved = self.client.post(
+            "/api/v1/advisor/manual-valuation/workspace/evidence",
+            json={"record": record},
+        )
+        listed = self.client.get(
+            "/api/v1/advisor/manual-valuation/workspace/evidence",
+            params={"subject_id": "current"},
+        )
+
+        self.assertEqual(saved.status_code, 200)
+        saved_record = saved.json()["record"]
+        self.assertEqual(saved_record["comparable_item"]["detected_format"], "ADVANCED")
+        self.assertEqual(saved_record["comparable_item"]["item"]["base_type"], "Primed Quiver")
+        self.assertEqual(listed.json()["records"][0]["comparable_item"]["item"]["item_class"], "Quivers")
 
     def test_manual_valuation_workspace_outcome_evidence_isolated_by_subject(self):
         from services.api.app.dependencies import advisor as advisor_dependencies

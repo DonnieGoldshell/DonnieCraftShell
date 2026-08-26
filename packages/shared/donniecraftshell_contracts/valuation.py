@@ -164,6 +164,19 @@ class ManualTradeWorkflow:
 
 
 @dataclass(frozen=True)
+class StructuredComparableItem:
+    raw_clipboard_text: str
+    parsed_item: ParsedItem
+    detected_format: str
+    warnings: tuple[str, ...] = ()
+    unparsed_sections: tuple[str, ...] = ()
+
+    def __post_init__(self) -> None:
+        if not self.raw_clipboard_text.strip():
+            raise ValueError("structured comparable raw_clipboard_text is required")
+
+
+@dataclass(frozen=True)
 class ManualListingObservation:
     observation_id: str
     query_id: str
@@ -173,6 +186,7 @@ class ManualListingObservation:
     observed_at: datetime
     external_listing_id: str | None = None
     item_summary: str | None = None
+    comparable_item: StructuredComparableItem | None = None
     provenance: tuple[DataProvenance, ...] = ()
     warnings: tuple[str, ...] = ()
 
@@ -202,6 +216,7 @@ class ComparableResult:
     economy_freshness: FreshnessState = FreshnessState.UNAVAILABLE
     provenance: tuple[DataProvenance, ...] = ()
     warnings: tuple[str, ...] = ()
+    comparable_item: StructuredComparableItem | None = None
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "listing_price", _decimal(self.listing_price, "listing price"))
@@ -646,6 +661,7 @@ class ManualTradeProvider:
             listing_currency_asset_id=observation.currency_asset_id,
             normalized_value=normalized,
             item_summary=observation.item_summary,
+            comparable_item=observation.comparable_item,
             matched_constraints=(),
             observed_at=observation.observed_at,
             retrieved_at=as_of,
@@ -653,7 +669,7 @@ class ManualTradeProvider:
             economy_snapshot_id=snapshot_id,
             economy_freshness=freshness,
             provenance=observation.provenance,
-            warnings=observation.warnings + tuple(warnings),
+            warnings=observation.warnings + tuple(warnings) + _structured_comparable_warnings(observation),
         )
 
 
@@ -812,6 +828,12 @@ def _normalize_listing(
     if quote is None or quote.normalized_value is None:
         return None, None, FreshnessState.UNAVAILABLE, [f"Missing economy conversion for {observation.currency_asset_id}"]
     return normalized_exalted_value(observation.amount * quote.normalized_value.amount), quote.snapshot_id, quote.freshness, []
+
+
+def _structured_comparable_warnings(observation: ManualListingObservation) -> tuple[str, ...]:
+    if observation.comparable_item is None:
+        return ("Manual observation has no parsed comparable item state; it is not structurally verified.",)
+    return ()
 
 
 def _query_summary(query: ComparableQuery) -> str:

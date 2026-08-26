@@ -123,6 +123,14 @@ allows it, confidence, liquidity, economy snapshot IDs, and warnings. Missing
 conversion remains unavailable, never zero. The endpoint performs no Trade or
 economy network calls and does not bypass `ValuationAggregator`.
 
+Task 53 extends manual listing observations with optional
+`comparable_clipboard_text`. When present, API preview and workspace save/update
+parse that text through the canonical item parser and return/store a
+`comparable_item` structured state. Price-only observations remain valid for
+backward compatibility, but they are explicitly not structurally verified.
+Malformed comparable clipboard text is a validation error. Listing evidence
+remains an asking-price observation, not a realized sale.
+
 Task 15B extends the same endpoint with optional empirical probability dataset selection and serialized probability evidence details. Default production assembly skips synthetic empirical fixtures and keeps real actions `UNKNOWN` without compatible evidence.
 
 Task 15C adds an offline operator workflow rather than a public HTTP endpoint:
