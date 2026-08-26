@@ -131,6 +131,15 @@ backward compatibility, but they are explicitly not structurally verified.
 Malformed comparable clipboard text is a validation error. Listing evidence
 remains an asking-price observation, not a realized sale.
 
+Task 59 extends manual valuation preview with optional `subject_clipboard_text`
+and `comparable_relevance` on preview rows. When the current subject and a
+comparable both have parsed structured item state, the backend returns a
+versioned structural relevance assessment with band, optional score, base
+similarity reasons, matched/differing/missing/extra modifier groups, and
+warnings. This is explainability metadata only; the endpoint does not use it to
+rank comparables, alter valuation aggregation, infer market premiums, or
+fabricate relevance for price-only evidence.
+
 Task 15B extends the same endpoint with optional empirical probability dataset selection and serialized probability evidence details. Default production assembly skips synthetic empirical fixtures and keeps real actions `UNKNOWN` without compatible evidence.
 
 Task 15C adds an offline operator workflow rather than a public HTTP endpoint:

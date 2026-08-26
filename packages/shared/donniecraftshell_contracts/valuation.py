@@ -7,6 +7,7 @@ trade sites, calculate EV, or recommend.
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from decimal import ROUND_FLOOR, Decimal
@@ -76,6 +77,23 @@ class ComparableExclusionReason(str, Enum):
     UNNORMALIZED_PRICE = "UNNORMALIZED_PRICE"
     OUTLIER_POLICY = "OUTLIER_POLICY"
     STALE_POLICY = "STALE_POLICY"
+
+
+class ComparableRelevanceBand(str, Enum):
+    HIGH = "HIGH"
+    MEDIUM = "MEDIUM"
+    LOW = "LOW"
+    NOT_COMPARABLE = "NOT_COMPARABLE"
+    INSUFFICIENT_STATE = "INSUFFICIENT_STATE"
+
+
+class ModifierRelevanceRelationship(str, Enum):
+    EXACT_MATCH = "EXACT_MATCH"
+    TIER_DIFFERENCE = "TIER_DIFFERENCE"
+    ORIGIN_DIFFERENCE = "ORIGIN_DIFFERENCE"
+    TIER_AND_ORIGIN_DIFFERENCE = "TIER_AND_ORIGIN_DIFFERENCE"
+    MISSING_FROM_COMPARABLE = "MISSING_FROM_COMPARABLE"
+    EXTRA_ON_COMPARABLE = "EXTRA_ON_COMPARABLE"
 
 
 @dataclass(frozen=True)
@@ -177,6 +195,46 @@ class StructuredComparableItem:
 
 
 @dataclass(frozen=True)
+class ComparableModifierRelevance:
+    relationship: ModifierRelevanceRelationship
+    semantic_identity: str
+    affix_type: AffixType
+    current_display_name: str | None = None
+    comparable_display_name: str | None = None
+    current_tier: str | None = None
+    comparable_tier: str | None = None
+    current_origin: str | None = None
+    comparable_origin: str | None = None
+    current_tags: tuple[str, ...] = ()
+    comparable_tags: tuple[str, ...] = ()
+    current_roll_values: tuple[str, ...] = ()
+    comparable_roll_values: tuple[str, ...] = ()
+    tag_match: bool | None = None
+    roll_observation_match: bool | None = None
+    reasons: tuple[str, ...] = ()
+
+
+@dataclass(frozen=True)
+class ComparableRelevance:
+    score: Decimal | None
+    band: ComparableRelevanceBand
+    base_similarity: tuple[str, ...] = ()
+    matched_modifiers: tuple[ComparableModifierRelevance, ...] = ()
+    differing_modifiers: tuple[ComparableModifierRelevance, ...] = ()
+    missing_modifiers: tuple[ComparableModifierRelevance, ...] = ()
+    extra_modifiers: tuple[ComparableModifierRelevance, ...] = ()
+    warnings: tuple[str, ...] = ()
+    policy_id: str = "comparable-relevance-policy-v1"
+
+    def __post_init__(self) -> None:
+        if self.score is not None:
+            score = _decimal(self.score, "comparable relevance score")
+            if score < Decimal("0") or score > Decimal("1"):
+                raise ValueError("comparable relevance score must be between 0 and 1")
+            object.__setattr__(self, "score", score)
+
+
+@dataclass(frozen=True)
 class ManualListingObservation:
     observation_id: str
     query_id: str
@@ -217,6 +275,7 @@ class ComparableResult:
     provenance: tuple[DataProvenance, ...] = ()
     warnings: tuple[str, ...] = ()
     comparable_item: StructuredComparableItem | None = None
+    comparable_relevance: ComparableRelevance | None = None
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "listing_price", _decimal(self.listing_price, "listing price"))
@@ -673,6 +732,103 @@ class ManualTradeProvider:
         )
 
 
+class ComparableRelevanceAssessor:
+    """Deterministic structural comparable similarity, not market-value weighting."""
+
+    def assess(self, current_item: ParsedItem | None, comparable: StructuredComparableItem | None) -> ComparableRelevance:
+        if current_item is None or comparable is None:
+            return ComparableRelevance(
+                score=None,
+                band=ComparableRelevanceBand.INSUFFICIENT_STATE,
+                warnings=("Parsed current item and parsed comparable item are required for structural relevance.",),
+            )
+        comparable_item = comparable.parsed_item
+        if not current_item.explicit_modifiers or not comparable_item.explicit_modifiers:
+            return ComparableRelevance(
+                score=None,
+                band=ComparableRelevanceBand.INSUFFICIENT_STATE,
+                warnings=("Both items need parsed explicit modifier state for structural relevance.",),
+            )
+
+        base_points, base_reasons = _base_similarity_points(current_item, comparable_item)
+        current_modifiers = tuple(current_item.explicit_modifiers)
+        comparable_modifiers = tuple(comparable_item.explicit_modifiers)
+        available = list(comparable_modifiers)
+        matched: list[ComparableModifierRelevance] = []
+        differing: list[ComparableModifierRelevance] = []
+        missing: list[ComparableModifierRelevance] = []
+        score_points = base_points
+
+        for current_modifier in current_modifiers:
+            match = _best_modifier_match(current_modifier, available)
+            if match is None:
+                missing.append(
+                    _modifier_relevance(
+                        ModifierRelevanceRelationship.MISSING_FROM_COMPARABLE,
+                        current_modifier,
+                        None,
+                        ("Current modifier has no parsed structural counterpart on the comparable.",),
+                    )
+                )
+                continue
+            available.remove(match)
+            same_tier = _same_tier(current_modifier.tier, match.tier)
+            same_origin = current_modifier.origin == match.origin
+            if same_tier and same_origin:
+                score_points += Decimal("10")
+                matched.append(
+                    _modifier_relevance(
+                        ModifierRelevanceRelationship.EXACT_MATCH,
+                        current_modifier,
+                        match,
+                        ("Same parsed modifier identity, tier, side, and origin.",),
+                    )
+                )
+            else:
+                score_points += Decimal("5")
+                if same_tier:
+                    score_points += Decimal("2")
+                    relationship = ModifierRelevanceRelationship.ORIGIN_DIFFERENCE
+                    reasons = ("Same parsed modifier identity and tier, but modifier origin differs.",)
+                elif same_origin:
+                    score_points += Decimal("1")
+                    relationship = ModifierRelevanceRelationship.TIER_DIFFERENCE
+                    reasons = ("Same parsed modifier identity and origin, but tier differs.",)
+                else:
+                    relationship = ModifierRelevanceRelationship.TIER_AND_ORIGIN_DIFFERENCE
+                    reasons = ("Same parsed modifier identity, but tier and modifier origin differ.",)
+                differing.append(_modifier_relevance(relationship, current_modifier, match, reasons))
+
+        extra = tuple(
+            _modifier_relevance(
+                ModifierRelevanceRelationship.EXTRA_ON_COMPARABLE,
+                None,
+                modifier,
+                ("Comparable has an extra parsed modifier with no current-item counterpart.",),
+            )
+            for modifier in available
+        )
+        max_points = Decimal("55") + (Decimal("10") * Decimal(len(current_modifiers)))
+        score = min(Decimal("1"), score_points / max_points) if max_points > 0 else Decimal("0")
+        warnings = []
+        if current_item.item_class != comparable_item.item_class:
+            warnings.append("Comparable item class differs from current item.")
+        if current_item.rarity != comparable_item.rarity:
+            warnings.append("Comparable rarity differs from current item.")
+        if extra:
+            warnings.append("Comparable has extra parsed modifiers not matched to the current item.")
+        return ComparableRelevance(
+            score=score.quantize(Decimal("0.0001")),
+            band=_relevance_band(score),
+            base_similarity=tuple(base_reasons),
+            matched_modifiers=tuple(matched),
+            differing_modifiers=tuple(differing),
+            missing_modifiers=tuple(missing),
+            extra_modifiers=extra,
+            warnings=tuple(warnings),
+        )
+
+
 def subject_from_parsed_item(
     item: ParsedItem,
     dataset_versions: tuple[str, ...] = (),
@@ -799,6 +955,159 @@ def evidence_set_from_results(
         economy_snapshot_ids=economy_snapshot_ids,
         warnings=tuple(warnings),
     )
+
+
+def _base_similarity_points(current_item: ParsedItem, comparable_item: ParsedItem) -> tuple[Decimal, tuple[str, ...]]:
+    points = Decimal("0")
+    reasons: list[str] = []
+    if current_item.item_class and current_item.item_class == comparable_item.item_class:
+        points += Decimal("20")
+        reasons.append(f"Both items are {current_item.item_class}.")
+    elif current_item.item_class or comparable_item.item_class:
+        reasons.append(f"Item class differs: {current_item.item_class or 'UNKNOWN'} vs {comparable_item.item_class or 'UNKNOWN'}.")
+    if current_item.rarity == comparable_item.rarity:
+        points += Decimal("15")
+        reasons.append(f"Both items have rarity {current_item.rarity.value}.")
+    else:
+        reasons.append(f"Rarity differs: {current_item.rarity.value} vs {comparable_item.rarity.value}.")
+    if current_item.item_level is not None and comparable_item.item_level is not None:
+        difference = abs(current_item.item_level - comparable_item.item_level)
+        if difference == 0:
+            points += Decimal("10")
+            reasons.append(f"Both items have item level {current_item.item_level}.")
+        elif difference <= 5:
+            points += Decimal("6")
+            reasons.append(f"Item levels are close: {current_item.item_level} vs {comparable_item.item_level}.")
+        else:
+            reasons.append(f"Item levels differ materially: {current_item.item_level} vs {comparable_item.item_level}.")
+    if current_item.base_type and current_item.base_type == comparable_item.base_type:
+        points += Decimal("10")
+        reasons.append(f"Both items use base type {current_item.base_type}.")
+    elif current_item.base_type or comparable_item.base_type:
+        points += Decimal("3")
+        reasons.append(f"Base type differs: {current_item.base_type or 'UNKNOWN'} vs {comparable_item.base_type or 'UNKNOWN'}.")
+    current_implicit = {_modifier_semantic_identity(modifier) for modifier in current_item.implicit_modifiers}
+    comparable_implicit = {_modifier_semantic_identity(modifier) for modifier in comparable_item.implicit_modifiers}
+    if current_implicit and current_implicit == comparable_implicit:
+        points += Decimal("10")
+        reasons.append("Implicit modifier effect matches structurally.")
+    elif current_implicit or comparable_implicit:
+        reasons.append("Implicit modifier effect differs.")
+    current_states = tuple(sorted(state.value for state in current_item.special_states))
+    comparable_states = tuple(sorted(state.value for state in comparable_item.special_states))
+    if current_states == comparable_states and current_states:
+        reasons.append(f"Special item states match: {', '.join(current_states)}.")
+    elif current_states or comparable_states:
+        reasons.append(
+            "Special item states differ: "
+            f"{', '.join(current_states) if current_states else 'NONE'} vs "
+            f"{', '.join(comparable_states) if comparable_states else 'NONE'}."
+        )
+    return points, tuple(reasons)
+
+
+def _best_modifier_match(current_modifier: ItemModifier, candidates: list[ItemModifier]) -> ItemModifier | None:
+    identity = _modifier_semantic_identity(current_modifier)
+    same_side = [
+        candidate
+        for candidate in candidates
+        if candidate.affix_type == current_modifier.affix_type
+        and _modifier_semantic_identity(candidate) == identity
+    ]
+    if not same_side:
+        return None
+    same_tier_origin = [
+        candidate
+        for candidate in same_side
+        if _same_tier(current_modifier.tier, candidate.tier) and candidate.origin == current_modifier.origin
+    ]
+    if same_tier_origin:
+        return same_tier_origin[0]
+    same_tier = [candidate for candidate in same_side if _same_tier(current_modifier.tier, candidate.tier)]
+    if same_tier:
+        return same_tier[0]
+    same_origin = [candidate for candidate in same_side if candidate.origin == current_modifier.origin]
+    if same_origin:
+        return same_origin[0]
+    return same_side[0]
+
+
+def _modifier_relevance(
+    relationship: ModifierRelevanceRelationship,
+    current_modifier: ItemModifier | None,
+    comparable_modifier: ItemModifier | None,
+    reasons: tuple[str, ...],
+) -> ComparableModifierRelevance:
+    reference = current_modifier or comparable_modifier
+    assert reference is not None
+    current_tags = tuple(sorted(current_modifier.tags)) if current_modifier else ()
+    comparable_tags = tuple(sorted(comparable_modifier.tags)) if comparable_modifier else ()
+    current_roll_values = _roll_values(current_modifier) if current_modifier else ()
+    comparable_roll_values = _roll_values(comparable_modifier) if comparable_modifier else ()
+    tag_match = current_tags == comparable_tags if current_modifier and comparable_modifier else None
+    roll_match = current_roll_values == comparable_roll_values if current_modifier and comparable_modifier else None
+    expanded_reasons = list(reasons)
+    if tag_match is False:
+        expanded_reasons.append("Parsed modifier tags differ.")
+    if roll_match is False:
+        expanded_reasons.append("Observed roll values or displayed ranges differ.")
+    return ComparableModifierRelevance(
+        relationship=relationship,
+        semantic_identity=_modifier_semantic_identity(reference),
+        affix_type=reference.affix_type,
+        current_display_name=current_modifier.display_name if current_modifier else None,
+        comparable_display_name=comparable_modifier.display_name if comparable_modifier else None,
+        current_tier=current_modifier.tier if current_modifier else None,
+        comparable_tier=comparable_modifier.tier if comparable_modifier else None,
+        current_origin=current_modifier.origin.value if current_modifier else None,
+        comparable_origin=comparable_modifier.origin.value if comparable_modifier else None,
+        current_tags=current_tags,
+        comparable_tags=comparable_tags,
+        current_roll_values=current_roll_values,
+        comparable_roll_values=comparable_roll_values,
+        tag_match=tag_match,
+        roll_observation_match=roll_match,
+        reasons=tuple(expanded_reasons),
+    )
+
+
+def _roll_values(modifier: ItemModifier) -> tuple[str, ...]:
+    values: list[str] = []
+    for roll in modifier.observed_rolls:
+        parts = []
+        if roll.label:
+            parts.append(f"label={roll.label}")
+        if roll.value is not None:
+            parts.append(f"value={roll.value}")
+        if roll.min_value is not None or roll.max_value is not None:
+            parts.append(f"range={roll.min_value}:{roll.max_value}")
+        values.append(";".join(parts) if parts else "unknown-roll")
+    return tuple(values)
+
+
+def _modifier_semantic_identity(modifier: ItemModifier) -> str:
+    if modifier.canonical_id:
+        return f"canonical:{modifier.canonical_id}"
+    if modifier.family or modifier.group:
+        return f"group:{modifier.family or modifier.group}"
+    text = modifier.normalized_text or modifier.raw_text
+    template = re.sub(r"[+-]?\d+(?:\.\d+)?(?:\([^)]+\))?", "#", text)
+    template = re.sub(r"\s+", " ", template).strip().lower()
+    return f"{modifier.affix_type.value}:{template}"
+
+
+def _same_tier(first: str | None, second: str | None) -> bool:
+    return (first or "").strip() == (second or "").strip()
+
+
+def _relevance_band(score: Decimal) -> ComparableRelevanceBand:
+    if score >= Decimal("0.75"):
+        return ComparableRelevanceBand.HIGH
+    if score >= Decimal("0.45"):
+        return ComparableRelevanceBand.MEDIUM
+    if score >= Decimal("0.20"):
+        return ComparableRelevanceBand.LOW
+    return ComparableRelevanceBand.NOT_COMPARABLE
 
 
 def _constraint(role: ModifierComparableRoleAssignment, match_mode: ModifierMatchMode) -> ModifierConstraint:

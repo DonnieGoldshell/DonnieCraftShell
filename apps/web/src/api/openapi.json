@@ -626,6 +626,234 @@
         "title": "ApiErrorDto",
         "type": "object"
       },
+      "ComparableModifierRelevanceDto": {
+        "properties": {
+          "affix_type": {
+            "title": "Affix Type",
+            "type": "string"
+          },
+          "comparable_display_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Comparable Display Name"
+          },
+          "comparable_origin": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Comparable Origin"
+          },
+          "comparable_roll_values": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Comparable Roll Values",
+            "type": "array"
+          },
+          "comparable_tags": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Comparable Tags",
+            "type": "array"
+          },
+          "comparable_tier": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Comparable Tier"
+          },
+          "current_display_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Current Display Name"
+          },
+          "current_origin": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Current Origin"
+          },
+          "current_roll_values": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Current Roll Values",
+            "type": "array"
+          },
+          "current_tags": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Current Tags",
+            "type": "array"
+          },
+          "current_tier": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Current Tier"
+          },
+          "reasons": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Reasons",
+            "type": "array"
+          },
+          "relationship": {
+            "title": "Relationship",
+            "type": "string"
+          },
+          "roll_observation_match": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Roll Observation Match"
+          },
+          "semantic_identity": {
+            "title": "Semantic Identity",
+            "type": "string"
+          },
+          "tag_match": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tag Match"
+          }
+        },
+        "required": [
+          "relationship",
+          "semantic_identity",
+          "affix_type"
+        ],
+        "title": "ComparableModifierRelevanceDto",
+        "type": "object"
+      },
+      "ComparableRelevanceDto": {
+        "properties": {
+          "band": {
+            "title": "Band",
+            "type": "string"
+          },
+          "base_similarity": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Base Similarity",
+            "type": "array"
+          },
+          "differing_modifiers": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/ComparableModifierRelevanceDto"
+            },
+            "title": "Differing Modifiers",
+            "type": "array"
+          },
+          "extra_modifiers": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/ComparableModifierRelevanceDto"
+            },
+            "title": "Extra Modifiers",
+            "type": "array"
+          },
+          "matched_modifiers": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/ComparableModifierRelevanceDto"
+            },
+            "title": "Matched Modifiers",
+            "type": "array"
+          },
+          "missing_modifiers": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/ComparableModifierRelevanceDto"
+            },
+            "title": "Missing Modifiers",
+            "type": "array"
+          },
+          "policy_id": {
+            "title": "Policy Id",
+            "type": "string"
+          },
+          "score": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Score"
+          },
+          "warnings": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Warnings",
+            "type": "array"
+          }
+        },
+        "required": [
+          "band",
+          "policy_id"
+        ],
+        "title": "ComparableRelevanceDto",
+        "type": "object"
+      },
       "ComparableResultPreviewDto": {
         "properties": {
           "comparable_id": {
@@ -636,6 +864,16 @@
             "anyOf": [
               {
                 "$ref": "#/components/schemas/StructuredComparableItemDto"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "comparable_relevance": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ComparableRelevanceDto"
               },
               {
                 "type": "null"
@@ -2319,6 +2557,17 @@
               }
             ],
             "title": "Outcome Id"
+          },
+          "subject_clipboard_text": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Subject Clipboard Text"
           },
           "subject_id": {
             "default": "current",

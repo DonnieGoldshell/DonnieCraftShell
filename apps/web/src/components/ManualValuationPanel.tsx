@@ -24,6 +24,7 @@ type OutcomeOption = {
 type Props = {
   actions: ActionAnalysis[];
   league: string;
+  clipboardText: string;
   currentObservations: EditableManualListingObservation[];
   outcomeObservations: Record<string, EditableManualListingObservation[]>;
   outcomeValuationTarget?: {
@@ -64,6 +65,7 @@ export const ManualValuationPanel = forwardRef<HTMLElement, Props>(function Manu
   {
     actions,
     league,
+    clipboardText,
     currentObservations,
     outcomeObservations,
     outcomeValuationTarget,
@@ -260,6 +262,7 @@ export const ManualValuationPanel = forwardRef<HTMLElement, Props>(function Manu
         subject_id: target === "current" ? "current" : `outcome:${outcomeId}`,
         subject_type: target === "current" ? "CURRENT_ITEM" : "HYPOTHETICAL_OUTCOME",
         outcome_id: target === "current" ? null : outcomeId,
+        subject_clipboard_text: target === "current" ? optionalText(clipboardText) : null,
         league,
         evidence: {
           strategy: "STRICT",
@@ -573,6 +576,7 @@ function ValuationPreview({ preview }: { preview: ManualValuationPreviewResponse
               {" "}
               <strong>{result.normalized_value ? formatEconomicValue(result.normalized_value) : "Unconvertible"}</strong>
               {result.comparable_item && <ComparableItemSummary comparable={result.comparable_item} />}
+              {result.comparable_relevance && <ComparableRelevanceSummary relevance={result.comparable_relevance} />}
               {result.warnings.length > 0 && <small>{result.warnings.join(" ")}</small>}
             </li>
           ))}
@@ -584,6 +588,7 @@ function ValuationPreview({ preview }: { preview: ManualValuationPreviewResponse
 }
 
 type StructuredComparableItem = NonNullable<ManualListingObservation["comparable_item"]>;
+type ComparableRelevance = NonNullable<ManualValuationPreviewResponse["comparable_results"][number]["comparable_relevance"]>;
 
 function ComparableItemSummary({ comparable }: { comparable: StructuredComparableItem }) {
   const item = comparable.item;
@@ -600,6 +605,30 @@ function ComparableItemSummary({ comparable }: { comparable: StructuredComparabl
           .join(" · ")}
       </small>
       {comparable.warnings.length > 0 && <small>{comparable.warnings.join(" ")}</small>}
+    </div>
+  );
+}
+
+function ComparableRelevanceSummary({ relevance }: { relevance: ComparableRelevance }) {
+  const differenceCount = relevance.differing_modifiers.length + relevance.missing_modifiers.length + relevance.extra_modifiers.length;
+  const firstDifference =
+    relevance.differing_modifiers[0] ?? relevance.missing_modifiers[0] ?? relevance.extra_modifiers[0] ?? null;
+  return (
+    <div className="comparable-relevance-summary" aria-label="Comparable relevance assessment">
+      <strong>
+        {relevance.band} relevance{relevance.score ? ` (${relevance.score})` : ""}
+      </strong>
+      <small>
+        {relevance.matched_modifiers.length} matched modifier{relevance.matched_modifiers.length === 1 ? "" : "s"} ·{" "}
+        {differenceCount} structural difference{differenceCount === 1 ? "" : "s"}
+      </small>
+      {firstDifference && (
+        <small>
+          {firstDifference.relationship}:{" "}
+          {[firstDifference.current_display_name, firstDifference.comparable_display_name].filter(Boolean).join(" vs ")}
+        </small>
+      )}
+      {relevance.warnings.length > 0 && <small>{relevance.warnings.join(" ")}</small>}
     </div>
   );
 }

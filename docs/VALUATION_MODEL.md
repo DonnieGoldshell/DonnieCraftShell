@@ -28,6 +28,7 @@ Executable contracts live in `packages/shared/donniecraftshell_contracts/valuati
 - `StructuredComparableItem`: optional parsed Advanced Copy item state for a comparable listing.
 - `ManualListingObservation`: user-entered listing observation, optionally including `StructuredComparableItem`.
 - `ComparableResult`: normalized listing evidence when currency conversion is available.
+- `ComparableRelevance`: deterministic structural similarity evidence between the current item and a structured comparable.
 - `ComparableEvidenceSet`: query plus comparable results and readiness.
 - `ValuationAggregationPolicy`: configurable readiness, quantile, duplicate, stale, and outlier policy.
 - `ValuationAggregator`: manual comparable aggregation using robust Decimal statistics.
@@ -65,6 +66,36 @@ blocks to degrade into unparsed text.
 
 Malformed comparable clipboard text is rejected during preview/save/update rather than persisted as trusted structure.
 
+## Comparable Relevance
+
+Task 59 adds deterministic structural relevance assessment for parsed current
+items and parsed structured comparables. The relevance policy is versioned as
+`comparable-relevance-policy-v1` and compares only observable item structure:
+item class, rarity, item level, base type, implicit effect, explicit modifier
+side, parsed semantic identity, tier, origin, tags, and roll/range observations
+already retained by the parser. Item-level special states such as `FRACTURED`
+are recorded as base/context differences rather than folded into modifier
+identity.
+
+The relevance band is explanatory metadata:
+
+- `HIGH`
+- `MEDIUM`
+- `LOW`
+- `NOT_COMPARABLE`
+- `INSUFFICIENT_STATE`
+
+The optional numeric score is a normalized structural-similarity score, not a
+market-value weight. It must not be interpreted as a price premium, sale
+probability, or valuation confidence. Modifier comparisons are split into
+matched, differing, missing, and extra groups so later valuation logic can
+inspect exact matches, tier differences, origin differences, and unmatched
+modifiers without scraping UI prose.
+
+Price-only observations have no fabricated relevance score. If the current
+item or comparable item cannot be parsed with explicit modifier state,
+relevance remains unavailable or `INSUFFICIENT_STATE`.
+
 ## Advisor API Preview
 
 The Advisor API exposes a thin manual-evidence preview endpoint for the web
@@ -81,7 +112,10 @@ manual `ComparableQuery`, converts `ManualListingObservation` rows through
 remain separate by subject ID; outcome evidence must carry the deterministic
 `outcome_id`. If an observation includes `comparable_clipboard_text`, the
 endpoint parses and returns a structured comparable item summary in each
-`ComparableResult`.
+`ComparableResult`. If the request also includes `subject_clipboard_text`, the
+preview attaches a `ComparableRelevance` result to each structured comparable.
+The preview still does not discard low-relevance comparables or alter valuation
+aggregation behavior.
 
 ## Listing Evidence
 

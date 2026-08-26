@@ -82,6 +82,14 @@ Unconvertible observations remain in the evidence set and reduce readiness; they
 
 Price-only observations remain supported for backwards compatibility. They are useful market notes, but they are not structurally verified comparables. Operators should paste the comparable item's Advanced Copy text when available so DonnieCraftShell can parse and retain item class, base, item level, affixes, special states, and other parser-supported item semantics beside the asking price.
 
+When previewing current-item manual valuation evidence, the web client sends
+the current item clipboard text alongside structured comparable observations.
+The API can then return a structural comparable relevance assessment showing
+base similarities, exact modifier matches, tier differences, origin
+differences, missing modifiers, and extra modifiers. Relevance is explanatory
+only in this workflow. It does not change the listing-derived aggregation,
+create market-value weights, or make price-only evidence structurally verified.
+
 ## Local Evidence Workspace
 
 Manual comparable observations can be persisted locally through the Task 19B manual valuation workspace. The workspace is backup-friendly JSON under `.dcs/` by default, partitioned by canonical subject identity, and deliberately separate from Advisor submission. Loading persisted evidence into the Manual Valuation panel does not submit it to Advisor until the operator explicitly runs analysis. Details: [MANUAL_VALUATION_WORKSPACE.md](MANUAL_VALUATION_WORKSPACE.md).
