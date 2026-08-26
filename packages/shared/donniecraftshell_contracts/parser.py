@@ -377,6 +377,8 @@ def parse_special_states(lines: list[str]) -> tuple[ItemSpecialState, ...]:
             states.append(ItemSpecialState.TWICE_CORRUPTED)
         elif normalized == "corrupted":
             states.append(ItemSpecialState.CORRUPTED)
+        elif normalized == "fractured item":
+            states.append(ItemSpecialState.FRACTURED)
     return tuple(states)
 
 
@@ -391,7 +393,7 @@ def find_unparsed_lines(sections: list[list[str]]) -> tuple[str, ...]:
                 or line == SECTION_SEPARATOR
                 or line.startswith(("Item Class:", "Rarity:", "Requires:", "Item Level:", "Note:", "Grants Skill:"))
                 or line.startswith("Can only be equipped")
-                or line in {"Corrupted", "Twice Corrupted"}
+                or line in {"Corrupted", "Twice Corrupted", "Fractured Item"}
                 or HEADER_RE.match(line)
                 or looks_like_normal_modifier_line(line)
                 or is_flavor_line(line)
@@ -416,7 +418,7 @@ def is_unrecognized_line(line: str) -> bool:
     return not (
         line.startswith(("Item Class:", "Rarity:", "Requires:", "Item Level:", "Note:", "Grants Skill:"))
         or line.startswith("Can only be equipped")
-        or line in {"Corrupted", "Twice Corrupted"}
+        or line in {"Corrupted", "Twice Corrupted", "Fractured Item"}
         or HEADER_RE.match(line)
         or looks_like_normal_modifier_line(line)
         or is_flavor_line(line)
@@ -452,7 +454,7 @@ def is_non_modifier_metadata_line(line: str) -> bool:
     return (
         line.startswith(("Item Class:", "Rarity:", "Requires:", "Item Level:", "Note:", "Grants Skill:"))
         or line.startswith("Can only be equipped")
-        or line in {"Corrupted", "Twice Corrupted"}
+        or line in {"Corrupted", "Twice Corrupted", "Fractured Item"}
     )
 
 

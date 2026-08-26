@@ -550,7 +550,53 @@ class AdvisorApiTests(unittest.TestCase):
         self.assertEqual(comparable["item"]["item_class"], "Quivers")
         self.assertEqual(comparable["item"]["base_type"], "Primed Quiver")
         self.assertEqual(comparable["item"]["item_level"], 82)
-        self.assertGreaterEqual(len(comparable["item"]["explicit_modifiers"]), 1)
+        self.assertGreaterEqual(len(comparable["item"]["prefixes"]) + len(comparable["item"]["suffixes"]), 1)
+
+    def test_manual_valuation_preview_parses_gloom_barb_structured_comparable_modifiers(self):
+        comparable_text = fixture("gloom_barb_visceral_quiver_comparable_advanced.txt")
+        evidence = self._valuation_evidence("450")
+        evidence["observations"][0]["currency_asset_id"] = "dc:poe2:economy-asset:currency:divine-orb"
+        evidence["observations"][0]["external_listing_id"] = "gloom-barb-450-divine"
+        evidence["observations"][0]["comparable_clipboard_text"] = comparable_text
+
+        response = self.client.post(
+            "/api/v1/advisor/manual-valuation/preview",
+            json={
+                "subject_id": "current",
+                "subject_type": "CURRENT_ITEM",
+                "league": LEAGUE,
+                "as_of": AS_OF,
+                "evidence": evidence,
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        result = response.json()["comparable_results"][0]
+        self.assertEqual(result["listing_price"], "450")
+        self.assertTrue(any("listing price is not a realized sale" in warning for warning in result["warnings"]))
+        comparable = result["comparable_item"]
+        self.assertEqual(comparable["detected_format"], "ADVANCED")
+        self.assertEqual(comparable["unparsed_sections"], [])
+        item = comparable["item"]
+        self.assertEqual(item["rarity"], "RARE")
+        self.assertEqual(item["item_class"], "Quivers")
+        self.assertEqual(item["item_name"], "Gloom Barb")
+        self.assertEqual(item["base_type"], "Visceral Quiver")
+        self.assertEqual(item["item_level"], 82)
+        self.assertIn("FRACTURED", item["special_states"])
+        self.assertEqual(len(item["implicit_modifiers"]), 1)
+        self.assertEqual(len(item["prefixes"]), 3)
+        self.assertEqual(len(item["suffixes"]), 3)
+
+        prefixes = {modifier["display_name"]: modifier for modifier in item["prefixes"]}
+        suffixes = {modifier["display_name"]: modifier for modifier in item["suffixes"]}
+        self.assertEqual(prefixes["Nimble"]["tier"], "1")
+        self.assertEqual(prefixes["Entombing"]["tier"], "1")
+        self.assertEqual(prefixes["Lacerating"]["tier"], "2")
+        self.assertEqual(suffixes["of Destruction"]["tier"], "1")
+        self.assertEqual(suffixes["of Destruction"]["origin"], "FRACTURED")
+        self.assertEqual(suffixes["of Unmaking"]["origin"], "NATURAL")
+        self.assertEqual(suffixes["of the Archer"]["origin"], "DESECRATED")
 
     def test_manual_valuation_preview_rejects_malformed_comparable_clipboard_text(self):
         evidence = self._valuation_evidence("100")
@@ -666,6 +712,38 @@ class AdvisorApiTests(unittest.TestCase):
         self.assertEqual(saved_record["comparable_item"]["detected_format"], "ADVANCED")
         self.assertEqual(saved_record["comparable_item"]["item"]["base_type"], "Primed Quiver")
         self.assertEqual(listed.json()["records"][0]["comparable_item"]["item"]["item_class"], "Quivers")
+
+    def test_manual_valuation_workspace_round_trips_gloom_barb_structured_state(self):
+        record = self._manual_workspace_record(evidence_id="structured-gloom-barb")
+        record["amount"] = "450"
+        record["currency_asset_id"] = "dc:poe2:economy-asset:currency:divine-orb"
+        record["external_listing_id"] = "gloom-barb-450-divine"
+        record["comparable_clipboard_text"] = fixture("gloom_barb_visceral_quiver_comparable_advanced.txt")
+
+        saved = self.client.post(
+            "/api/v1/advisor/manual-valuation/workspace/evidence",
+            json={"record": record},
+        )
+        listed = self.client.get(
+            "/api/v1/advisor/manual-valuation/workspace/evidence",
+            params={"subject_id": "current"},
+        )
+
+        self.assertEqual(saved.status_code, 200)
+        saved_item = saved.json()["record"]["comparable_item"]["item"]
+        listed_item = listed.json()["records"][0]["comparable_item"]["item"]
+        for item in (saved_item, listed_item):
+            self.assertEqual(item["item_name"], "Gloom Barb")
+            self.assertEqual(item["base_type"], "Visceral Quiver")
+            self.assertEqual(len(item["prefixes"]) + len(item["suffixes"]), 6)
+            self.assertEqual(
+                next(modifier for modifier in item["suffixes"] if modifier["display_name"] == "of Destruction")["origin"],
+                "FRACTURED",
+            )
+            self.assertEqual(
+                next(modifier for modifier in item["suffixes"] if modifier["display_name"] == "of the Archer")["origin"],
+                "DESECRATED",
+            )
 
     def test_manual_valuation_workspace_outcome_evidence_isolated_by_subject(self):
         from services.api.app.dependencies import advisor as advisor_dependencies
