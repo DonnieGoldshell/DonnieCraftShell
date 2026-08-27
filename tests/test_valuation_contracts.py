@@ -17,9 +17,11 @@ from packages.shared.donniecraftshell_contracts.valuation import (
     ComparableAnchorRole,
     ComparableQualityDeltaAssessor,
     ComparableExclusionReason,
+    ComparableMarketInferenceStatus,
     ComparableRelevanceAssessor,
     ComparableRelevanceBand,
     ComparableResult,
+    ComparableUsefulnessBand,
     ComparableValuationModel,
     ComparableValuationStatus,
     ListingStatus,
@@ -286,6 +288,8 @@ class ValuationContractTests(unittest.TestCase):
         estimate = ComparableValuationModel().estimate(evidence)
 
         self.assertEqual(estimate.status, ComparableValuationStatus.PARTIAL)
+        self.assertEqual(estimate.inference_status, ComparableMarketInferenceStatus.BROAD_BRACKET_ONLY)
+        self.assertIsNone(estimate.inferred_market_central)
         self.assertIsNotNone(estimate.central_estimate)
         self.assertEqual(estimate.plausible_low.amount, Decimal("15219.0"))
         self.assertEqual(estimate.plausible_high.amount, Decimal("152190.0"))
@@ -296,6 +300,7 @@ class ValuationContractTests(unittest.TestCase):
         self.assertEqual(roles["skull-quill-45-divine"], ComparableAnchorRole.LOWER_ANCHOR)
         self.assertTrue(any("listing-derived anchor brackets" in warning for warning in estimate.warnings))
         self.assertTrue(any("spread exceeds" in warning for warning in estimate.warnings))
+        self.assertTrue(any("broad anchor bracket" in warning for warning in estimate.warnings))
 
     def test_anchor_direction_uses_quality_delta_not_listing_price(self):
         query = build_comparable_query(subject_from_parsed_item(self.item), quiver_6_roles(self.item), ComparableStrategy.STRICT, LEAGUE, AS_OF)
@@ -320,6 +325,56 @@ class ValuationContractTests(unittest.TestCase):
         self.assertEqual(roles["skull-quill-high-price"], ComparableAnchorRole.LOWER_ANCHOR)
         self.assertEqual(estimate.status, ComparableValuationStatus.INSUFFICIENT_DATA)
         self.assertTrue(any("directions conflict" in warning for warning in estimate.warnings))
+
+    def test_close_high_usefulness_comparables_produce_inferred_market_band(self):
+        query = build_comparable_query(subject_from_parsed_item(self.item), quiver_6_roles(self.item), ComparableStrategy.STRICT, LEAGUE, AS_OF)
+        results = tuple(
+            self._structured_result(
+                query.query_id,
+                Decimal(amount),
+                f"exact-comparable-{amount}",
+                "quiver_6_crafted_desecrated_advanced.txt",
+                currency_asset_id=EXALTED_ASSET_ID,
+            )
+            for amount in ("100", "105", "110")
+        )
+        evidence = evidence_set_from_results(query, self.provider.provider_name, results)
+
+        estimate = ComparableValuationModel().estimate(evidence)
+
+        self.assertEqual(estimate.status, ComparableValuationStatus.READY)
+        self.assertEqual(estimate.inference_status, ComparableMarketInferenceStatus.INFERRED_MARKET_BAND)
+        self.assertEqual(estimate.inferred_market_central.amount, Decimal("105"))
+        self.assertEqual(estimate.inferred_market_low.amount, Decimal("100"))
+        self.assertEqual(estimate.inferred_market_high.amount, Decimal("105"))
+        self.assertEqual(estimate.central_estimate.amount, estimate.inferred_market_central.amount)
+        self.assertEqual(len(estimate.influential_observation_ids), 3)
+        self.assertTrue(all(item.band == ComparableUsefulnessBand.HIGH for item in estimate.usefulness_assessments))
+
+    def test_weak_distant_comparable_contributes_less_than_exact_comparable(self):
+        query = build_comparable_query(subject_from_parsed_item(self.item), quiver_6_roles(self.item), ComparableStrategy.STRICT, LEAGUE, AS_OF)
+        exact = self._structured_result(
+            query.query_id,
+            Decimal("105"),
+            "exact-comparable",
+            "quiver_6_crafted_desecrated_advanced.txt",
+            currency_asset_id=EXALTED_ASSET_ID,
+        )
+        distant = self._structured_result(
+            query.query_id,
+            Decimal("450"),
+            "gloom-barb-450-divine",
+            "gloom_barb_visceral_quiver_comparable_advanced.txt",
+        )
+        evidence = evidence_set_from_results(query, self.provider.provider_name, (exact, distant))
+
+        estimate = ComparableValuationModel().estimate(evidence)
+
+        usefulness = {item.comparable_id: item for item in estimate.usefulness_assessments}
+        self.assertGreater(usefulness[exact.comparable_id].score, usefulness[distant.comparable_id].score)
+        self.assertEqual(usefulness[exact.comparable_id].band, ComparableUsefulnessBand.HIGH)
+        self.assertIn(usefulness[distant.comparable_id].band, {ComparableUsefulnessBand.MEDIUM, ComparableUsefulnessBand.LOW})
+        self.assertTrue(any("Different base type" in reason for reason in usefulness[distant.comparable_id].reasons))
 
     def test_single_structured_listing_does_not_produce_high_confidence(self):
         query = build_comparable_query(subject_from_parsed_item(self.item), quiver_6_roles(self.item), ComparableStrategy.STRICT, LEAGUE, AS_OF)
@@ -712,10 +767,11 @@ class ValuationContractTests(unittest.TestCase):
         amount: Decimal,
         listing_id: str,
         fixture_name: str,
+        currency_asset_id: str = DIVINE_ASSET_ID,
     ):
         comparable = structured_comparable(fixture_name)
         observation = replace(
-            self._observation(amount, DIVINE_ASSET_ID, listing_id=listing_id),
+            self._observation(amount, currency_asset_id, listing_id=listing_id),
             query_id=query_id,
             item_summary=f"synthetic test-only structured comparable {listing_id}",
             comparable_item=comparable,

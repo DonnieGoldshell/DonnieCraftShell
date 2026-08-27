@@ -108,6 +108,14 @@ bracket only when enough structured anchors exist on both sides of the current
 item. The model does not multiply price by relevance, infer a sale price, or
 promote scenario/Advisor readiness.
 
+Issue 65 adds market-inference diagnostics to the same preview. Every
+structured comparable receives a usefulness band and score derived from
+structural relevance, quality similarity, freshness, and observable differences
+such as base type, special states, origins, and unmatched modifiers. Several
+close high-usefulness comparables may support an `INFERRED_MARKET_BAND`; distant
+lower/upper anchors remain `BROAD_BRACKET_ONLY` and must not be displayed as a
+high-confidence midpoint market estimate.
+
 ## Local Evidence Workspace
 
 Manual comparable observations can be persisted locally through the Task 19B manual valuation workspace. The workspace is backup-friendly JSON under `.dcs/` by default, partitioned by canonical subject identity, and deliberately separate from Advisor submission. Loading persisted evidence into the Manual Valuation panel does not submit it to Advisor until the operator explicitly runs analysis. Details: [MANUAL_VALUATION_WORKSPACE.md](MANUAL_VALUATION_WORKSPACE.md).

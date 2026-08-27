@@ -836,12 +836,59 @@ export interface components {
              * @default []
              */
             included_observation_ids: string[];
+            /** Inference Status */
+            inference_status: string;
+            inferred_market_central?: components["schemas"]["EconomicValueDto"] | null;
+            inferred_market_high?: components["schemas"]["EconomicValueDto"] | null;
+            inferred_market_low?: components["schemas"]["EconomicValueDto"] | null;
+            /**
+             * Influential Observation Ids
+             * @default []
+             */
+            influential_observation_ids: string[];
+            /** Methodology Summary */
+            methodology_summary?: string | null;
             plausible_high?: components["schemas"]["EconomicValueDto"] | null;
             plausible_low?: components["schemas"]["EconomicValueDto"] | null;
             /** Policy Id */
             policy_id: string;
             /** Status */
             status: string;
+            /**
+             * Usefulness Assessments
+             * @default []
+             */
+            usefulness_assessments: components["schemas"]["ComparableValuationUsefulnessDto"][];
+            /**
+             * Warnings
+             * @default []
+             */
+            warnings: string[];
+        };
+        /** ComparableValuationUsefulnessDto */
+        ComparableValuationUsefulnessDto: {
+            /**
+             * Adjustment Factors
+             * @default []
+             */
+            adjustment_factors: string[];
+            /** Band */
+            band: string;
+            /** Comparable Id */
+            comparable_id: string;
+            /** Freshness Factor */
+            freshness_factor: string;
+            /** Quality Similarity Score */
+            quality_similarity_score?: string | null;
+            /**
+             * Reasons
+             * @default []
+             */
+            reasons: string[];
+            /** Score */
+            score: string;
+            /** Structural Relevance Score */
+            structural_relevance_score?: string | null;
             /**
              * Warnings
              * @default []

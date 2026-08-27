@@ -1192,6 +1192,59 @@
             "title": "Included Observation Ids",
             "type": "array"
           },
+          "inference_status": {
+            "title": "Inference Status",
+            "type": "string"
+          },
+          "inferred_market_central": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/EconomicValueDto"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "inferred_market_high": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/EconomicValueDto"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "inferred_market_low": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/EconomicValueDto"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "influential_observation_ids": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Influential Observation Ids",
+            "type": "array"
+          },
+          "methodology_summary": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Methodology Summary"
+          },
           "plausible_high": {
             "anyOf": [
               {
@@ -1220,6 +1273,14 @@
             "title": "Status",
             "type": "string"
           },
+          "usefulness_assessments": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/ComparableValuationUsefulnessDto"
+            },
+            "title": "Usefulness Assessments",
+            "type": "array"
+          },
           "warnings": {
             "default": [],
             "items": {
@@ -1231,9 +1292,84 @@
         },
         "required": [
           "status",
+          "inference_status",
           "policy_id"
         ],
         "title": "ComparableValuationEstimateDto",
+        "type": "object"
+      },
+      "ComparableValuationUsefulnessDto": {
+        "properties": {
+          "adjustment_factors": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Adjustment Factors",
+            "type": "array"
+          },
+          "band": {
+            "title": "Band",
+            "type": "string"
+          },
+          "comparable_id": {
+            "title": "Comparable Id",
+            "type": "string"
+          },
+          "freshness_factor": {
+            "title": "Freshness Factor",
+            "type": "string"
+          },
+          "quality_similarity_score": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Quality Similarity Score"
+          },
+          "reasons": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Reasons",
+            "type": "array"
+          },
+          "score": {
+            "title": "Score",
+            "type": "string"
+          },
+          "structural_relevance_score": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Structural Relevance Score"
+          },
+          "warnings": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Warnings",
+            "type": "array"
+          }
+        },
+        "required": [
+          "comparable_id",
+          "score",
+          "band",
+          "freshness_factor"
+        ],
+        "title": "ComparableValuationUsefulnessDto",
         "type": "object"
       },
       "CraftObservationExportRequestDto": {
