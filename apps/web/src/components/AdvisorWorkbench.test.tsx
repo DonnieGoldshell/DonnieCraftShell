@@ -1122,9 +1122,13 @@ describe("AdvisorWorkbench", () => {
           ],
           comparable_valuation_estimate: {
             status: "PARTIAL",
+            inference_status: "BROAD_BRACKET_ONLY",
             central_estimate: { amount: "83704.5", unit: "EXALTED_ECONOMIC_UNIT" },
             plausible_low: { amount: "15219.0", unit: "EXALTED_ECONOMIC_UNIT" },
             plausible_high: { amount: "152190.0", unit: "EXALTED_ECONOMIC_UNIT" },
+            inferred_market_central: null,
+            inferred_market_low: null,
+            inferred_market_high: null,
             confidence: {
               level: "LOW",
               reasons: ["Small anchor count or wide spread limits confidence."]
@@ -1169,9 +1173,41 @@ describe("AdvisorWorkbench", () => {
             ],
             included_observation_ids: ["manual-preview-current:0", "manual-preview-current:1"],
             excluded_observation_ids: [],
+            usefulness_assessments: [
+              {
+                comparable_id: "manual-preview-current:0",
+                score: "0.5510",
+                band: "MEDIUM",
+                structural_relevance_score: "0.8609",
+                quality_similarity_score: "0.7115",
+                freshness_factor: "1",
+                adjustment_factors: ["base-type-difference:0.90", "special-state-difference:0.85"],
+                reasons: [
+                  "Structural relevance contributes 0.8609.",
+                  "Quality similarity contributes 0.7115.",
+                  "Different base type reduces valuation usefulness."
+                ],
+                warnings: []
+              },
+              {
+                comparable_id: "manual-preview-current:1",
+                score: "0.4800",
+                band: "MEDIUM",
+                structural_relevance_score: "0.8000",
+                quality_similarity_score: "0.6000",
+                freshness_factor: "1",
+                adjustment_factors: [],
+                reasons: ["Structural relevance contributes 0.8000.", "Quality similarity contributes 0.6000."],
+                warnings: []
+              }
+            ],
+            influential_observation_ids: [],
+            methodology_summary:
+              "Comparable Valuation Model v1 uses structural relevance, modifier quality delta, freshness, and configured usefulness thresholds.",
             warnings: [
               "Comparable valuation model uses listing-derived anchor brackets, not realized sale prices.",
-              "Comparable anchor spread exceeds configured warning threshold."
+              "Comparable anchor spread exceeds configured warning threshold.",
+              "Comparable evidence supports only a broad anchor bracket, not a tighter inferred market band."
             ],
             policy_id: "comparable-valuation-model-v1"
           }
@@ -1206,9 +1242,11 @@ describe("AdvisorWorkbench", () => {
     expect(screen.getByLabelText(/comparable modifier quality delta/i)).toHaveTextContent("of Calamity vs of Unmaking");
     expect(screen.getByLabelText(/comparable valuation estimate/i)).toHaveTextContent("Comparable Valuation Model v1");
     expect(screen.getByLabelText(/comparable valuation estimate/i)).toHaveTextContent("Partial");
+    expect(screen.getByLabelText(/comparable valuation estimate/i)).toHaveTextContent("Broad Bracket Only");
     expect(screen.getByLabelText(/comparable valuation estimate/i)).toHaveTextContent("83704.5 Ex");
     expect(screen.getByLabelText(/comparable valuation estimate/i)).toHaveTextContent("Gloom Barb, Visceral Quiver");
     expect(screen.getByLabelText(/comparable valuation estimate/i)).toHaveTextContent("Upper Anchor");
+    expect(screen.getByLabelText(/comparable valuation estimate/i)).toHaveTextContent("Usefulness: Medium");
     expect(screen.getByLabelText(/comparable valuation estimate/i)).toHaveTextContent("Skull Quill, Primed Quiver");
     expect(screen.getByLabelText(/comparable valuation estimate/i)).toHaveTextContent("Lower Anchor");
     const previewBody = JSON.parse(fetchMock.mock.calls[0][1].body as string);

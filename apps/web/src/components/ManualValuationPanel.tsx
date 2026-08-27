@@ -597,23 +597,35 @@ type ComparableQualityDelta = NonNullable<ManualValuationPreviewResponse["compar
 type ComparableValuationEstimate = NonNullable<ManualValuationPreviewResponse["comparable_valuation_estimate"]>;
 
 function ComparableValuationEstimateSummary({ estimate }: { estimate: ComparableValuationEstimate }) {
+  const usefulnessByComparable = new Map(
+    estimate.usefulness_assessments.map((assessment) => [assessment.comparable_id, assessment])
+  );
   return (
     <div className="comparable-valuation-summary" aria-label="Comparable valuation estimate">
       <div>
         <strong>Comparable Valuation Model v1</strong>
         <span className="status-chip">{titleCase(estimate.status)}</span>
       </div>
-      <small>Listing-derived bracket from structured comparable anchors.</small>
+      <small>
+        Listing-derived market inference from structured comparable anchors. It does not infer sale certainty or
+        unsupported modifier premiums.
+      </small>
       <dl className="metric-grid compact-metrics">
         <div>
-          <dt>Bracket midpoint</dt>
+          <dt>Inference</dt>
+          <dd>{titleCase(estimate.inference_status)}</dd>
+        </div>
+        <div>
+          <dt>{estimate.inferred_market_central ? "Inferred market" : "Bracket midpoint"}</dt>
           <dd>{estimate.central_estimate ? formatEconomicValue(estimate.central_estimate) : "Unavailable"}</dd>
         </div>
         <div>
-          <dt>Anchor range</dt>
+          <dt>{estimate.inferred_market_low && estimate.inferred_market_high ? "Inferred band" : "Anchor range"}</dt>
           <dd>
-            {estimate.plausible_low && estimate.plausible_high
-              ? `${formatEconomicValue(estimate.plausible_low)} - ${formatEconomicValue(estimate.plausible_high)}`
+            {estimate.inferred_market_low && estimate.inferred_market_high
+              ? `${formatEconomicValue(estimate.inferred_market_low)} - ${formatEconomicValue(estimate.inferred_market_high)}`
+              : estimate.plausible_low && estimate.plausible_high
+                ? `${formatEconomicValue(estimate.plausible_low)} - ${formatEconomicValue(estimate.plausible_high)}`
               : "Unavailable"}
           </dd>
         </div>
@@ -626,24 +638,40 @@ function ComparableValuationEstimateSummary({ estimate }: { estimate: Comparable
           <dd>{estimate.confidence ? titleCase(estimate.confidence.level) : "Unknown"}</dd>
         </div>
       </dl>
+      {estimate.methodology_summary && <small>{estimate.methodology_summary}</small>}
       {estimate.anchor_results.length > 0 && (
         <ul className="anchor-list">
-          {estimate.anchor_results.map((anchor) => (
-            <li key={anchor.comparable_id}>
-              <strong>
-                {[anchor.item_name, anchor.base_type].filter(Boolean).join(", ") || shortId(anchor.comparable_id)}
-              </strong>
-              <span>{titleCase(anchor.role)}</span>
-              <small>
-                {anchor.listing_price} {currencyLabel(anchor.listing_currency_asset_id)}
-                {anchor.normalized_value ? ` · ${formatEconomicValue(anchor.normalized_value)}` : " · unconvertible"}
-              </small>
-              <small>
-                Current better {anchor.current_better_count} · Comparable better {anchor.comparable_better_count}
-              </small>
-            </li>
-          ))}
+          {estimate.anchor_results.map((anchor) => {
+            const usefulness = usefulnessByComparable.get(anchor.comparable_id);
+            return (
+              <li key={anchor.comparable_id}>
+                <strong>
+                  {[anchor.item_name, anchor.base_type].filter(Boolean).join(", ") || shortId(anchor.comparable_id)}
+                </strong>
+                <span>{titleCase(anchor.role)}</span>
+                <small>
+                  {anchor.listing_price} {currencyLabel(anchor.listing_currency_asset_id)}
+                  {anchor.normalized_value ? ` · ${formatEconomicValue(anchor.normalized_value)}` : " · unconvertible"}
+                </small>
+                <small>
+                  Current better {anchor.current_better_count} · Comparable better {anchor.comparable_better_count}
+                </small>
+                {usefulness && (
+                  <>
+                    <small>
+                      Usefulness: {titleCase(usefulness.band)} ({usefulness.score})
+                    </small>
+                    {usefulness.reasons.length > 0 && <small>{usefulness.reasons.slice(0, 2).join(" ")}</small>}
+                    {usefulness.warnings.length > 0 && <small>{usefulness.warnings.join(" ")}</small>}
+                  </>
+                )}
+              </li>
+            );
+          })}
         </ul>
+      )}
+      {estimate.influential_observation_ids.length > 0 && (
+        <small>Influential evidence: {estimate.influential_observation_ids.map(shortId).join(", ")}</small>
       )}
       {estimate.warnings.length > 0 && <small>{estimate.warnings.join(" ")}</small>}
     </div>

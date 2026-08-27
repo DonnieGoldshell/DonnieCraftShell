@@ -143,6 +143,15 @@ comes from quality delta, not listing price. The model does not multiply price
 by relevance, infer hidden market adjustments, produce realized-sale claims, or
 change Advisor/EV readiness.
 
+Issue 65 adds market inference v1 diagnostics to this preview model. It scores
+each structured comparable's usefulness from relevance, modifier quality
+similarity, freshness, and observable differences such as base, item state,
+modifier origin, and unmatched modifiers. Several close high-usefulness
+comparables may produce an `INFERRED_MARKET_BAND` with a Decimal weighted
+median central estimate and quantile band. Sparse or distant lower/upper anchors
+remain `BROAD_BRACKET_ONLY`; DonnieCraftShell must not present their midpoint as
+a confident market price.
+
 ## Confidence And Liquidity
 
 Confidence inputs:

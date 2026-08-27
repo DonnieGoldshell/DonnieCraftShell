@@ -34,6 +34,7 @@ from packages.shared.donniecraftshell_contracts.valuation import (
     ComparableValuationAnchor,
     ComparableValuationEstimate,
     ComparableValuationModel,
+    ComparableValuationUsefulness,
     ManualListingObservation,
     ManualTradeProvider,
     ModifierQualityDelta,
@@ -58,6 +59,7 @@ from services.api.app.schemas.advisor import (
     ComparableRelevanceDto,
     ComparableValuationAnchorDto,
     ComparableValuationEstimateDto,
+    ComparableValuationUsefulnessDto,
     EnrichmentSummaryDto,
     EvidenceReadinessItemDto,
     EvidenceReadinessTargetDto,
@@ -370,6 +372,10 @@ def _comparable_valuation_estimate_to_dto(
         central_estimate=economic_value_to_dto(estimate.central_estimate),
         plausible_low=economic_value_to_dto(estimate.plausible_low),
         plausible_high=economic_value_to_dto(estimate.plausible_high),
+        inference_status=estimate.inference_status.value,
+        inferred_market_central=economic_value_to_dto(estimate.inferred_market_central),
+        inferred_market_low=economic_value_to_dto(estimate.inferred_market_low),
+        inferred_market_high=economic_value_to_dto(estimate.inferred_market_high),
         confidence=(
             ValuationConfidenceDto(
                 level=estimate.confidence.level.value,
@@ -379,8 +385,14 @@ def _comparable_valuation_estimate_to_dto(
             else None
         ),
         anchor_results=[_comparable_valuation_anchor_to_dto(anchor) for anchor in estimate.anchor_results],
+        usefulness_assessments=[
+            _comparable_valuation_usefulness_to_dto(assessment)
+            for assessment in estimate.usefulness_assessments
+        ],
+        influential_observation_ids=list(estimate.influential_observation_ids),
         included_observation_ids=list(estimate.included_observation_ids),
         excluded_observation_ids=list(estimate.excluded_observation_ids),
+        methodology_summary=estimate.methodology_summary,
         warnings=list(estimate.warnings),
         policy_id=estimate.policy_id,
     )
@@ -404,6 +416,30 @@ def _comparable_valuation_anchor_to_dto(anchor: ComparableValuationAnchor) -> Co
         unknown_count=anchor.unknown_count,
         reasons=list(anchor.reasons),
         warnings=list(anchor.warnings),
+    )
+
+
+def _comparable_valuation_usefulness_to_dto(
+    assessment: ComparableValuationUsefulness,
+) -> ComparableValuationUsefulnessDto:
+    return ComparableValuationUsefulnessDto(
+        comparable_id=assessment.comparable_id,
+        score=str(assessment.score),
+        band=assessment.band.value,
+        structural_relevance_score=(
+            str(assessment.structural_relevance_score)
+            if assessment.structural_relevance_score is not None
+            else None
+        ),
+        quality_similarity_score=(
+            str(assessment.quality_similarity_score)
+            if assessment.quality_similarity_score is not None
+            else None
+        ),
+        freshness_factor=str(assessment.freshness_factor),
+        adjustment_factors=list(assessment.adjustment_factors),
+        reasons=list(assessment.reasons),
+        warnings=list(assessment.warnings),
     )
 
 

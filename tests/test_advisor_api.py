@@ -111,6 +111,7 @@ class AdvisorApiTests(unittest.TestCase):
         self.assertIn("ManualValuationPreviewResponseDto", schema_names)
         self.assertIn("ComparableValuationEstimateDto", schema_names)
         self.assertIn("ComparableValuationAnchorDto", schema_names)
+        self.assertIn("ComparableValuationUsefulnessDto", schema_names)
         self.assertIn("StructuredComparableItemDto", schema_names)
         self.assertIn("ComparableRelevanceDto", schema_names)
         self.assertIn("ComparableModifierRelevanceDto", schema_names)
@@ -731,11 +732,17 @@ class AdvisorApiTests(unittest.TestCase):
         estimate = response.json()["comparable_valuation_estimate"]
         self.assertEqual(estimate["policy_id"], "comparable-valuation-model-v1")
         self.assertEqual(estimate["status"], "PARTIAL")
+        self.assertEqual(estimate["inference_status"], "BROAD_BRACKET_ONLY")
+        self.assertIsNone(estimate["inferred_market_central"])
         self.assertEqual(estimate["plausible_low"]["amount"], "15219.0")
         self.assertEqual(estimate["plausible_high"]["amount"], "152190.0")
         roles = {anchor["external_listing_id"]: anchor["role"] for anchor in estimate["anchor_results"]}
         self.assertEqual(roles["gloom-barb-450-divine"], "UPPER_ANCHOR")
         self.assertEqual(roles["skull-quill-45-divine"], "LOWER_ANCHOR")
+        usefulness = {item["comparable_id"]: item for item in estimate["usefulness_assessments"]}
+        self.assertEqual(len(usefulness), 2)
+        self.assertTrue(all("score" in item and "band" in item for item in usefulness.values()))
+        self.assertEqual(estimate["influential_observation_ids"], [])
         self.assertTrue(any("listing-derived anchor brackets" in warning for warning in estimate["warnings"]))
         self.assertTrue(any("spread exceeds" in warning for warning in estimate["warnings"]))
 

@@ -126,6 +126,19 @@ class ComparableValuationStatus(str, Enum):
     INSUFFICIENT_DATA = "INSUFFICIENT_DATA"
 
 
+class ComparableUsefulnessBand(str, Enum):
+    HIGH = "HIGH"
+    MEDIUM = "MEDIUM"
+    LOW = "LOW"
+    UNUSABLE = "UNUSABLE"
+
+
+class ComparableMarketInferenceStatus(str, Enum):
+    INSUFFICIENT_EVIDENCE = "INSUFFICIENT_EVIDENCE"
+    BROAD_BRACKET_ONLY = "BROAD_BRACKET_ONLY"
+    INFERRED_MARKET_BAND = "INFERRED_MARKET_BAND"
+
+
 @dataclass(frozen=True)
 class ValuationSubject:
     subject_id: str
@@ -312,15 +325,33 @@ class ComparableValuationPolicy:
     minimum_structured_anchors_for_estimate: int = 2
     high_relevance_threshold: Decimal = Decimal("0.75")
     wide_anchor_spread_threshold: Decimal = Decimal("5")
+    minimum_high_usefulness_for_market_band: int = 3
+    high_usefulness_threshold: Decimal = Decimal("0.70")
+    medium_usefulness_threshold: Decimal = Decimal("0.45")
+    max_inferred_market_relative_spread: Decimal = Decimal("0.35")
 
     def __post_init__(self) -> None:
         if self.minimum_structured_anchors_for_estimate < 2:
             raise ValueError("minimum_structured_anchors_for_estimate must be at least 2")
-        for field_name in ("high_relevance_threshold", "wide_anchor_spread_threshold"):
+        if self.minimum_high_usefulness_for_market_band < 2:
+            raise ValueError("minimum_high_usefulness_for_market_band must be at least 2")
+        for field_name in (
+            "high_relevance_threshold",
+            "wide_anchor_spread_threshold",
+            "high_usefulness_threshold",
+            "medium_usefulness_threshold",
+            "max_inferred_market_relative_spread",
+        ):
             value = _decimal(getattr(self, field_name), field_name)
             if value < Decimal("0"):
                 raise ValueError(f"{field_name} cannot be negative")
             object.__setattr__(self, field_name, value)
+        if self.high_relevance_threshold > Decimal("1"):
+            raise ValueError("high_relevance_threshold must be <= 1")
+        if self.high_usefulness_threshold > Decimal("1"):
+            raise ValueError("high_usefulness_threshold must be <= 1")
+        if self.medium_usefulness_threshold > self.high_usefulness_threshold:
+            raise ValueError("medium_usefulness_threshold must be <= high_usefulness_threshold")
 
 
 @dataclass(frozen=True)
@@ -352,15 +383,52 @@ class ComparableValuationAnchor:
 
 
 @dataclass(frozen=True)
+class ComparableValuationUsefulness:
+    comparable_id: str
+    score: Decimal
+    band: ComparableUsefulnessBand
+    structural_relevance_score: Decimal | None = None
+    quality_similarity_score: Decimal | None = None
+    freshness_factor: Decimal = Decimal("1")
+    adjustment_factors: tuple[str, ...] = ()
+    reasons: tuple[str, ...] = ()
+    warnings: tuple[str, ...] = ()
+
+    def __post_init__(self) -> None:
+        score = _decimal(self.score, "comparable usefulness score")
+        if score < Decimal("0") or score > Decimal("1"):
+            raise ValueError("comparable usefulness score must be between 0 and 1")
+        object.__setattr__(self, "score", score)
+        for field_name in ("structural_relevance_score", "quality_similarity_score"):
+            value = getattr(self, field_name)
+            if value is not None:
+                decimal_value = _decimal(value, field_name)
+                if decimal_value < Decimal("0") or decimal_value > Decimal("1"):
+                    raise ValueError(f"{field_name} must be between 0 and 1")
+                object.__setattr__(self, field_name, decimal_value)
+        freshness = _decimal(self.freshness_factor, "freshness_factor")
+        if freshness < Decimal("0") or freshness > Decimal("1"):
+            raise ValueError("freshness_factor must be between 0 and 1")
+        object.__setattr__(self, "freshness_factor", freshness)
+
+
+@dataclass(frozen=True)
 class ComparableValuationEstimate:
     status: ComparableValuationStatus
     central_estimate: EconomicValue | None = None
     plausible_low: EconomicValue | None = None
     plausible_high: EconomicValue | None = None
+    inference_status: ComparableMarketInferenceStatus = ComparableMarketInferenceStatus.INSUFFICIENT_EVIDENCE
+    inferred_market_central: EconomicValue | None = None
+    inferred_market_low: EconomicValue | None = None
+    inferred_market_high: EconomicValue | None = None
     confidence: Confidence | None = None
     anchor_results: tuple[ComparableValuationAnchor, ...] = ()
+    usefulness_assessments: tuple[ComparableValuationUsefulness, ...] = ()
+    influential_observation_ids: tuple[str, ...] = ()
     included_observation_ids: tuple[str, ...] = ()
     excluded_observation_ids: tuple[str, ...] = ()
+    methodology_summary: str | None = None
     warnings: tuple[str, ...] = ()
     policy_id: str = "comparable-valuation-model-v1"
 
@@ -369,6 +437,10 @@ class ComparableValuationEstimate:
             raise ValueError("comparable valuation low bound must be <= central estimate")
         if self.plausible_high and self.central_estimate and self.central_estimate.amount > self.plausible_high.amount:
             raise ValueError("comparable valuation central estimate must be <= high bound")
+        if self.inferred_market_low and self.inferred_market_central and self.inferred_market_low.amount > self.inferred_market_central.amount:
+            raise ValueError("inferred market low bound must be <= inferred market central estimate")
+        if self.inferred_market_high and self.inferred_market_central and self.inferred_market_central.amount > self.inferred_market_high.amount:
+            raise ValueError("inferred market central estimate must be <= inferred market high bound")
 
 
 @dataclass(frozen=True)
@@ -651,6 +723,10 @@ class ComparableValuationModel:
 
     def estimate(self, evidence_set: ComparableEvidenceSet) -> ComparableValuationEstimate:
         anchors = tuple(_anchor_from_result(result, self.policy) for result in evidence_set.results)
+        usefulness = tuple(
+            _usefulness_from_result(result, anchor, self.policy)
+            for result, anchor in zip(evidence_set.results, anchors)
+        )
         included = tuple(
             anchor
             for anchor in anchors
@@ -670,14 +746,24 @@ class ComparableValuationModel:
                     sample_size=len(included),
                 ),
                 anchor_results=anchors,
+                usefulness_assessments=usefulness,
                 included_observation_ids=tuple(anchor.comparable_id for anchor in included),
                 excluded_observation_ids=excluded_ids,
+                methodology_summary=_comparable_valuation_methodology(self.policy),
                 warnings=tuple(warnings),
                 policy_id=self.policy.policy_id,
             )
 
-        lower_values = [anchor.normalized_value.amount for anchor in included if anchor.role in {ComparableAnchorRole.LOWER_ANCHOR, ComparableAnchorRole.EQUIVALENT_ANCHOR}]
-        upper_values = [anchor.normalized_value.amount for anchor in included if anchor.role in {ComparableAnchorRole.UPPER_ANCHOR, ComparableAnchorRole.EQUIVALENT_ANCHOR}]
+        lower_values = [
+            anchor.normalized_value.amount
+            for anchor in included
+            if anchor.role in {ComparableAnchorRole.LOWER_ANCHOR, ComparableAnchorRole.EQUIVALENT_ANCHOR}
+        ]
+        upper_values = [
+            anchor.normalized_value.amount
+            for anchor in included
+            if anchor.role in {ComparableAnchorRole.UPPER_ANCHOR, ComparableAnchorRole.EQUIVALENT_ANCHOR}
+        ]
         if not lower_values or not upper_values:
             warnings.append("Structured anchors do not provide both lower and upper/equivalent bracket evidence.")
             return ComparableValuationEstimate(
@@ -688,8 +774,10 @@ class ComparableValuationModel:
                     sample_size=len(included),
                 ),
                 anchor_results=anchors,
+                usefulness_assessments=usefulness,
                 included_observation_ids=tuple(anchor.comparable_id for anchor in included),
                 excluded_observation_ids=excluded_ids,
+                methodology_summary=_comparable_valuation_methodology(self.policy),
                 warnings=tuple(warnings),
                 policy_id=self.policy.policy_id,
             )
@@ -706,8 +794,10 @@ class ComparableValuationModel:
                     sample_size=len(included),
                 ),
                 anchor_results=anchors,
+                usefulness_assessments=usefulness,
                 included_observation_ids=tuple(anchor.comparable_id for anchor in included),
                 excluded_observation_ids=excluded_ids,
+                methodology_summary=_comparable_valuation_methodology(self.policy),
                 warnings=tuple(warnings),
                 policy_id=self.policy.policy_id,
             )
@@ -722,19 +812,49 @@ class ComparableValuationModel:
             f"{len(included)} structured comparable valuation anchor(s) included.",
             "Central estimate is the midpoint of the conservative lower/upper anchor bracket.",
         ]
+        inference = _infer_market_band(included, usefulness, self.policy)
+        inference_status = ComparableMarketInferenceStatus.BROAD_BRACKET_ONLY
+        inferred_central = None
+        inferred_low = None
+        inferred_high = None
+        influential_ids: tuple[str, ...] = ()
+        if inference is None:
+            warnings.append("Comparable evidence supports only a broad anchor bracket, not a tighter inferred market band.")
+            reasons.append("No inferred market estimate was produced because high-usefulness comparable evidence is too sparse or dispersed.")
+        else:
+            inferred_central, inferred_low, inferred_high, influential_ids, inference_warnings = inference
+            inference_status = ComparableMarketInferenceStatus.INFERRED_MARKET_BAND
+            warnings.extend(inference_warnings)
+            reasons.append("High-usefulness comparables form a tight enough cluster for an inferred market band.")
+            central = inferred_central
+            low = inferred_low
+            high = inferred_high
         if len(included) < 3 or (spread_ratio is not None and spread_ratio >= self.policy.wide_anchor_spread_threshold):
             status = ComparableValuationStatus.PARTIAL
             confidence_level = ConfidenceLevel.LOW
             reasons.append("Small anchor count or wide spread limits confidence.")
+        if inference_status == ComparableMarketInferenceStatus.INFERRED_MARKET_BAND:
+            status = ComparableValuationStatus.READY
+            confidence_level = ConfidenceLevel.MEDIUM
+            if any(assessment.band != ComparableUsefulnessBand.HIGH for assessment in usefulness if assessment.comparable_id in influential_ids):
+                status = ComparableValuationStatus.PARTIAL
+                confidence_level = ConfidenceLevel.LOW
         return ComparableValuationEstimate(
             status=status,
             central_estimate=normalized_exalted_value(central),
             plausible_low=normalized_exalted_value(low),
             plausible_high=normalized_exalted_value(high),
+            inference_status=inference_status,
+            inferred_market_central=normalized_exalted_value(inferred_central) if inferred_central is not None else None,
+            inferred_market_low=normalized_exalted_value(inferred_low) if inferred_low is not None else None,
+            inferred_market_high=normalized_exalted_value(inferred_high) if inferred_high is not None else None,
             confidence=Confidence(level=confidence_level, reasons=tuple(reasons), sample_size=len(included)),
             anchor_results=anchors,
+            usefulness_assessments=usefulness,
+            influential_observation_ids=influential_ids,
             included_observation_ids=tuple(anchor.comparable_id for anchor in included),
             excluded_observation_ids=excluded_ids,
+            methodology_summary=_comparable_valuation_methodology(self.policy),
             warnings=tuple(warnings),
             policy_id=self.policy.policy_id,
         )
@@ -815,6 +935,187 @@ def _anchor_role_from_quality(quality_delta: ComparableQualityDelta) -> tuple[Co
     return (
         ComparableAnchorRole.UNINTERPRETED,
         "Modifier quality summary is not directional enough to anchor a current-item valuation.",
+    )
+
+
+def _usefulness_from_result(
+    result: ComparableResult,
+    anchor: ComparableValuationAnchor,
+    policy: ComparableValuationPolicy,
+) -> ComparableValuationUsefulness:
+    relevance = result.comparable_relevance
+    quality_delta = result.comparable_quality_delta
+    reasons: list[str] = []
+    warnings: list[str] = []
+    factors: list[str] = []
+    if anchor.role == ComparableAnchorRole.UNINTERPRETED or result.normalized_value is None:
+        return ComparableValuationUsefulness(
+            comparable_id=result.comparable_id,
+            score=Decimal("0"),
+            band=ComparableUsefulnessBand.UNUSABLE,
+            reasons=("Comparable is uninterpreted for market inference.",),
+            warnings=tuple(anchor.warnings),
+        )
+    if relevance is None or relevance.score is None or quality_delta is None:
+        return ComparableValuationUsefulness(
+            comparable_id=result.comparable_id,
+            score=Decimal("0"),
+            band=ComparableUsefulnessBand.UNUSABLE,
+            reasons=("Structured relevance and modifier quality delta are required for valuation usefulness.",),
+            warnings=tuple(anchor.warnings),
+        )
+
+    relevance_score = relevance.score
+    quality_similarity = _quality_similarity_score(quality_delta)
+    score = relevance_score * quality_similarity
+    reasons.append(f"Structural relevance contributes {relevance_score}.")
+    reasons.append(f"Modifier quality similarity contributes {quality_similarity}.")
+
+    freshness_factor = _freshness_factor(result.economy_freshness)
+    if freshness_factor < Decimal("1"):
+        factors.append(f"freshness:{result.economy_freshness.value}:{freshness_factor}")
+        reasons.append(f"Economy conversion freshness reduces usefulness by factor {freshness_factor}.")
+    score *= freshness_factor
+
+    penalty_factor = Decimal("1")
+    if any("Base type differs" in reason for reason in relevance.base_similarity):
+        penalty_factor *= Decimal("0.90")
+        factors.append("base-type-difference:0.90")
+        reasons.append("Different base type reduces valuation usefulness.")
+    if any("Special item states differ" in reason for reason in relevance.base_similarity):
+        penalty_factor *= Decimal("0.85")
+        factors.append("special-state-difference:0.85")
+        reasons.append("Different special item state reduces valuation usefulness.")
+    if any(delta.origin_difference for delta in quality_delta.modifier_deltas):
+        penalty_factor *= Decimal("0.90")
+        factors.append("modifier-origin-difference:0.90")
+        reasons.append("Modifier origin differences reduce valuation usefulness.")
+    if quality_delta.missing_from_comparable_count or quality_delta.extra_on_comparable_count:
+        penalty_factor *= Decimal("0.75")
+        factors.append("unmatched-modifiers:0.75")
+        reasons.append("Missing or extra parsed modifiers reduce valuation usefulness.")
+    score *= penalty_factor
+    score = min(Decimal("1"), max(Decimal("0"), score)).quantize(Decimal("0.0001"))
+    band = _usefulness_band(score, policy)
+    if band in {ComparableUsefulnessBand.LOW, ComparableUsefulnessBand.UNUSABLE}:
+        warnings.append("Comparable has weak valuation usefulness for the current item.")
+    return ComparableValuationUsefulness(
+        comparable_id=result.comparable_id,
+        score=score,
+        band=band,
+        structural_relevance_score=relevance_score,
+        quality_similarity_score=quality_similarity,
+        freshness_factor=freshness_factor,
+        adjustment_factors=tuple(factors),
+        reasons=tuple(reasons),
+        warnings=tuple((*anchor.warnings, *warnings)),
+    )
+
+
+def _quality_similarity_score(quality_delta: ComparableQualityDelta) -> Decimal:
+    total = (
+        quality_delta.current_better_count
+        + quality_delta.comparable_better_count
+        + quality_delta.roughly_equivalent_count
+        + quality_delta.unknown_count
+        + quality_delta.missing_from_comparable_count
+        + quality_delta.extra_on_comparable_count
+    )
+    if total <= 0:
+        return Decimal("0")
+    equivalent = Decimal(quality_delta.roughly_equivalent_count)
+    directional = Decimal(quality_delta.current_better_count + quality_delta.comparable_better_count) * Decimal("0.50")
+    unknown = Decimal(quality_delta.unknown_count) * Decimal("0.25")
+    score = (equivalent + directional + unknown) / Decimal(total)
+    return min(Decimal("1"), max(Decimal("0"), score)).quantize(Decimal("0.0001"))
+
+
+def _freshness_factor(freshness: FreshnessState) -> Decimal:
+    if freshness == FreshnessState.FRESH:
+        return Decimal("1")
+    if freshness == FreshnessState.AGING:
+        return Decimal("0.90")
+    if freshness == FreshnessState.STALE:
+        return Decimal("0.75")
+    return Decimal("0.50")
+
+
+def _usefulness_band(score: Decimal, policy: ComparableValuationPolicy) -> ComparableUsefulnessBand:
+    if score >= policy.high_usefulness_threshold:
+        return ComparableUsefulnessBand.HIGH
+    if score >= policy.medium_usefulness_threshold:
+        return ComparableUsefulnessBand.MEDIUM
+    if score > Decimal("0"):
+        return ComparableUsefulnessBand.LOW
+    return ComparableUsefulnessBand.UNUSABLE
+
+
+def _infer_market_band(
+    anchors: tuple[ComparableValuationAnchor, ...],
+    usefulness: tuple[ComparableValuationUsefulness, ...],
+    policy: ComparableValuationPolicy,
+) -> tuple[Decimal, Decimal, Decimal, tuple[str, ...], tuple[str, ...]] | None:
+    usefulness_by_id = {assessment.comparable_id: assessment for assessment in usefulness}
+    high_usefulness = tuple(
+        anchor
+        for anchor in anchors
+        if usefulness_by_id.get(anchor.comparable_id) is not None
+        and usefulness_by_id[anchor.comparable_id].band == ComparableUsefulnessBand.HIGH
+        and anchor.normalized_value is not None
+    )
+    if len(high_usefulness) < policy.minimum_high_usefulness_for_market_band:
+        return None
+    values = tuple(anchor.normalized_value.amount for anchor in high_usefulness if anchor.normalized_value is not None)
+    ordered = tuple(sorted(values))
+    median = decimal_median(ordered)
+    relative_spread = ((ordered[-1] - ordered[0]) / median) if median > Decimal("0") else None
+    if relative_spread is not None and relative_spread > policy.max_inferred_market_relative_spread:
+        return None
+    low = decimal_quantile(ordered, Decimal("0.25"))
+    high = decimal_quantile(ordered, Decimal("0.75"))
+    weighted_central = _weighted_median(
+        tuple(
+            (anchor.normalized_value.amount, usefulness_by_id[anchor.comparable_id].score)
+            for anchor in high_usefulness
+            if anchor.normalized_value is not None
+        )
+    )
+    warnings: list[str] = []
+    anchor_roles = {anchor.role for anchor in high_usefulness}
+    if ComparableAnchorRole.LOWER_ANCHOR not in anchor_roles and ComparableAnchorRole.UPPER_ANCHOR not in anchor_roles:
+        warnings.append("Inferred market band is based on equivalent-style anchors rather than both lower and upper directional anchors.")
+    return (
+        weighted_central,
+        low,
+        high,
+        tuple(anchor.comparable_id for anchor in high_usefulness),
+        tuple(warnings),
+    )
+
+
+def _weighted_median(weighted_values: tuple[tuple[Decimal, Decimal], ...]) -> Decimal:
+    if not weighted_values:
+        raise ValueError("weighted median requires at least one value")
+    ordered = tuple(sorted(weighted_values, key=lambda item: item[0]))
+    total_weight = sum((weight for _, weight in ordered), Decimal("0"))
+    if total_weight <= Decimal("0"):
+        return decimal_median(tuple(value for value, _ in ordered))
+    threshold = total_weight / Decimal("2")
+    cumulative = Decimal("0")
+    for value, weight in ordered:
+        cumulative += weight
+        if cumulative >= threshold:
+            return value
+    return ordered[-1][0]
+
+
+def _comparable_valuation_methodology(policy: ComparableValuationPolicy) -> str:
+    return (
+        "Comparable Valuation Model v1 first preserves lower/upper/equivalent anchor brackets, "
+        "then emits inferred market fields only when high-usefulness structured comparables meet "
+        f"count >= {policy.minimum_high_usefulness_for_market_band} and relative spread <= "
+        f"{policy.max_inferred_market_relative_spread}. Usefulness is derived from relevance, "
+        "quality similarity, freshness, and explicit structural penalties; listing prices are not adjusted."
     )
 
 

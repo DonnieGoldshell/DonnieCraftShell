@@ -108,15 +108,34 @@ class ComparableValuationAnchorDto(ApiModel):
     warnings: list[str] = []
 
 
+class ComparableValuationUsefulnessDto(ApiModel):
+    comparable_id: str
+    score: str
+    band: str
+    structural_relevance_score: str | None = None
+    quality_similarity_score: str | None = None
+    freshness_factor: str
+    adjustment_factors: list[str] = []
+    reasons: list[str] = []
+    warnings: list[str] = []
+
+
 class ComparableValuationEstimateDto(ApiModel):
     status: str
     central_estimate: EconomicValueDto | None = None
     plausible_low: EconomicValueDto | None = None
     plausible_high: EconomicValueDto | None = None
+    inference_status: str
+    inferred_market_central: EconomicValueDto | None = None
+    inferred_market_low: EconomicValueDto | None = None
+    inferred_market_high: EconomicValueDto | None = None
     confidence: ValuationConfidenceDto | None = None
     anchor_results: list[ComparableValuationAnchorDto] = []
+    usefulness_assessments: list[ComparableValuationUsefulnessDto] = []
+    influential_observation_ids: list[str] = []
     included_observation_ids: list[str] = []
     excluded_observation_ids: list[str] = []
+    methodology_summary: str | None = None
     warnings: list[str] = []
     policy_id: str
 

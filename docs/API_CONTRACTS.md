@@ -149,6 +149,14 @@ warnings. This preview field does not replace the existing aggregation result,
 does not multiply price by relevance or quality, and does not feed Advisor/EV
 ranking.
 
+Issue 65 extends `comparable_valuation_estimate` with market inference v1
+fields: `inference_status`, optional `inferred_market_central/low/high`,
+`usefulness_assessments`, `influential_observation_ids`, and
+`methodology_summary`. Clients must display `BROAD_BRACKET_ONLY` separately
+from `INFERRED_MARKET_BAND`; a distant lower/upper anchor bracket is not a
+high-confidence market estimate. Usefulness diagnostics are evidence
+explainability only and must not be interpreted as game-economy premiums.
+
 Task 15B extends the same endpoint with optional empirical probability dataset selection and serialized probability evidence details. Default production assembly skips synthetic empirical fixtures and keeps real actions `UNKNOWN` without compatible evidence.
 
 Task 15C adds an offline operator workflow rather than a public HTTP endpoint:

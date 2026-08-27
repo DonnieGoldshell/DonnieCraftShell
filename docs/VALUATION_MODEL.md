@@ -32,6 +32,8 @@ Executable contracts live in `packages/shared/donniecraftshell_contracts/valuati
 - `ComparableQualityDelta`: deterministic directional modifier-quality evidence for corresponding parsed modifiers.
 - `ComparableValuationPolicy`: versioned policy for the conservative comparable-anchor valuation model.
 - `ComparableValuationAnchor`: one structured comparable listing interpreted as lower, upper, equivalent, or uninterpreted anchor evidence.
+- `ComparableValuationUsefulness`: deterministic usefulness assessment for one structured comparable, derived from relevance, quality similarity, freshness, and observable item-state differences.
+- `ComparableMarketInferenceStatus`: `INSUFFICIENT_EVIDENCE`, `BROAD_BRACKET_ONLY`, or `INFERRED_MARKET_BAND`.
 - `ComparableValuationEstimate`: bracket-style listing-derived estimate from structured anchors, or an explicit insufficient-data result.
 - `ComparableValuationModel`: conservative v1 model over manual structured comparables.
 - `ComparableEvidenceSet`: query plus comparable results and readiness.
@@ -158,15 +160,38 @@ Anchor roles are assigned from quality delta, not from listing price:
 Default policy `comparable-valuation-model-v1` requires at least two
 interpretable structured anchors, a high-relevance score of at least `0.75`,
 and both lower/equivalent and upper/equivalent bracket evidence before emitting
-a central estimate. The central estimate is the midpoint of the lower/upper
-anchor bracket. This midpoint is a descriptive listing-derived bracket center,
-not a realized sale price, EV input, or recommendation.
+a broad bracket center. The bracket center preserves backward-compatible
+preview behavior from Issue 63, but market inference v1 marks it explicitly as
+`BROAD_BRACKET_ONLY`; it is a descriptive listing-derived bracket center, not a
+market estimate, realized sale price, EV input, or recommendation.
+
+Issue 65 adds scoped market inference on top of those anchors. Each structured
+comparable receives a `ComparableValuationUsefulness` assessment. Usefulness is
+deterministic and explainable:
+
+- structural relevance score,
+- modifier quality similarity from `ComparableQualityDelta`,
+- evidence freshness,
+- reductions for base-type differences, special-state differences, origin
+  differences, and unmatched modifiers.
+
+Usefulness is not a price multiplier and does not change whether the current
+item is better or worse than a comparable. Listing price remains separate from
+structural relevance and quality direction.
+
+An `INFERRED_MARKET_BAND` may be emitted only when enough high-usefulness
+comparables form a tight enough cluster under the configured policy. The v1
+central inferred value uses a Decimal weighted median over those close
+comparables, and the inferred band uses deterministic Decimal quantiles. The
+model never treats a distant lower anchor and distant upper anchor as a
+high-confidence midpoint market estimate.
 
 Wide anchor spreads are preserved and warned on rather than hidden. A small
 two-anchor pilot can produce `PARTIAL` with low confidence even when a bracket
 exists. If anchor directions conflict with observed listing prices, the model
 fails closed with `INSUFFICIENT_DATA` rather than reversing the quality-derived
-anchor roles.
+anchor roles. If evidence is contradictory, stale, distant, or too sparse, the
+inference status remains `INSUFFICIENT_EVIDENCE` or `BROAD_BRACKET_ONLY`.
 
 ## Advisor API Preview
 
@@ -189,6 +214,13 @@ preview attaches `ComparableRelevance` and `ComparableQualityDelta` results to
 each structured comparable and returns an optional `comparable_valuation_estimate`
 summary. The preview still does not discard low-relevance comparables or alter
 the existing valuation aggregation behavior.
+
+Issue 65 extends the preview summary with market-inference diagnostics:
+`inference_status`, optional `inferred_market_central/low/high`,
+`usefulness_assessments`, `influential_observation_ids`, and a methodology
+summary. The UI should show these fields as diagnostics beside the manual
+listing evidence. They are not Advisor decisions and they do not bypass EV or
+probability readiness gates.
 
 ## Listing Evidence
 
