@@ -90,6 +90,15 @@ differences, missing modifiers, and extra modifiers. Relevance is explanatory
 only in this workflow. It does not change the listing-derived aggregation,
 create market-value weights, or make price-only evidence structurally verified.
 
+The same preview may also return modifier quality delta evidence. This is a
+directional comparison for corresponding parsed modifiers only: for example,
+current T1 cold damage versus comparable T3 cold damage can be reported as
+`CURRENT_BETTER`, while current T3 critical chance versus comparable T1
+critical chance can be reported as `COMPARABLE_BETTER`. Origin differences
+such as `NATURAL` versus `FRACTURED` remain visible but do not imply a price
+premium. Quality delta is not valuation, weighting, Advisor ranking, or EV
+input.
+
 ## Local Evidence Workspace
 
 Manual comparable observations can be persisted locally through the Task 19B manual valuation workspace. The workspace is backup-friendly JSON under `.dcs/` by default, partitioned by canonical subject identity, and deliberately separate from Advisor submission. Loading persisted evidence into the Manual Valuation panel does not submit it to Advisor until the operator explicitly runs analysis. Details: [MANUAL_VALUATION_WORKSPACE.md](MANUAL_VALUATION_WORKSPACE.md).

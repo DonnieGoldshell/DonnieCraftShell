@@ -29,6 +29,7 @@ Executable contracts live in `packages/shared/donniecraftshell_contracts/valuati
 - `ManualListingObservation`: user-entered listing observation, optionally including `StructuredComparableItem`.
 - `ComparableResult`: normalized listing evidence when currency conversion is available.
 - `ComparableRelevance`: deterministic structural similarity evidence between the current item and a structured comparable.
+- `ComparableQualityDelta`: deterministic directional modifier-quality evidence for corresponding parsed modifiers.
 - `ComparableEvidenceSet`: query plus comparable results and readiness.
 - `ValuationAggregationPolicy`: configurable readiness, quantile, duplicate, stale, and outlier policy.
 - `ValuationAggregator`: manual comparable aggregation using robust Decimal statistics.
@@ -96,6 +97,32 @@ Price-only observations have no fabricated relevance score. If the current
 item or comparable item cannot be parsed with explicit modifier state,
 relevance remains unavailable or `INSUFFICIENT_STATE`.
 
+## Modifier Quality Delta
+
+Task 61 adds `ComparableQualityDelta` as a separate signal from structural
+relevance. Structural relevance answers whether two item states are comparable;
+modifier quality delta answers, for same-side corresponding semantic modifier
+identities, whether the current item, the comparable item, or neither has the
+stronger observable modifier evidence.
+
+The quality policy is versioned as
+`comparable-modifier-quality-delta-policy-v1`. It may classify modifier pairs
+as `CURRENT_BETTER`, `COMPARABLE_BETTER`, `ROUGHLY_EQUIVALENT`, `UNKNOWN`,
+`MISSING_FROM_COMPARABLE`, or `EXTRA_ON_COMPARABLE`. Directional comparisons
+use parsed tier numbers when both sides have them, where lower tier number is
+stronger. For same-tier modifiers, parsed roll/value quality may be compared
+only when both sides expose value plus displayed min/max ranges; otherwise the
+relationship remains equivalent or unknown with reasons.
+
+Modifier origin/state differences such as `NATURAL` versus `FRACTURED` are
+preserved explicitly. They do not create an economic premium or penalty in this
+layer. Missing or extra modifiers remain visible and are not falsely classified
+as tier comparisons.
+
+Quality delta counts are inspectable evidence only. They must not be used as
+market-value multipliers, valuation weights, EV inputs, Advisor ranking, or
+sale-price inference.
+
 ## Advisor API Preview
 
 The Advisor API exposes a thin manual-evidence preview endpoint for the web
@@ -113,9 +140,9 @@ remain separate by subject ID; outcome evidence must carry the deterministic
 `outcome_id`. If an observation includes `comparable_clipboard_text`, the
 endpoint parses and returns a structured comparable item summary in each
 `ComparableResult`. If the request also includes `subject_clipboard_text`, the
-preview attaches a `ComparableRelevance` result to each structured comparable.
-The preview still does not discard low-relevance comparables or alter valuation
-aggregation behavior.
+preview attaches `ComparableRelevance` and `ComparableQualityDelta` results to
+each structured comparable. The preview still does not discard low-relevance
+comparables or alter valuation aggregation behavior.
 
 ## Listing Evidence
 

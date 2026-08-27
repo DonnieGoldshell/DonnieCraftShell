@@ -112,6 +112,8 @@ class AdvisorApiTests(unittest.TestCase):
         self.assertIn("StructuredComparableItemDto", schema_names)
         self.assertIn("ComparableRelevanceDto", schema_names)
         self.assertIn("ComparableModifierRelevanceDto", schema_names)
+        self.assertIn("ComparableQualityDeltaDto", schema_names)
+        self.assertIn("ModifierQualityDeltaDto", schema_names)
         self.assertIn("/api/v1/advisor/manual-valuation/preview", openapi["paths"])
         self.assertIn("/api/v1/advisor/manual-valuation/workspace/evidence", openapi["paths"])
         self.assertIn("/api/v1/advisor/manual-valuation/workspace/evidence/{evidence_id}", openapi["paths"])
@@ -634,6 +636,59 @@ class AdvisorApiTests(unittest.TestCase):
                 for item in relevance["differing_modifiers"]
             )
         )
+        quality = result["comparable_quality_delta"]
+        self.assertEqual(quality["policy_id"], "comparable-modifier-quality-delta-policy-v1")
+        crit_chance = next(
+            item for item in quality["modifier_deltas"]
+            if item["current_display_name"] == "of Calamity"
+        )
+        self.assertEqual(crit_chance["relationship"], "COMPARABLE_BETTER")
+        self.assertEqual(crit_chance["current_tier"], "3")
+        self.assertEqual(crit_chance["comparable_tier"], "1")
+        crit_multi = next(
+            item for item in quality["modifier_deltas"]
+            if item["current_display_name"] == "of Destruction"
+        )
+        self.assertEqual(crit_multi["relationship"], "COMPARABLE_BETTER")
+        self.assertTrue(crit_multi["origin_difference"])
+        self.assertEqual(crit_multi["comparable_origin"], "FRACTURED")
+
+    def test_manual_valuation_preview_skull_quill_high_relevance_with_lower_quality_delta(self):
+        evidence = self._valuation_evidence("45")
+        evidence["observations"][0]["currency_asset_id"] = "dc:poe2:economy-asset:currency:divine-orb"
+        evidence["observations"][0]["external_listing_id"] = "skull-quill-45-divine"
+        evidence["observations"][0]["comparable_clipboard_text"] = fixture("skull_quill_primed_quiver_comparable_advanced.txt")
+
+        response = self.client.post(
+            "/api/v1/advisor/manual-valuation/preview",
+            json={
+                "subject_id": "current",
+                "subject_type": "CURRENT_ITEM",
+                "subject_clipboard_text": fixture("quiver_6_crafted_desecrated_advanced.txt"),
+                "league": LEAGUE,
+                "as_of": AS_OF,
+                "evidence": evidence,
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        result = response.json()["comparable_results"][0]
+        self.assertEqual(result["comparable_relevance"]["band"], "HIGH")
+        quality = result["comparable_quality_delta"]
+        self.assertGreaterEqual(quality["current_better_count"], 3)
+        self.assertGreaterEqual(quality["comparable_better_count"], 1)
+        cold = next(
+            item for item in quality["modifier_deltas"]
+            if item["current_display_name"] == "Entombing"
+        )
+        self.assertEqual(cold["relationship"], "CURRENT_BETTER")
+        self.assertEqual(cold["comparable_display_name"], "Glaciated")
+        speed = next(
+            item for item in quality["modifier_deltas"]
+            if item["current_display_name"] == "Nimble"
+        )
+        self.assertEqual(speed["relationship"], "CURRENT_BETTER")
+        self.assertEqual(speed["comparable_display_name"], "Rapid")
 
     def test_manual_valuation_preview_price_only_evidence_has_no_relevance_score(self):
         response = self.client.post(
@@ -652,6 +707,7 @@ class AdvisorApiTests(unittest.TestCase):
         result = response.json()["comparable_results"][0]
         self.assertIsNone(result["comparable_item"])
         self.assertIsNone(result["comparable_relevance"])
+        self.assertIsNone(result["comparable_quality_delta"])
         self.assertTrue(any("not structurally verified" in warning for warning in result["warnings"]))
 
     def test_manual_valuation_preview_rejects_malformed_comparable_clipboard_text(self):

@@ -14,6 +14,7 @@ from packages.shared.donniecraftshell_contracts.economy_repository import Econom
 from packages.shared.donniecraftshell_contracts.parser import parse_clipboard_item
 from packages.shared.donniecraftshell_contracts.poe_show_economy import load_normalized_economy_snapshot
 from packages.shared.donniecraftshell_contracts.valuation import (
+    ComparableQualityDeltaAssessor,
     ComparableExclusionReason,
     ComparableRelevanceAssessor,
     ComparableRelevanceBand,
@@ -25,6 +26,7 @@ from packages.shared.donniecraftshell_contracts.valuation import (
     ModifierComparableRole,
     ModifierComparableRoleAssignment,
     ModifierMatchMode,
+    ModifierQualityRelationship,
     ModifierRelevanceRelationship,
     StructuredComparableItem,
     ValuationAggregator,
@@ -193,6 +195,74 @@ class ValuationContractTests(unittest.TestCase):
         self.assertIsNone(result.comparable_item)
         self.assertIsNone(result.comparable_relevance)
         self.assertTrue(any("not structurally verified" in warning for warning in result.warnings))
+
+    def test_gloom_barb_quality_delta_exposes_tier_roll_and_origin_differences(self):
+        comparable = structured_comparable("gloom_barb_visceral_quiver_comparable_advanced.txt")
+
+        delta = ComparableQualityDeltaAssessor().assess(self.item, comparable)
+
+        crit_chance = next(item for item in delta.modifier_deltas if item.current_display_name == "of Calamity")
+        self.assertEqual(crit_chance.relationship, ModifierQualityRelationship.COMPARABLE_BETTER)
+        self.assertEqual(crit_chance.current_tier, "3")
+        self.assertEqual(crit_chance.comparable_tier, "1")
+        self.assertTrue(any("stronger parsed tier" in reason for reason in crit_chance.reasons))
+        crit_multi = next(item for item in delta.modifier_deltas if item.current_display_name == "of Destruction")
+        self.assertEqual(crit_multi.relationship, ModifierQualityRelationship.COMPARABLE_BETTER)
+        self.assertTrue(crit_multi.origin_difference)
+        self.assertEqual(crit_multi.current_origin, "NATURAL")
+        self.assertEqual(crit_multi.comparable_origin, "FRACTURED")
+        self.assertEqual(crit_multi.current_roll_quality, Decimal("0.7500"))
+        self.assertEqual(crit_multi.comparable_roll_quality, Decimal("1.0000"))
+
+    def test_skull_quill_keeps_high_structural_relevance_but_current_better_quality_delta(self):
+        skull = structured_comparable("skull_quill_primed_quiver_comparable_advanced.txt")
+        relevance = ComparableRelevanceAssessor().assess(self.item, skull)
+
+        delta = ComparableQualityDeltaAssessor().assess(self.item, skull)
+
+        self.assertEqual(relevance.band, ComparableRelevanceBand.HIGH)
+        self.assertEqual(len(relevance.matched_modifiers), 1)
+        self.assertEqual(len(relevance.differing_modifiers), 5)
+        self.assertGreaterEqual(delta.current_better_count, 3)
+        self.assertGreaterEqual(delta.comparable_better_count, 1)
+        cold = next(item for item in delta.modifier_deltas if item.current_display_name == "Entombing")
+        self.assertEqual(cold.comparable_display_name, "Glaciated")
+        self.assertEqual(cold.relationship, ModifierQualityRelationship.CURRENT_BETTER)
+        self.assertEqual(cold.current_tier, "1")
+        self.assertEqual(cold.comparable_tier, "3")
+        speed = next(item for item in delta.modifier_deltas if item.current_display_name == "Nimble")
+        self.assertEqual(speed.comparable_display_name, "Rapid")
+        self.assertEqual(speed.relationship, ModifierQualityRelationship.CURRENT_BETTER)
+        crit = next(item for item in delta.modifier_deltas if item.current_display_name == "of Calamity")
+        self.assertEqual(crit.relationship, ModifierQualityRelationship.COMPARABLE_BETTER)
+
+    def test_missing_and_extra_modifiers_are_not_ranked_as_tier_quality(self):
+        relevance = ComparableRelevanceAssessor().assess(
+            self.item,
+            structured_comparable("quiver_1_rare_standard_advanced.txt"),
+        )
+        delta = ComparableQualityDeltaAssessor().assess(
+            self.item,
+            structured_comparable("quiver_1_rare_standard_advanced.txt"),
+        )
+
+        self.assertTrue(relevance.missing_modifiers)
+        missing = [item for item in delta.modifier_deltas if item.relationship == ModifierQualityRelationship.MISSING_FROM_COMPARABLE]
+        extra = [item for item in delta.modifier_deltas if item.relationship == ModifierQualityRelationship.EXTRA_ON_COMPARABLE]
+        self.assertTrue(missing)
+        self.assertTrue(extra)
+        self.assertTrue(all(item.current_tier is not None and item.comparable_tier is None for item in missing))
+        self.assertTrue(all(item.current_tier is None and item.comparable_tier is not None for item in extra))
+
+    def test_price_only_observation_has_no_fabricated_quality_delta(self):
+        result = self.provider.result_from_observation(
+            self._observation(Decimal("45"), DIVINE_ASSET_ID),
+            self.economy_repo,
+            AS_OF,
+        )
+
+        self.assertIsNone(result.comparable_item)
+        self.assertIsNone(result.comparable_quality_delta)
 
     def test_current_item_to_valuation_subject(self):
         subject = subject_from_parsed_item(self.item, dataset_versions=(GAME_DATASET_VERSION,))

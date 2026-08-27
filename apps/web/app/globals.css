@@ -537,6 +537,16 @@ th {
   padding: 10px;
 }
 
+.comparable-quality-summary {
+  background: rgba(245, 158, 11, 0.08);
+  border: 1px solid rgba(245, 158, 11, 0.35);
+  border-radius: 8px;
+  display: grid;
+  gap: 4px;
+  margin-top: 8px;
+  padding: 10px;
+}
+
 .compact-form {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));

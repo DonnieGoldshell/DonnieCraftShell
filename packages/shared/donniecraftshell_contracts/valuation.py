@@ -96,6 +96,23 @@ class ModifierRelevanceRelationship(str, Enum):
     EXTRA_ON_COMPARABLE = "EXTRA_ON_COMPARABLE"
 
 
+class ModifierQualityRelationship(str, Enum):
+    CURRENT_BETTER = "CURRENT_BETTER"
+    COMPARABLE_BETTER = "COMPARABLE_BETTER"
+    ROUGHLY_EQUIVALENT = "ROUGHLY_EQUIVALENT"
+    UNKNOWN = "UNKNOWN"
+    MISSING_FROM_COMPARABLE = "MISSING_FROM_COMPARABLE"
+    EXTRA_ON_COMPARABLE = "EXTRA_ON_COMPARABLE"
+
+
+class ModifierQualityEvidence(str, Enum):
+    TIER = "TIER"
+    ROLL_WITHIN_TIER = "ROLL_WITHIN_TIER"
+    TIER_AND_ROLL = "TIER_AND_ROLL"
+    IDENTITY_ONLY = "IDENTITY_ONLY"
+    INSUFFICIENT = "INSUFFICIENT"
+
+
 @dataclass(frozen=True)
 class ValuationSubject:
     subject_id: str
@@ -235,6 +252,48 @@ class ComparableRelevance:
 
 
 @dataclass(frozen=True)
+class ModifierQualityDelta:
+    relationship: ModifierQualityRelationship
+    evidence: ModifierQualityEvidence
+    semantic_identity: str
+    affix_type: AffixType
+    current_display_name: str | None = None
+    comparable_display_name: str | None = None
+    current_tier: str | None = None
+    comparable_tier: str | None = None
+    current_origin: str | None = None
+    comparable_origin: str | None = None
+    current_roll_quality: Decimal | None = None
+    comparable_roll_quality: Decimal | None = None
+    current_roll_values: tuple[str, ...] = ()
+    comparable_roll_values: tuple[str, ...] = ()
+    origin_difference: bool = False
+    reasons: tuple[str, ...] = ()
+
+    def __post_init__(self) -> None:
+        for field_name in ("current_roll_quality", "comparable_roll_quality"):
+            value = getattr(self, field_name)
+            if value is not None:
+                decimal_value = _decimal(value, field_name)
+                if decimal_value < Decimal("0") or decimal_value > Decimal("1"):
+                    raise ValueError(f"{field_name} must be between 0 and 1")
+                object.__setattr__(self, field_name, decimal_value)
+
+
+@dataclass(frozen=True)
+class ComparableQualityDelta:
+    modifier_deltas: tuple[ModifierQualityDelta, ...] = ()
+    current_better_count: int = 0
+    comparable_better_count: int = 0
+    roughly_equivalent_count: int = 0
+    unknown_count: int = 0
+    missing_from_comparable_count: int = 0
+    extra_on_comparable_count: int = 0
+    warnings: tuple[str, ...] = ()
+    policy_id: str = "comparable-modifier-quality-delta-policy-v1"
+
+
+@dataclass(frozen=True)
 class ManualListingObservation:
     observation_id: str
     query_id: str
@@ -276,6 +335,7 @@ class ComparableResult:
     warnings: tuple[str, ...] = ()
     comparable_item: StructuredComparableItem | None = None
     comparable_relevance: ComparableRelevance | None = None
+    comparable_quality_delta: ComparableQualityDelta | None = None
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "listing_price", _decimal(self.listing_price, "listing price"))
@@ -829,6 +889,62 @@ class ComparableRelevanceAssessor:
         )
 
 
+class ComparableQualityDeltaAssessor:
+    """Directional modifier-quality comparison, separate from structural relevance and market value."""
+
+    def assess(self, current_item: ParsedItem | None, comparable: StructuredComparableItem | None) -> ComparableQualityDelta:
+        if current_item is None or comparable is None:
+            return ComparableQualityDelta(
+                warnings=("Parsed current item and parsed comparable item are required for modifier quality delta.",),
+            )
+        comparable_item = comparable.parsed_item
+        if not current_item.explicit_modifiers or not comparable_item.explicit_modifiers:
+            return ComparableQualityDelta(
+                warnings=("Both items need parsed explicit modifier state for modifier quality delta.",),
+            )
+
+        current_modifiers = tuple(current_item.explicit_modifiers)
+        available = list(comparable_item.explicit_modifiers)
+        deltas: list[ModifierQualityDelta] = []
+        for current_modifier in current_modifiers:
+            match = _best_modifier_match(current_modifier, available)
+            if match is None:
+                deltas.append(
+                    _quality_delta(
+                        ModifierQualityRelationship.MISSING_FROM_COMPARABLE,
+                        ModifierQualityEvidence.INSUFFICIENT,
+                        current_modifier,
+                        None,
+                        ("Current modifier has no same-side parsed semantic counterpart on the comparable.",),
+                    )
+                )
+                continue
+            available.remove(match)
+            deltas.append(_quality_delta_for_match(current_modifier, match))
+        deltas.extend(
+            _quality_delta(
+                ModifierQualityRelationship.EXTRA_ON_COMPARABLE,
+                ModifierQualityEvidence.INSUFFICIENT,
+                None,
+                modifier,
+                ("Comparable has an extra parsed modifier with no current-item counterpart.",),
+            )
+            for modifier in available
+        )
+        return ComparableQualityDelta(
+            modifier_deltas=tuple(deltas),
+            current_better_count=sum(1 for delta in deltas if delta.relationship == ModifierQualityRelationship.CURRENT_BETTER),
+            comparable_better_count=sum(1 for delta in deltas if delta.relationship == ModifierQualityRelationship.COMPARABLE_BETTER),
+            roughly_equivalent_count=sum(1 for delta in deltas if delta.relationship == ModifierQualityRelationship.ROUGHLY_EQUIVALENT),
+            unknown_count=sum(1 for delta in deltas if delta.relationship == ModifierQualityRelationship.UNKNOWN),
+            missing_from_comparable_count=sum(1 for delta in deltas if delta.relationship == ModifierQualityRelationship.MISSING_FROM_COMPARABLE),
+            extra_on_comparable_count=sum(1 for delta in deltas if delta.relationship == ModifierQualityRelationship.EXTRA_ON_COMPARABLE),
+            warnings=(
+                "Modifier quality delta is structural only; it is not a price multiplier, valuation weight, or recommendation signal.",
+            ),
+        )
+
+
 def subject_from_parsed_item(
     item: ParsedItem,
     dataset_versions: tuple[str, ...] = (),
@@ -1083,6 +1199,167 @@ def _roll_values(modifier: ItemModifier) -> tuple[str, ...]:
             parts.append(f"range={roll.min_value}:{roll.max_value}")
         values.append(";".join(parts) if parts else "unknown-roll")
     return tuple(values)
+
+
+def _quality_delta_for_match(current_modifier: ItemModifier, comparable_modifier: ItemModifier) -> ModifierQualityDelta:
+    origin_difference = current_modifier.origin != comparable_modifier.origin
+    reasons: list[str] = []
+    if origin_difference:
+        reasons.append(
+            f"Modifier origin differs: {current_modifier.origin.value} vs {comparable_modifier.origin.value}; no market premium is inferred."
+        )
+    tier_result = _tier_quality_relationship(current_modifier.tier, comparable_modifier.tier)
+    if tier_result is not None:
+        relationship, reason = tier_result
+        reasons.append(reason)
+        return _quality_delta(
+            relationship,
+            ModifierQualityEvidence.TIER,
+            current_modifier,
+            comparable_modifier,
+            tuple(reasons),
+        )
+
+    roll_result = _roll_quality_relationship(current_modifier, comparable_modifier)
+    if roll_result is not None:
+        relationship, current_quality, comparable_quality, reason = roll_result
+        reasons.append(reason)
+        return _quality_delta(
+            relationship,
+            ModifierQualityEvidence.ROLL_WITHIN_TIER,
+            current_modifier,
+            comparable_modifier,
+            tuple(reasons),
+            current_roll_quality=current_quality,
+            comparable_roll_quality=comparable_quality,
+        )
+
+    if _same_tier(current_modifier.tier, comparable_modifier.tier):
+        reasons.append("Same parsed semantic identity and tier; roll quality could not provide a directional distinction.")
+        return _quality_delta(
+            ModifierQualityRelationship.ROUGHLY_EQUIVALENT,
+            ModifierQualityEvidence.IDENTITY_ONLY,
+            current_modifier,
+            comparable_modifier,
+            tuple(reasons),
+        )
+
+    reasons.append("Parsed semantic identity matches, but tier or roll evidence is insufficient for directional quality.")
+    return _quality_delta(
+        ModifierQualityRelationship.UNKNOWN,
+        ModifierQualityEvidence.INSUFFICIENT,
+        current_modifier,
+        comparable_modifier,
+        tuple(reasons),
+    )
+
+
+def _quality_delta(
+    relationship: ModifierQualityRelationship,
+    evidence: ModifierQualityEvidence,
+    current_modifier: ItemModifier | None,
+    comparable_modifier: ItemModifier | None,
+    reasons: tuple[str, ...],
+    current_roll_quality: Decimal | None = None,
+    comparable_roll_quality: Decimal | None = None,
+) -> ModifierQualityDelta:
+    reference = current_modifier or comparable_modifier
+    assert reference is not None
+    return ModifierQualityDelta(
+        relationship=relationship,
+        evidence=evidence,
+        semantic_identity=_modifier_semantic_identity(reference),
+        affix_type=reference.affix_type,
+        current_display_name=current_modifier.display_name if current_modifier else None,
+        comparable_display_name=comparable_modifier.display_name if comparable_modifier else None,
+        current_tier=current_modifier.tier if current_modifier else None,
+        comparable_tier=comparable_modifier.tier if comparable_modifier else None,
+        current_origin=current_modifier.origin.value if current_modifier else None,
+        comparable_origin=comparable_modifier.origin.value if comparable_modifier else None,
+        current_roll_quality=current_roll_quality,
+        comparable_roll_quality=comparable_roll_quality,
+        current_roll_values=_roll_values(current_modifier) if current_modifier else (),
+        comparable_roll_values=_roll_values(comparable_modifier) if comparable_modifier else (),
+        origin_difference=(current_modifier.origin != comparable_modifier.origin) if current_modifier and comparable_modifier else False,
+        reasons=reasons,
+    )
+
+
+def _tier_quality_relationship(
+    current_tier: str | None,
+    comparable_tier: str | None,
+) -> tuple[ModifierQualityRelationship, str] | None:
+    current_number = _tier_number(current_tier)
+    comparable_number = _tier_number(comparable_tier)
+    if current_number is None or comparable_number is None:
+        return None
+    if current_number < comparable_number:
+        return (
+            ModifierQualityRelationship.CURRENT_BETTER,
+            f"Current item has the stronger parsed tier: T{current_number} vs comparable T{comparable_number}.",
+        )
+    if comparable_number < current_number:
+        return (
+            ModifierQualityRelationship.COMPARABLE_BETTER,
+            f"Comparable has the stronger parsed tier: T{comparable_number} vs current T{current_number}.",
+        )
+    return None
+
+
+def _roll_quality_relationship(
+    current_modifier: ItemModifier,
+    comparable_modifier: ItemModifier,
+) -> tuple[ModifierQualityRelationship, Decimal, Decimal, str] | None:
+    current_quality = _roll_quality(current_modifier.observed_rolls)
+    comparable_quality = _roll_quality(comparable_modifier.observed_rolls)
+    if current_quality is None or comparable_quality is None:
+        return None
+    if current_quality > comparable_quality:
+        return (
+            ModifierQualityRelationship.CURRENT_BETTER,
+            current_quality,
+            comparable_quality,
+            f"Current item has the better same-tier observed roll quality: {current_quality} vs {comparable_quality}.",
+        )
+    if comparable_quality > current_quality:
+        return (
+            ModifierQualityRelationship.COMPARABLE_BETTER,
+            current_quality,
+            comparable_quality,
+            f"Comparable has the better same-tier observed roll quality: {comparable_quality} vs {current_quality}.",
+        )
+    return (
+        ModifierQualityRelationship.ROUGHLY_EQUIVALENT,
+        current_quality,
+        comparable_quality,
+        f"Same-tier observed roll quality is equivalent: {current_quality}.",
+    )
+
+
+def _roll_quality(rolls: tuple[RollValue, ...]) -> Decimal | None:
+    if not rolls:
+        return None
+    qualities: list[Decimal] = []
+    for roll in rolls:
+        if roll.value is None or roll.min_value is None or roll.max_value is None:
+            return None
+        if roll.max_value < roll.min_value:
+            return None
+        if roll.max_value == roll.min_value:
+            qualities.append(Decimal("1"))
+            continue
+        qualities.append((roll.value - roll.min_value) / (roll.max_value - roll.min_value))
+    return (sum(qualities, Decimal("0")) / Decimal(len(qualities))).quantize(Decimal("0.0001"))
+
+
+def _tier_number(tier: str | None) -> int | None:
+    if tier is None:
+        return None
+    try:
+        value = int(str(tier).strip())
+    except ValueError:
+        return None
+    return value if value > 0 else None
 
 
 def _modifier_semantic_identity(modifier: ItemModifier) -> str:

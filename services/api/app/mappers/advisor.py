@@ -26,11 +26,14 @@ from packages.shared.donniecraftshell_contracts.economy_repository import Econom
 from packages.shared.donniecraftshell_contracts.game_data import ItemEnrichment, ResolutionStatus
 from packages.shared.donniecraftshell_contracts.parser import parse_clipboard_item
 from packages.shared.donniecraftshell_contracts.valuation import (
+    ComparableQualityDelta,
+    ComparableQualityDeltaAssessor,
     ComparableQuery,
     ComparableRelevance,
     ComparableRelevanceAssessor,
     ManualListingObservation,
     ManualTradeProvider,
+    ModifierQualityDelta,
     StructuredComparableItem,
     ValuationAggregator,
     ValuationEvidencePolicy,
@@ -47,6 +50,7 @@ from services.api.app.schemas.advisor import (
     AdvisorDecisionDto,
     AdvisorEvidenceReadinessDto,
     AffixStateDto,
+    ComparableQualityDeltaDto,
     ComparableModifierRelevanceDto,
     ComparableRelevanceDto,
     EnrichmentSummaryDto,
@@ -61,6 +65,7 @@ from services.api.app.schemas.advisor import (
     MaterialCostDto,
     MaterialRequirementDto,
     MissingRequirementDto,
+    ModifierQualityDeltaDto,
     ModifierDto,
     OutcomeProbabilitySummaryDto,
     ProbabilityEvidenceSummaryDto,
@@ -202,6 +207,7 @@ def manual_valuation_preview_to_dto(
                 normalized_value=economic_value_to_dto(result.normalized_value),
                 comparable_item=_structured_comparable_to_dto(result.comparable_item),
                 comparable_relevance=_comparable_relevance_to_dto(result.comparable_relevance),
+                comparable_quality_delta=_comparable_quality_delta_to_dto(result.comparable_quality_delta),
                 economy_freshness=result.economy_freshness.value,
                 economy_snapshot_id=result.economy_snapshot_id,
                 observed_at=result.observed_at,
@@ -256,6 +262,7 @@ def _manual_evidence_set(
     provider = ManualTradeProvider()
     subject_item = _parsed_subject_item(subject_clipboard_text, league)
     relevance_assessor = ComparableRelevanceAssessor()
+    quality_assessor = ComparableQualityDeltaAssessor()
     results = []
     for index, observation in enumerate(evidence.observations):
         result = provider.result_from_observation(
@@ -287,6 +294,7 @@ def _manual_evidence_set(
             result = replace(
                 result,
                 comparable_relevance=relevance_assessor.assess(subject_item, result.comparable_item),
+                comparable_quality_delta=quality_assessor.assess(subject_item, result.comparable_item),
             )
         results.append(result)
     return evidence_set_from_results(query, provider.provider_name, tuple(results), ValuationEvidencePolicy())
@@ -325,6 +333,43 @@ def _modifier_relevance_to_dto(item) -> ComparableModifierRelevanceDto:
         comparable_roll_values=list(item.comparable_roll_values),
         tag_match=item.tag_match,
         roll_observation_match=item.roll_observation_match,
+        reasons=list(item.reasons),
+    )
+
+
+def _comparable_quality_delta_to_dto(delta: ComparableQualityDelta | None) -> ComparableQualityDeltaDto | None:
+    if delta is None:
+        return None
+    return ComparableQualityDeltaDto(
+        modifier_deltas=[_modifier_quality_delta_to_dto(item) for item in delta.modifier_deltas],
+        current_better_count=delta.current_better_count,
+        comparable_better_count=delta.comparable_better_count,
+        roughly_equivalent_count=delta.roughly_equivalent_count,
+        unknown_count=delta.unknown_count,
+        missing_from_comparable_count=delta.missing_from_comparable_count,
+        extra_on_comparable_count=delta.extra_on_comparable_count,
+        warnings=list(delta.warnings),
+        policy_id=delta.policy_id,
+    )
+
+
+def _modifier_quality_delta_to_dto(item: ModifierQualityDelta) -> ModifierQualityDeltaDto:
+    return ModifierQualityDeltaDto(
+        relationship=item.relationship.value,
+        evidence=item.evidence.value,
+        semantic_identity=item.semantic_identity,
+        affix_type=item.affix_type.value,
+        current_display_name=item.current_display_name,
+        comparable_display_name=item.comparable_display_name,
+        current_tier=item.current_tier,
+        comparable_tier=item.comparable_tier,
+        current_origin=item.current_origin,
+        comparable_origin=item.comparable_origin,
+        current_roll_quality=str(item.current_roll_quality) if item.current_roll_quality is not None else None,
+        comparable_roll_quality=str(item.comparable_roll_quality) if item.comparable_roll_quality is not None else None,
+        current_roll_values=list(item.current_roll_values),
+        comparable_roll_values=list(item.comparable_roll_values),
+        origin_difference=item.origin_difference,
         reasons=list(item.reasons),
     )
 

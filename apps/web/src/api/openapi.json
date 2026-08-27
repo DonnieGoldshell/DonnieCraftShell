@@ -777,6 +777,65 @@
         "title": "ComparableModifierRelevanceDto",
         "type": "object"
       },
+      "ComparableQualityDeltaDto": {
+        "properties": {
+          "comparable_better_count": {
+            "default": 0,
+            "title": "Comparable Better Count",
+            "type": "integer"
+          },
+          "current_better_count": {
+            "default": 0,
+            "title": "Current Better Count",
+            "type": "integer"
+          },
+          "extra_on_comparable_count": {
+            "default": 0,
+            "title": "Extra On Comparable Count",
+            "type": "integer"
+          },
+          "missing_from_comparable_count": {
+            "default": 0,
+            "title": "Missing From Comparable Count",
+            "type": "integer"
+          },
+          "modifier_deltas": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/ModifierQualityDeltaDto"
+            },
+            "title": "Modifier Deltas",
+            "type": "array"
+          },
+          "policy_id": {
+            "title": "Policy Id",
+            "type": "string"
+          },
+          "roughly_equivalent_count": {
+            "default": 0,
+            "title": "Roughly Equivalent Count",
+            "type": "integer"
+          },
+          "unknown_count": {
+            "default": 0,
+            "title": "Unknown Count",
+            "type": "integer"
+          },
+          "warnings": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Warnings",
+            "type": "array"
+          }
+        },
+        "required": [
+          "policy_id"
+        ],
+        "title": "ComparableQualityDeltaDto",
+        "type": "object"
+      },
       "ComparableRelevanceDto": {
         "properties": {
           "band": {
@@ -864,6 +923,16 @@
             "anyOf": [
               {
                 "$ref": "#/components/schemas/StructuredComparableItemDto"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "comparable_quality_delta": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ComparableQualityDeltaDto"
               },
               {
                 "type": "null"
@@ -3247,6 +3316,151 @@
           "raw_text"
         ],
         "title": "ModifierDto",
+        "type": "object"
+      },
+      "ModifierQualityDeltaDto": {
+        "properties": {
+          "affix_type": {
+            "title": "Affix Type",
+            "type": "string"
+          },
+          "comparable_display_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Comparable Display Name"
+          },
+          "comparable_origin": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Comparable Origin"
+          },
+          "comparable_roll_quality": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Comparable Roll Quality"
+          },
+          "comparable_roll_values": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Comparable Roll Values",
+            "type": "array"
+          },
+          "comparable_tier": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Comparable Tier"
+          },
+          "current_display_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Current Display Name"
+          },
+          "current_origin": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Current Origin"
+          },
+          "current_roll_quality": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Current Roll Quality"
+          },
+          "current_roll_values": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Current Roll Values",
+            "type": "array"
+          },
+          "current_tier": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Current Tier"
+          },
+          "evidence": {
+            "title": "Evidence",
+            "type": "string"
+          },
+          "origin_difference": {
+            "default": false,
+            "title": "Origin Difference",
+            "type": "boolean"
+          },
+          "reasons": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Reasons",
+            "type": "array"
+          },
+          "relationship": {
+            "title": "Relationship",
+            "type": "string"
+          },
+          "semantic_identity": {
+            "title": "Semantic Identity",
+            "type": "string"
+          }
+        },
+        "required": [
+          "relationship",
+          "evidence",
+          "semantic_identity",
+          "affix_type"
+        ],
+        "title": "ModifierQualityDeltaDto",
         "type": "object"
       },
       "ObservationClassificationDto": {

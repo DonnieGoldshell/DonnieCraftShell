@@ -223,3 +223,14 @@ Task 19B adds local persistence endpoints for manual valuation evidence under `/
 ## Local Economy Quote Workspace
 
 Task 22A adds local persistence endpoints for operator-supplied economy quote evidence under `/api/v1/advisor/economy-quotes/workspace/*`. Records are stored by exact league, economy asset ID, and Exalted-unit quote currency. Advisor analysis composes matching local quotes into a request-scoped economy repository only when analysis is run; saving a quote alone does not fabricate probability evidence, valuation evidence, or a recommendation. See [LOCAL_ECONOMY_QUOTES.md](LOCAL_ECONOMY_QUOTES.md).
+
+## Comparable Quality Delta Preview
+
+Manual valuation preview responses may include `comparable_quality_delta` next
+to `comparable_relevance` when both the current subject clipboard text and a
+structured comparable Advanced Copy text are supplied. The delta DTO exposes
+directional modifier comparisons, aggregate counts, reasons, origin
+differences, and the versioned policy ID. It is transport evidence only: API
+clients must not treat it as a market-value multiplier, valuation weight,
+Advisor ranking input, or completed-sale signal. Price-only observations return
+no fabricated quality delta.

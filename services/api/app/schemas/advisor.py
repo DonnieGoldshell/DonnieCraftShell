@@ -77,6 +77,7 @@ class ComparableResultPreviewDto(ApiModel):
     normalized_value: EconomicValueDto | None = None
     comparable_item: "StructuredComparableItemDto | None" = None
     comparable_relevance: "ComparableRelevanceDto | None" = None
+    comparable_quality_delta: "ComparableQualityDeltaDto | None" = None
     economy_freshness: str
     economy_snapshot_id: str | None = None
     observed_at: datetime
@@ -186,6 +187,37 @@ class ComparableRelevanceDto(ApiModel):
     differing_modifiers: list[ComparableModifierRelevanceDto] = []
     missing_modifiers: list[ComparableModifierRelevanceDto] = []
     extra_modifiers: list[ComparableModifierRelevanceDto] = []
+    warnings: list[str] = []
+    policy_id: str
+
+
+class ModifierQualityDeltaDto(ApiModel):
+    relationship: str
+    evidence: str
+    semantic_identity: str
+    affix_type: str
+    current_display_name: str | None = None
+    comparable_display_name: str | None = None
+    current_tier: str | None = None
+    comparable_tier: str | None = None
+    current_origin: str | None = None
+    comparable_origin: str | None = None
+    current_roll_quality: str | None = None
+    comparable_roll_quality: str | None = None
+    current_roll_values: list[str] = []
+    comparable_roll_values: list[str] = []
+    origin_difference: bool = False
+    reasons: list[str] = []
+
+
+class ComparableQualityDeltaDto(ApiModel):
+    modifier_deltas: list[ModifierQualityDeltaDto] = []
+    current_better_count: int = 0
+    comparable_better_count: int = 0
+    roughly_equivalent_count: int = 0
+    unknown_count: int = 0
+    missing_from_comparable_count: int = 0
+    extra_on_comparable_count: int = 0
     warnings: list[str] = []
     policy_id: str
 
