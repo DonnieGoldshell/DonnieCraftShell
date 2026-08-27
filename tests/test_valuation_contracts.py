@@ -14,11 +14,14 @@ from packages.shared.donniecraftshell_contracts.economy_repository import Econom
 from packages.shared.donniecraftshell_contracts.parser import parse_clipboard_item
 from packages.shared.donniecraftshell_contracts.poe_show_economy import load_normalized_economy_snapshot
 from packages.shared.donniecraftshell_contracts.valuation import (
+    ComparableAnchorRole,
     ComparableQualityDeltaAssessor,
     ComparableExclusionReason,
     ComparableRelevanceAssessor,
     ComparableRelevanceBand,
     ComparableResult,
+    ComparableValuationModel,
+    ComparableValuationStatus,
     ListingStatus,
     LiquidityStatus,
     ManualListingObservation,
@@ -263,6 +266,92 @@ class ValuationContractTests(unittest.TestCase):
 
         self.assertIsNone(result.comparable_item)
         self.assertIsNone(result.comparable_quality_delta)
+
+    def test_comparable_valuation_model_brackets_bramble_with_gloom_and_skull_anchors(self):
+        query = build_comparable_query(subject_from_parsed_item(self.item), quiver_6_roles(self.item), ComparableStrategy.STRICT, LEAGUE, AS_OF)
+        gloom = self._structured_result(
+            query.query_id,
+            Decimal("450"),
+            "gloom-barb-450-divine",
+            "gloom_barb_visceral_quiver_comparable_advanced.txt",
+        )
+        skull = self._structured_result(
+            query.query_id,
+            Decimal("45"),
+            "skull-quill-45-divine",
+            "skull_quill_primed_quiver_comparable_advanced.txt",
+        )
+        evidence = evidence_set_from_results(query, self.provider.provider_name, (gloom, skull))
+
+        estimate = ComparableValuationModel().estimate(evidence)
+
+        self.assertEqual(estimate.status, ComparableValuationStatus.PARTIAL)
+        self.assertIsNotNone(estimate.central_estimate)
+        self.assertEqual(estimate.plausible_low.amount, Decimal("15219.0"))
+        self.assertEqual(estimate.plausible_high.amount, Decimal("152190.0"))
+        self.assertLessEqual(estimate.plausible_low.amount, estimate.central_estimate.amount)
+        self.assertLessEqual(estimate.central_estimate.amount, estimate.plausible_high.amount)
+        roles = {anchor.external_listing_id: anchor.role for anchor in estimate.anchor_results}
+        self.assertEqual(roles["gloom-barb-450-divine"], ComparableAnchorRole.UPPER_ANCHOR)
+        self.assertEqual(roles["skull-quill-45-divine"], ComparableAnchorRole.LOWER_ANCHOR)
+        self.assertTrue(any("listing-derived anchor brackets" in warning for warning in estimate.warnings))
+        self.assertTrue(any("spread exceeds" in warning for warning in estimate.warnings))
+
+    def test_anchor_direction_uses_quality_delta_not_listing_price(self):
+        query = build_comparable_query(subject_from_parsed_item(self.item), quiver_6_roles(self.item), ComparableStrategy.STRICT, LEAGUE, AS_OF)
+        low_priced_stronger = self._structured_result(
+            query.query_id,
+            Decimal("45"),
+            "gloom-barb-low-price",
+            "gloom_barb_visceral_quiver_comparable_advanced.txt",
+        )
+        high_priced_weaker = self._structured_result(
+            query.query_id,
+            Decimal("450"),
+            "skull-quill-high-price",
+            "skull_quill_primed_quiver_comparable_advanced.txt",
+        )
+        evidence = evidence_set_from_results(query, self.provider.provider_name, (low_priced_stronger, high_priced_weaker))
+
+        estimate = ComparableValuationModel().estimate(evidence)
+
+        roles = {anchor.external_listing_id: anchor.role for anchor in estimate.anchor_results}
+        self.assertEqual(roles["gloom-barb-low-price"], ComparableAnchorRole.UPPER_ANCHOR)
+        self.assertEqual(roles["skull-quill-high-price"], ComparableAnchorRole.LOWER_ANCHOR)
+        self.assertEqual(estimate.status, ComparableValuationStatus.INSUFFICIENT_DATA)
+        self.assertTrue(any("directions conflict" in warning for warning in estimate.warnings))
+
+    def test_single_structured_listing_does_not_produce_high_confidence(self):
+        query = build_comparable_query(subject_from_parsed_item(self.item), quiver_6_roles(self.item), ComparableStrategy.STRICT, LEAGUE, AS_OF)
+        gloom = self._structured_result(
+            query.query_id,
+            Decimal("450"),
+            "gloom-barb-450-divine",
+            "gloom_barb_visceral_quiver_comparable_advanced.txt",
+        )
+        evidence = evidence_set_from_results(query, self.provider.provider_name, (gloom,))
+
+        estimate = ComparableValuationModel().estimate(evidence)
+
+        self.assertEqual(estimate.status, ComparableValuationStatus.INSUFFICIENT_DATA)
+        self.assertIsNone(estimate.central_estimate)
+        self.assertEqual(estimate.confidence.level.value, "LOW")
+
+    def test_price_only_evidence_is_uninterpreted_not_adjusted(self):
+        query = build_comparable_query(subject_from_parsed_item(self.item), quiver_6_roles(self.item), ComparableStrategy.STRICT, LEAGUE, AS_OF)
+        result = self.provider.result_from_observation(
+            self._observation(Decimal("450"), DIVINE_ASSET_ID, listing_id="price-only"),
+            self.economy_repo,
+            AS_OF,
+        )
+        evidence = evidence_set_from_results(query, self.provider.provider_name, (result,))
+
+        estimate = ComparableValuationModel().estimate(evidence)
+
+        self.assertEqual(estimate.status, ComparableValuationStatus.INSUFFICIENT_DATA)
+        self.assertEqual(estimate.anchor_results[0].role, ComparableAnchorRole.UNINTERPRETED)
+        self.assertIn(estimate.anchor_results[0].comparable_id, estimate.excluded_observation_ids)
+        self.assertTrue(any("price-only evidence is not adjusted" in warning for warning in estimate.anchor_results[0].warnings))
 
     def test_current_item_to_valuation_subject(self):
         subject = subject_from_parsed_item(self.item, dataset_versions=(GAME_DATASET_VERSION,))
@@ -615,6 +704,27 @@ class ValuationContractTests(unittest.TestCase):
             external_listing_id=listing_id,
             item_summary="synthetic test listing observation",
             warnings=("synthetic test-only observation; not production market evidence",),
+        )
+
+    def _structured_result(
+        self,
+        query_id: str,
+        amount: Decimal,
+        listing_id: str,
+        fixture_name: str,
+    ):
+        comparable = structured_comparable(fixture_name)
+        observation = replace(
+            self._observation(amount, DIVINE_ASSET_ID, listing_id=listing_id),
+            query_id=query_id,
+            item_summary=f"synthetic test-only structured comparable {listing_id}",
+            comparable_item=comparable,
+        )
+        result = self.provider.result_from_observation(observation, self.economy_repo, AS_OF)
+        return replace(
+            result,
+            comparable_relevance=ComparableRelevanceAssessor().assess(self.item, comparable),
+            comparable_quality_delta=ComparableQualityDeltaAssessor().assess(self.item, comparable),
         )
 
     def _first_annulment_state(self):

@@ -31,6 +31,9 @@ from packages.shared.donniecraftshell_contracts.valuation import (
     ComparableQuery,
     ComparableRelevance,
     ComparableRelevanceAssessor,
+    ComparableValuationAnchor,
+    ComparableValuationEstimate,
+    ComparableValuationModel,
     ManualListingObservation,
     ManualTradeProvider,
     ModifierQualityDelta,
@@ -53,6 +56,8 @@ from services.api.app.schemas.advisor import (
     ComparableQualityDeltaDto,
     ComparableModifierRelevanceDto,
     ComparableRelevanceDto,
+    ComparableValuationAnchorDto,
+    ComparableValuationEstimateDto,
     EnrichmentSummaryDto,
     EvidenceReadinessItemDto,
     EvidenceReadinessTargetDto,
@@ -173,6 +178,7 @@ def manual_valuation_preview_to_dto(
         request.subject_clipboard_text,
     )
     valuation = ValuationAggregator().aggregate(evidence_set)
+    comparable_valuation = ComparableValuationModel().estimate(evidence_set)
     return ManualValuationPreviewResponseDto(
         subject_id=request.subject_id,
         subject_type=request.subject_type,
@@ -215,6 +221,7 @@ def manual_valuation_preview_to_dto(
             )
             for result in evidence_set.results
         ],
+        comparable_valuation_estimate=_comparable_valuation_estimate_to_dto(comparable_valuation),
         warnings=list((*evidence_set.warnings, *valuation.warnings)),
     )
 
@@ -350,6 +357,53 @@ def _comparable_quality_delta_to_dto(delta: ComparableQualityDelta | None) -> Co
         extra_on_comparable_count=delta.extra_on_comparable_count,
         warnings=list(delta.warnings),
         policy_id=delta.policy_id,
+    )
+
+
+def _comparable_valuation_estimate_to_dto(
+    estimate: ComparableValuationEstimate | None,
+) -> ComparableValuationEstimateDto | None:
+    if estimate is None:
+        return None
+    return ComparableValuationEstimateDto(
+        status=estimate.status.value,
+        central_estimate=economic_value_to_dto(estimate.central_estimate),
+        plausible_low=economic_value_to_dto(estimate.plausible_low),
+        plausible_high=economic_value_to_dto(estimate.plausible_high),
+        confidence=(
+            ValuationConfidenceDto(
+                level=estimate.confidence.level.value,
+                reasons=list(estimate.confidence.reasons),
+            )
+            if estimate.confidence
+            else None
+        ),
+        anchor_results=[_comparable_valuation_anchor_to_dto(anchor) for anchor in estimate.anchor_results],
+        included_observation_ids=list(estimate.included_observation_ids),
+        excluded_observation_ids=list(estimate.excluded_observation_ids),
+        warnings=list(estimate.warnings),
+        policy_id=estimate.policy_id,
+    )
+
+
+def _comparable_valuation_anchor_to_dto(anchor: ComparableValuationAnchor) -> ComparableValuationAnchorDto:
+    return ComparableValuationAnchorDto(
+        comparable_id=anchor.comparable_id,
+        external_listing_id=anchor.external_listing_id,
+        item_name=anchor.item_name,
+        base_type=anchor.base_type,
+        role=anchor.role.value,
+        listing_price=str(anchor.listing_price),
+        listing_currency_asset_id=anchor.listing_currency_asset_id,
+        normalized_value=economic_value_to_dto(anchor.normalized_value),
+        structural_relevance_band=anchor.structural_relevance_band.value if anchor.structural_relevance_band else None,
+        structural_relevance_score=str(anchor.structural_relevance_score) if anchor.structural_relevance_score is not None else None,
+        current_better_count=anchor.current_better_count,
+        comparable_better_count=anchor.comparable_better_count,
+        roughly_equivalent_count=anchor.roughly_equivalent_count,
+        unknown_count=anchor.unknown_count,
+        reasons=list(anchor.reasons),
+        warnings=list(anchor.warnings),
     )
 
 

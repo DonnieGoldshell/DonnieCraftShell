@@ -1017,6 +1017,225 @@
         "title": "ComparableResultPreviewDto",
         "type": "object"
       },
+      "ComparableValuationAnchorDto": {
+        "properties": {
+          "base_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Base Type"
+          },
+          "comparable_better_count": {
+            "default": 0,
+            "title": "Comparable Better Count",
+            "type": "integer"
+          },
+          "comparable_id": {
+            "title": "Comparable Id",
+            "type": "string"
+          },
+          "current_better_count": {
+            "default": 0,
+            "title": "Current Better Count",
+            "type": "integer"
+          },
+          "external_listing_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "External Listing Id"
+          },
+          "item_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Item Name"
+          },
+          "listing_currency_asset_id": {
+            "title": "Listing Currency Asset Id",
+            "type": "string"
+          },
+          "listing_price": {
+            "title": "Listing Price",
+            "type": "string"
+          },
+          "normalized_value": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/EconomicValueDto"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "reasons": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Reasons",
+            "type": "array"
+          },
+          "role": {
+            "title": "Role",
+            "type": "string"
+          },
+          "roughly_equivalent_count": {
+            "default": 0,
+            "title": "Roughly Equivalent Count",
+            "type": "integer"
+          },
+          "structural_relevance_band": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Structural Relevance Band"
+          },
+          "structural_relevance_score": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Structural Relevance Score"
+          },
+          "unknown_count": {
+            "default": 0,
+            "title": "Unknown Count",
+            "type": "integer"
+          },
+          "warnings": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Warnings",
+            "type": "array"
+          }
+        },
+        "required": [
+          "comparable_id",
+          "role",
+          "listing_price",
+          "listing_currency_asset_id"
+        ],
+        "title": "ComparableValuationAnchorDto",
+        "type": "object"
+      },
+      "ComparableValuationEstimateDto": {
+        "properties": {
+          "anchor_results": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/ComparableValuationAnchorDto"
+            },
+            "title": "Anchor Results",
+            "type": "array"
+          },
+          "central_estimate": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/EconomicValueDto"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "confidence": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ValuationConfidenceDto"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "excluded_observation_ids": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Excluded Observation Ids",
+            "type": "array"
+          },
+          "included_observation_ids": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Included Observation Ids",
+            "type": "array"
+          },
+          "plausible_high": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/EconomicValueDto"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "plausible_low": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/EconomicValueDto"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "policy_id": {
+            "title": "Policy Id",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "warnings": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Warnings",
+            "type": "array"
+          }
+        },
+        "required": [
+          "status",
+          "policy_id"
+        ],
+        "title": "ComparableValuationEstimateDto",
+        "type": "object"
+      },
       "CraftObservationExportRequestDto": {
         "properties": {
           "observations": {
@@ -2665,6 +2884,16 @@
             },
             "title": "Comparable Results",
             "type": "array"
+          },
+          "comparable_valuation_estimate": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ComparableValuationEstimateDto"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "confidence": {
             "anyOf": [

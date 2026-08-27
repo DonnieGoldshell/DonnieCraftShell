@@ -89,6 +89,38 @@ class ValuationConfidenceDto(ApiModel):
     reasons: list[str] = []
 
 
+class ComparableValuationAnchorDto(ApiModel):
+    comparable_id: str
+    external_listing_id: str | None = None
+    item_name: str | None = None
+    base_type: str | None = None
+    role: str
+    listing_price: str
+    listing_currency_asset_id: str
+    normalized_value: EconomicValueDto | None = None
+    structural_relevance_band: str | None = None
+    structural_relevance_score: str | None = None
+    current_better_count: int = 0
+    comparable_better_count: int = 0
+    roughly_equivalent_count: int = 0
+    unknown_count: int = 0
+    reasons: list[str] = []
+    warnings: list[str] = []
+
+
+class ComparableValuationEstimateDto(ApiModel):
+    status: str
+    central_estimate: EconomicValueDto | None = None
+    plausible_low: EconomicValueDto | None = None
+    plausible_high: EconomicValueDto | None = None
+    confidence: ValuationConfidenceDto | None = None
+    anchor_results: list[ComparableValuationAnchorDto] = []
+    included_observation_ids: list[str] = []
+    excluded_observation_ids: list[str] = []
+    warnings: list[str] = []
+    policy_id: str
+
+
 class ManualValuationPreviewResponseDto(ApiModel):
     subject_id: str
     subject_type: str
@@ -108,6 +140,7 @@ class ManualValuationPreviewResponseDto(ApiModel):
     liquidity: str
     economy_snapshot_ids: list[str] = []
     comparable_results: list[ComparableResultPreviewDto] = []
+    comparable_valuation_estimate: ComparableValuationEstimateDto | None = None
     warnings: list[str] = []
 
 

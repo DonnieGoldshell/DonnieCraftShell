@@ -140,6 +140,15 @@ warnings. This is explainability metadata only; the endpoint does not use it to
 rank comparables, alter valuation aggregation, infer market premiums, or
 fabricate relevance for price-only evidence.
 
+Task 63 adds optional `comparable_valuation_estimate` to the same preview
+response. It exposes Comparable Valuation Model v1: structured comparable
+anchors, anchor roles (`LOWER_ANCHOR`, `UPPER_ANCHOR`, `EQUIVALENT_ANCHOR`,
+`UNINTERPRETED`), a conservative listing-derived bracket when sufficient
+anchors exist, confidence, policy ID, included/excluded observation IDs, and
+warnings. This preview field does not replace the existing aggregation result,
+does not multiply price by relevance or quality, and does not feed Advisor/EV
+ranking.
+
 Task 15B extends the same endpoint with optional empirical probability dataset selection and serialized probability evidence details. Default production assembly skips synthetic empirical fixtures and keeps real actions `UNKNOWN` without compatible evidence.
 
 Task 15C adds an offline operator workflow rather than a public HTTP endpoint:

@@ -113,6 +113,19 @@ class ModifierQualityEvidence(str, Enum):
     INSUFFICIENT = "INSUFFICIENT"
 
 
+class ComparableAnchorRole(str, Enum):
+    LOWER_ANCHOR = "LOWER_ANCHOR"
+    UPPER_ANCHOR = "UPPER_ANCHOR"
+    EQUIVALENT_ANCHOR = "EQUIVALENT_ANCHOR"
+    UNINTERPRETED = "UNINTERPRETED"
+
+
+class ComparableValuationStatus(str, Enum):
+    READY = "READY"
+    PARTIAL = "PARTIAL"
+    INSUFFICIENT_DATA = "INSUFFICIENT_DATA"
+
+
 @dataclass(frozen=True)
 class ValuationSubject:
     subject_id: str
@@ -291,6 +304,71 @@ class ComparableQualityDelta:
     extra_on_comparable_count: int = 0
     warnings: tuple[str, ...] = ()
     policy_id: str = "comparable-modifier-quality-delta-policy-v1"
+
+
+@dataclass(frozen=True)
+class ComparableValuationPolicy:
+    policy_id: str = "comparable-valuation-model-v1"
+    minimum_structured_anchors_for_estimate: int = 2
+    high_relevance_threshold: Decimal = Decimal("0.75")
+    wide_anchor_spread_threshold: Decimal = Decimal("5")
+
+    def __post_init__(self) -> None:
+        if self.minimum_structured_anchors_for_estimate < 2:
+            raise ValueError("minimum_structured_anchors_for_estimate must be at least 2")
+        for field_name in ("high_relevance_threshold", "wide_anchor_spread_threshold"):
+            value = _decimal(getattr(self, field_name), field_name)
+            if value < Decimal("0"):
+                raise ValueError(f"{field_name} cannot be negative")
+            object.__setattr__(self, field_name, value)
+
+
+@dataclass(frozen=True)
+class ComparableValuationAnchor:
+    comparable_id: str
+    external_listing_id: str | None
+    item_name: str | None
+    base_type: str | None
+    role: ComparableAnchorRole
+    listing_price: Decimal
+    listing_currency_asset_id: str
+    normalized_value: EconomicValue | None
+    structural_relevance_band: ComparableRelevanceBand | None = None
+    structural_relevance_score: Decimal | None = None
+    current_better_count: int = 0
+    comparable_better_count: int = 0
+    roughly_equivalent_count: int = 0
+    unknown_count: int = 0
+    reasons: tuple[str, ...] = ()
+    warnings: tuple[str, ...] = ()
+
+    def __post_init__(self) -> None:
+        object.__setattr__(self, "listing_price", _decimal(self.listing_price, "anchor listing price"))
+        if self.structural_relevance_score is not None:
+            score = _decimal(self.structural_relevance_score, "anchor structural relevance score")
+            if score < Decimal("0") or score > Decimal("1"):
+                raise ValueError("anchor structural relevance score must be between 0 and 1")
+            object.__setattr__(self, "structural_relevance_score", score)
+
+
+@dataclass(frozen=True)
+class ComparableValuationEstimate:
+    status: ComparableValuationStatus
+    central_estimate: EconomicValue | None = None
+    plausible_low: EconomicValue | None = None
+    plausible_high: EconomicValue | None = None
+    confidence: Confidence | None = None
+    anchor_results: tuple[ComparableValuationAnchor, ...] = ()
+    included_observation_ids: tuple[str, ...] = ()
+    excluded_observation_ids: tuple[str, ...] = ()
+    warnings: tuple[str, ...] = ()
+    policy_id: str = "comparable-valuation-model-v1"
+
+    def __post_init__(self) -> None:
+        if self.plausible_low and self.central_estimate and self.plausible_low.amount > self.central_estimate.amount:
+            raise ValueError("comparable valuation low bound must be <= central estimate")
+        if self.plausible_high and self.central_estimate and self.central_estimate.amount > self.plausible_high.amount:
+            raise ValueError("comparable valuation central estimate must be <= high bound")
 
 
 @dataclass(frozen=True)
@@ -563,6 +641,181 @@ class ValuationAggregator:
             liquidity=_liquidity(len(values), spread),
             price_spread=spread,
         )
+
+
+class ComparableValuationModel:
+    """Conservative listing-derived valuation from structured comparable anchors."""
+
+    def __init__(self, policy: ComparableValuationPolicy | None = None):
+        self.policy = policy or ComparableValuationPolicy()
+
+    def estimate(self, evidence_set: ComparableEvidenceSet) -> ComparableValuationEstimate:
+        anchors = tuple(_anchor_from_result(result, self.policy) for result in evidence_set.results)
+        included = tuple(
+            anchor
+            for anchor in anchors
+            if anchor.normalized_value is not None and anchor.role != ComparableAnchorRole.UNINTERPRETED
+        )
+        excluded_ids = tuple(anchor.comparable_id for anchor in anchors if anchor not in included)
+        warnings = [
+            "Comparable valuation model uses listing-derived anchor brackets, not realized sale prices.",
+        ]
+        warnings.extend(warning for anchor in anchors for warning in anchor.warnings)
+        if len(included) < self.policy.minimum_structured_anchors_for_estimate:
+            return ComparableValuationEstimate(
+                status=ComparableValuationStatus.INSUFFICIENT_DATA,
+                confidence=Confidence(
+                    level=ConfidenceLevel.LOW,
+                    reasons=("Insufficient structured comparable anchors for a defensible current-item estimate.",),
+                    sample_size=len(included),
+                ),
+                anchor_results=anchors,
+                included_observation_ids=tuple(anchor.comparable_id for anchor in included),
+                excluded_observation_ids=excluded_ids,
+                warnings=tuple(warnings),
+                policy_id=self.policy.policy_id,
+            )
+
+        lower_values = [anchor.normalized_value.amount for anchor in included if anchor.role in {ComparableAnchorRole.LOWER_ANCHOR, ComparableAnchorRole.EQUIVALENT_ANCHOR}]
+        upper_values = [anchor.normalized_value.amount for anchor in included if anchor.role in {ComparableAnchorRole.UPPER_ANCHOR, ComparableAnchorRole.EQUIVALENT_ANCHOR}]
+        if not lower_values or not upper_values:
+            warnings.append("Structured anchors do not provide both lower and upper/equivalent bracket evidence.")
+            return ComparableValuationEstimate(
+                status=ComparableValuationStatus.INSUFFICIENT_DATA,
+                confidence=Confidence(
+                    level=ConfidenceLevel.LOW,
+                    reasons=("Comparable valuation needs lower and upper/equivalent anchor evidence.",),
+                    sample_size=len(included),
+                ),
+                anchor_results=anchors,
+                included_observation_ids=tuple(anchor.comparable_id for anchor in included),
+                excluded_observation_ids=excluded_ids,
+                warnings=tuple(warnings),
+                policy_id=self.policy.policy_id,
+            )
+
+        low = min(lower_values)
+        high = max(upper_values)
+        if low > high:
+            warnings.append("Comparable anchor directions conflict with observed listing brackets.")
+            return ComparableValuationEstimate(
+                status=ComparableValuationStatus.INSUFFICIENT_DATA,
+                confidence=Confidence(
+                    level=ConfidenceLevel.LOW,
+                    reasons=("Anchor bracket is internally inconsistent.",),
+                    sample_size=len(included),
+                ),
+                anchor_results=anchors,
+                included_observation_ids=tuple(anchor.comparable_id for anchor in included),
+                excluded_observation_ids=excluded_ids,
+                warnings=tuple(warnings),
+                policy_id=self.policy.policy_id,
+            )
+
+        central = (low + high) / Decimal("2")
+        spread_ratio = (high / low) if low > Decimal("0") else None
+        if spread_ratio is not None and spread_ratio >= self.policy.wide_anchor_spread_threshold:
+            warnings.append("Comparable anchor spread exceeds configured warning threshold.")
+        status = ComparableValuationStatus.READY
+        confidence_level = ConfidenceLevel.MEDIUM
+        reasons = [
+            f"{len(included)} structured comparable valuation anchor(s) included.",
+            "Central estimate is the midpoint of the conservative lower/upper anchor bracket.",
+        ]
+        if len(included) < 3 or (spread_ratio is not None and spread_ratio >= self.policy.wide_anchor_spread_threshold):
+            status = ComparableValuationStatus.PARTIAL
+            confidence_level = ConfidenceLevel.LOW
+            reasons.append("Small anchor count or wide spread limits confidence.")
+        return ComparableValuationEstimate(
+            status=status,
+            central_estimate=normalized_exalted_value(central),
+            plausible_low=normalized_exalted_value(low),
+            plausible_high=normalized_exalted_value(high),
+            confidence=Confidence(level=confidence_level, reasons=tuple(reasons), sample_size=len(included)),
+            anchor_results=anchors,
+            included_observation_ids=tuple(anchor.comparable_id for anchor in included),
+            excluded_observation_ids=excluded_ids,
+            warnings=tuple(warnings),
+            policy_id=self.policy.policy_id,
+        )
+
+
+def _anchor_from_result(
+    result: ComparableResult,
+    policy: ComparableValuationPolicy,
+) -> ComparableValuationAnchor:
+    reasons: list[str] = []
+    warnings = list(result.warnings)
+    relevance = result.comparable_relevance
+    quality_delta = result.comparable_quality_delta
+    role = ComparableAnchorRole.UNINTERPRETED
+
+    if result.normalized_value is None:
+        warnings.append("Comparable listing has no normalized Exalted value; it cannot anchor valuation.")
+    if relevance is None or relevance.score is None:
+        warnings.append("Comparable listing has no structured relevance assessment; price-only evidence is not adjusted.")
+    elif relevance.score < policy.high_relevance_threshold:
+        warnings.append("Comparable structural relevance is below the configured high-relevance anchor threshold.")
+    else:
+        reasons.append(
+            f"Structured relevance {relevance.band.value} ({relevance.score}) meets anchor threshold {policy.high_relevance_threshold}."
+        )
+    if quality_delta is None:
+        warnings.append("Comparable listing has no modifier quality delta; anchor direction cannot be inferred.")
+
+    if (
+        result.normalized_value is not None
+        and relevance is not None
+        and relevance.score is not None
+        and relevance.score >= policy.high_relevance_threshold
+        and quality_delta is not None
+    ):
+        role, role_reason = _anchor_role_from_quality(quality_delta)
+        reasons.append(role_reason)
+        if role == ComparableAnchorRole.UNINTERPRETED:
+            warnings.append("Modifier quality delta does not provide a directional valuation anchor.")
+
+    comparable_item = result.comparable_item.parsed_item if result.comparable_item is not None else None
+    return ComparableValuationAnchor(
+        comparable_id=result.comparable_id,
+        external_listing_id=result.external_listing_id,
+        item_name=comparable_item.item_name if comparable_item is not None else None,
+        base_type=comparable_item.base_type if comparable_item is not None else None,
+        role=role,
+        listing_price=result.listing_price,
+        listing_currency_asset_id=result.listing_currency_asset_id,
+        normalized_value=result.normalized_value,
+        structural_relevance_band=relevance.band if relevance is not None else None,
+        structural_relevance_score=relevance.score if relevance is not None else None,
+        current_better_count=quality_delta.current_better_count if quality_delta is not None else 0,
+        comparable_better_count=quality_delta.comparable_better_count if quality_delta is not None else 0,
+        roughly_equivalent_count=quality_delta.roughly_equivalent_count if quality_delta is not None else 0,
+        unknown_count=quality_delta.unknown_count if quality_delta is not None else 0,
+        reasons=tuple(reasons),
+        warnings=tuple(warnings),
+    )
+
+
+def _anchor_role_from_quality(quality_delta: ComparableQualityDelta) -> tuple[ComparableAnchorRole, str]:
+    if quality_delta.current_better_count > quality_delta.comparable_better_count:
+        return (
+            ComparableAnchorRole.LOWER_ANCHOR,
+            "Current item is structurally stronger on more matched modifiers; comparable listing is treated as a lower anchor.",
+        )
+    if quality_delta.comparable_better_count > quality_delta.current_better_count:
+        return (
+            ComparableAnchorRole.UPPER_ANCHOR,
+            "Comparable item is structurally stronger on more matched modifiers; comparable listing is treated as an upper anchor.",
+        )
+    if quality_delta.roughly_equivalent_count > 0:
+        return (
+            ComparableAnchorRole.EQUIVALENT_ANCHOR,
+            "Comparable item is roughly equivalent by matched modifier quality summary.",
+        )
+    return (
+        ComparableAnchorRole.UNINTERPRETED,
+        "Modifier quality summary is not directional enough to anchor a current-item valuation.",
+    )
 
 
 def decimal_median(values: tuple[Decimal, ...]) -> Decimal:
