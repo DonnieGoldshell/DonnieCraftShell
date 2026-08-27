@@ -164,6 +164,8 @@ Task 10B adds [VALUATION_MODEL.md](VALUATION_MODEL.md) and [MANUAL_TRADE_WORKFLO
 
 Task 10C adds [VALUATION_AGGREGATION.md](VALUATION_AGGREGATION.md). `ValuationAggregator` turns manual normalized comparable evidence into listing-derived valuation results using Decimal median/quantile policy, strict/moderate precedence, explicit readiness, confidence, liquidity, and retained evidence provenance.
 
+Issue 63 extends the manual valuation preview with Comparable Valuation Model v1. The model consumes structured comparable item state, relevance, quality delta, and normalized listing prices to produce inspectable lower/upper/equivalent anchors and a conservative bracket when evidence is sufficient. It does not automate Trade access, alter Advisor/EV readiness, or convert price-only observations into adjusted values.
+
 Task 11A adds [SCENARIO_ANALYSIS.md](SCENARIO_ANALYSIS.md) and [DECISION_READINESS.md](DECISION_READINESS.md). Scenario analysis is allowed when EV is not; `EV_READY` is a strict gate for future EV work and does not calculate EV.
 
 Task 11B adds [EXPECTED_VALUE.md](EXPECTED_VALUE.md). EV results retain contribution breakdowns, evidence references, economy snapshots, dataset versions, and algorithm version `dc-ev-v1`, but still produce no Advisor recommendation.

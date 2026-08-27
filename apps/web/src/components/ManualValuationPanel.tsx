@@ -566,6 +566,9 @@ function ValuationPreview({ preview }: { preview: ManualValuationPreviewResponse
           <dd>{preview.confidence ? titleCase(preview.confidence.level) : "Unknown"}</dd>
         </div>
       </dl>
+      {preview.comparable_valuation_estimate && (
+        <ComparableValuationEstimateSummary estimate={preview.comparable_valuation_estimate} />
+      )}
       {preview.comparable_results.length > 0 && (
         <ul className="preview-list">
           {preview.comparable_results.map((result) => (
@@ -591,6 +594,61 @@ function ValuationPreview({ preview }: { preview: ManualValuationPreviewResponse
 type StructuredComparableItem = NonNullable<ManualListingObservation["comparable_item"]>;
 type ComparableRelevance = NonNullable<ManualValuationPreviewResponse["comparable_results"][number]["comparable_relevance"]>;
 type ComparableQualityDelta = NonNullable<ManualValuationPreviewResponse["comparable_results"][number]["comparable_quality_delta"]>;
+type ComparableValuationEstimate = NonNullable<ManualValuationPreviewResponse["comparable_valuation_estimate"]>;
+
+function ComparableValuationEstimateSummary({ estimate }: { estimate: ComparableValuationEstimate }) {
+  return (
+    <div className="comparable-valuation-summary" aria-label="Comparable valuation estimate">
+      <div>
+        <strong>Comparable Valuation Model v1</strong>
+        <span className="status-chip">{titleCase(estimate.status)}</span>
+      </div>
+      <small>Listing-derived bracket from structured comparable anchors.</small>
+      <dl className="metric-grid compact-metrics">
+        <div>
+          <dt>Bracket midpoint</dt>
+          <dd>{estimate.central_estimate ? formatEconomicValue(estimate.central_estimate) : "Unavailable"}</dd>
+        </div>
+        <div>
+          <dt>Anchor range</dt>
+          <dd>
+            {estimate.plausible_low && estimate.plausible_high
+              ? `${formatEconomicValue(estimate.plausible_low)} - ${formatEconomicValue(estimate.plausible_high)}`
+              : "Unavailable"}
+          </dd>
+        </div>
+        <div>
+          <dt>Anchor count</dt>
+          <dd>{estimate.included_observation_ids.length}/{estimate.anchor_results.length}</dd>
+        </div>
+        <div>
+          <dt>Confidence</dt>
+          <dd>{estimate.confidence ? titleCase(estimate.confidence.level) : "Unknown"}</dd>
+        </div>
+      </dl>
+      {estimate.anchor_results.length > 0 && (
+        <ul className="anchor-list">
+          {estimate.anchor_results.map((anchor) => (
+            <li key={anchor.comparable_id}>
+              <strong>
+                {[anchor.item_name, anchor.base_type].filter(Boolean).join(", ") || shortId(anchor.comparable_id)}
+              </strong>
+              <span>{titleCase(anchor.role)}</span>
+              <small>
+                {anchor.listing_price} {currencyLabel(anchor.listing_currency_asset_id)}
+                {anchor.normalized_value ? ` · ${formatEconomicValue(anchor.normalized_value)}` : " · unconvertible"}
+              </small>
+              <small>
+                Current better {anchor.current_better_count} · Comparable better {anchor.comparable_better_count}
+              </small>
+            </li>
+          ))}
+        </ul>
+      )}
+      {estimate.warnings.length > 0 && <small>{estimate.warnings.join(" ")}</small>}
+    </div>
+  );
+}
 
 function ComparableItemSummary({ comparable }: { comparable: StructuredComparableItem }) {
   const item = comparable.item;

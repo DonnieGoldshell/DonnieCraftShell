@@ -109,6 +109,8 @@ class AdvisorApiTests(unittest.TestCase):
         self.assertIn("EvidenceReadinessTargetDto", schema_names)
         self.assertIn("ManualValuationPreviewRequestDto", schema_names)
         self.assertIn("ManualValuationPreviewResponseDto", schema_names)
+        self.assertIn("ComparableValuationEstimateDto", schema_names)
+        self.assertIn("ComparableValuationAnchorDto", schema_names)
         self.assertIn("StructuredComparableItemDto", schema_names)
         self.assertIn("ComparableRelevanceDto", schema_names)
         self.assertIn("ComparableModifierRelevanceDto", schema_names)
@@ -690,6 +692,53 @@ class AdvisorApiTests(unittest.TestCase):
         self.assertEqual(speed["relationship"], "CURRENT_BETTER")
         self.assertEqual(speed["comparable_display_name"], "Rapid")
 
+    def test_manual_valuation_preview_returns_comparable_valuation_anchors(self):
+        evidence = {
+            "strategy": "STRICT",
+            "observations": [
+                {
+                    "amount": "450",
+                    "currency_asset_id": "dc:poe2:economy-asset:currency:divine-orb",
+                    "external_listing_id": "gloom-barb-450-divine",
+                    "observed_at": AS_OF,
+                    "item_summary": "synthetic test-only structured comparable upper anchor",
+                    "comparable_clipboard_text": fixture("gloom_barb_visceral_quiver_comparable_advanced.txt"),
+                },
+                {
+                    "amount": "45",
+                    "currency_asset_id": "dc:poe2:economy-asset:currency:divine-orb",
+                    "external_listing_id": "skull-quill-45-divine",
+                    "observed_at": AS_OF,
+                    "item_summary": "synthetic test-only structured comparable lower anchor",
+                    "comparable_clipboard_text": fixture("skull_quill_primed_quiver_comparable_advanced.txt"),
+                },
+            ],
+        }
+
+        response = self.client.post(
+            "/api/v1/advisor/manual-valuation/preview",
+            json={
+                "subject_id": "current",
+                "subject_type": "CURRENT_ITEM",
+                "subject_clipboard_text": fixture("quiver_6_crafted_desecrated_advanced.txt"),
+                "league": LEAGUE,
+                "as_of": AS_OF,
+                "evidence": evidence,
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        estimate = response.json()["comparable_valuation_estimate"]
+        self.assertEqual(estimate["policy_id"], "comparable-valuation-model-v1")
+        self.assertEqual(estimate["status"], "PARTIAL")
+        self.assertEqual(estimate["plausible_low"]["amount"], "15219.0")
+        self.assertEqual(estimate["plausible_high"]["amount"], "152190.0")
+        roles = {anchor["external_listing_id"]: anchor["role"] for anchor in estimate["anchor_results"]}
+        self.assertEqual(roles["gloom-barb-450-divine"], "UPPER_ANCHOR")
+        self.assertEqual(roles["skull-quill-45-divine"], "LOWER_ANCHOR")
+        self.assertTrue(any("listing-derived anchor brackets" in warning for warning in estimate["warnings"]))
+        self.assertTrue(any("spread exceeds" in warning for warning in estimate["warnings"]))
+
     def test_manual_valuation_preview_price_only_evidence_has_no_relevance_score(self):
         response = self.client.post(
             "/api/v1/advisor/manual-valuation/preview",
@@ -708,6 +757,9 @@ class AdvisorApiTests(unittest.TestCase):
         self.assertIsNone(result["comparable_item"])
         self.assertIsNone(result["comparable_relevance"])
         self.assertIsNone(result["comparable_quality_delta"])
+        estimate = response.json()["comparable_valuation_estimate"]
+        self.assertEqual(estimate["status"], "INSUFFICIENT_DATA")
+        self.assertEqual(estimate["anchor_results"][0]["role"], "UNINTERPRETED")
         self.assertTrue(any("not structurally verified" in warning for warning in result["warnings"]))
 
     def test_manual_valuation_preview_rejects_malformed_comparable_clipboard_text(self):

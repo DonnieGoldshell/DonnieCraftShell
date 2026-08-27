@@ -765,6 +765,89 @@ export interface components {
              */
             warnings: string[];
         };
+        /** ComparableValuationAnchorDto */
+        ComparableValuationAnchorDto: {
+            /** Base Type */
+            base_type?: string | null;
+            /**
+             * Comparable Better Count
+             * @default 0
+             */
+            comparable_better_count: number;
+            /** Comparable Id */
+            comparable_id: string;
+            /**
+             * Current Better Count
+             * @default 0
+             */
+            current_better_count: number;
+            /** External Listing Id */
+            external_listing_id?: string | null;
+            /** Item Name */
+            item_name?: string | null;
+            /** Listing Currency Asset Id */
+            listing_currency_asset_id: string;
+            /** Listing Price */
+            listing_price: string;
+            normalized_value?: components["schemas"]["EconomicValueDto"] | null;
+            /**
+             * Reasons
+             * @default []
+             */
+            reasons: string[];
+            /** Role */
+            role: string;
+            /**
+             * Roughly Equivalent Count
+             * @default 0
+             */
+            roughly_equivalent_count: number;
+            /** Structural Relevance Band */
+            structural_relevance_band?: string | null;
+            /** Structural Relevance Score */
+            structural_relevance_score?: string | null;
+            /**
+             * Unknown Count
+             * @default 0
+             */
+            unknown_count: number;
+            /**
+             * Warnings
+             * @default []
+             */
+            warnings: string[];
+        };
+        /** ComparableValuationEstimateDto */
+        ComparableValuationEstimateDto: {
+            /**
+             * Anchor Results
+             * @default []
+             */
+            anchor_results: components["schemas"]["ComparableValuationAnchorDto"][];
+            central_estimate?: components["schemas"]["EconomicValueDto"] | null;
+            confidence?: components["schemas"]["ValuationConfidenceDto"] | null;
+            /**
+             * Excluded Observation Ids
+             * @default []
+             */
+            excluded_observation_ids: string[];
+            /**
+             * Included Observation Ids
+             * @default []
+             */
+            included_observation_ids: string[];
+            plausible_high?: components["schemas"]["EconomicValueDto"] | null;
+            plausible_low?: components["schemas"]["EconomicValueDto"] | null;
+            /** Policy Id */
+            policy_id: string;
+            /** Status */
+            status: string;
+            /**
+             * Warnings
+             * @default []
+             */
+            warnings: string[];
+        };
         /** CraftObservationExportRequestDto */
         CraftObservationExportRequestDto: {
             /** Observations */
@@ -1388,6 +1471,7 @@ export interface components {
              * @default []
              */
             comparable_results: components["schemas"]["ComparableResultPreviewDto"][];
+            comparable_valuation_estimate?: components["schemas"]["ComparableValuationEstimateDto"] | null;
             confidence?: components["schemas"]["ValuationConfidenceDto"] | null;
             /**
              * Duplicate Listing Ids

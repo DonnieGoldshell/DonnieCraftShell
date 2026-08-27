@@ -554,6 +554,7 @@ function manualPreviewResponse(
         warnings: ["Manual API observation; listing price is not a realized sale."]
       }
     ],
+    comparable_valuation_estimate: null,
     warnings: ["Manual API observation; listing price is not a realized sale."],
     ...overrides
   };
@@ -1118,7 +1119,62 @@ describe("AdvisorWorkbench", () => {
               },
               warnings: ["Manual API observation; listing price is not a realized sale."]
             }
-          ]
+          ],
+          comparable_valuation_estimate: {
+            status: "PARTIAL",
+            central_estimate: { amount: "83704.5", unit: "EXALTED_ECONOMIC_UNIT" },
+            plausible_low: { amount: "15219.0", unit: "EXALTED_ECONOMIC_UNIT" },
+            plausible_high: { amount: "152190.0", unit: "EXALTED_ECONOMIC_UNIT" },
+            confidence: {
+              level: "LOW",
+              reasons: ["Small anchor count or wide spread limits confidence."]
+            },
+            anchor_results: [
+              {
+                comparable_id: "manual-preview-current:0",
+                external_listing_id: "gloom-barb-450-divine",
+                item_name: "Gloom Barb",
+                base_type: "Visceral Quiver",
+                role: "UPPER_ANCHOR",
+                listing_price: "450",
+                listing_currency_asset_id: DIVINE_ASSET_ID,
+                normalized_value: { amount: "152190.0", unit: "EXALTED_ECONOMIC_UNIT" },
+                structural_relevance_band: "HIGH",
+                structural_relevance_score: "0.8609",
+                current_better_count: 0,
+                comparable_better_count: 2,
+                roughly_equivalent_count: 4,
+                unknown_count: 0,
+                reasons: ["Comparable item is structurally stronger on more matched modifiers."],
+                warnings: []
+              },
+              {
+                comparable_id: "manual-preview-current:1",
+                external_listing_id: "skull-quill-45-divine",
+                item_name: "Skull Quill",
+                base_type: "Primed Quiver",
+                role: "LOWER_ANCHOR",
+                listing_price: "45",
+                listing_currency_asset_id: DIVINE_ASSET_ID,
+                normalized_value: { amount: "15219.0", unit: "EXALTED_ECONOMIC_UNIT" },
+                structural_relevance_band: "HIGH",
+                structural_relevance_score: "0.8000",
+                current_better_count: 3,
+                comparable_better_count: 1,
+                roughly_equivalent_count: 2,
+                unknown_count: 0,
+                reasons: ["Current item is structurally stronger on more matched modifiers."],
+                warnings: []
+              }
+            ],
+            included_observation_ids: ["manual-preview-current:0", "manual-preview-current:1"],
+            excluded_observation_ids: [],
+            warnings: [
+              "Comparable valuation model uses listing-derived anchor brackets, not realized sale prices.",
+              "Comparable anchor spread exceeds configured warning threshold."
+            ],
+            policy_id: "comparable-valuation-model-v1"
+          }
         })
     });
     vi.stubGlobal("fetch", fetchMock);
@@ -1148,6 +1204,13 @@ describe("AdvisorWorkbench", () => {
     expect(screen.getByLabelText(/comparable modifier quality delta/i)).toHaveTextContent("Modifier quality delta");
     expect(screen.getByLabelText(/comparable modifier quality delta/i)).toHaveTextContent("Comparable better 2");
     expect(screen.getByLabelText(/comparable modifier quality delta/i)).toHaveTextContent("of Calamity vs of Unmaking");
+    expect(screen.getByLabelText(/comparable valuation estimate/i)).toHaveTextContent("Comparable Valuation Model v1");
+    expect(screen.getByLabelText(/comparable valuation estimate/i)).toHaveTextContent("Partial");
+    expect(screen.getByLabelText(/comparable valuation estimate/i)).toHaveTextContent("83704.5 Ex");
+    expect(screen.getByLabelText(/comparable valuation estimate/i)).toHaveTextContent("Gloom Barb, Visceral Quiver");
+    expect(screen.getByLabelText(/comparable valuation estimate/i)).toHaveTextContent("Upper Anchor");
+    expect(screen.getByLabelText(/comparable valuation estimate/i)).toHaveTextContent("Skull Quill, Primed Quiver");
+    expect(screen.getByLabelText(/comparable valuation estimate/i)).toHaveTextContent("Lower Anchor");
     const previewBody = JSON.parse(fetchMock.mock.calls[0][1].body as string);
     expect(previewBody.subject_clipboard_text).toContain("Bramble Spike");
     expect(previewBody.evidence.observations[0]).toEqual(

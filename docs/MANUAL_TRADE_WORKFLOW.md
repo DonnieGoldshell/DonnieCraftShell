@@ -69,8 +69,9 @@ It maps the manual rows through the existing `ManualTradeProvider`,
 `EconomyRepository`, `ComparableEvidenceSet`, and `ValuationAggregator`. The
 response shows normalized values when conversion exists, evidence readiness,
 listing-derived median/range when available, confidence, liquidity, warnings,
-and the subject/outcome identity. It performs no Trade requests and does not
-accept an arbitrary final valuation override.
+an optional Comparable Valuation Model v1 anchor bracket, and the
+subject/outcome identity. It performs no Trade requests and does not accept an
+arbitrary final valuation override.
 
 ## Evidence Limits
 
@@ -98,6 +99,14 @@ critical chance can be reported as `COMPARABLE_BETTER`. Origin differences
 such as `NATURAL` versus `FRACTURED` remain visible but do not imply a price
 premium. Quality delta is not valuation, weighting, Advisor ranking, or EV
 input.
+
+When both relevance and quality delta are available, preview also runs
+`ComparableValuationModel` over the manual evidence. The model classifies each
+structured comparable as a lower, upper, equivalent, or uninterpreted anchor
+using the modifier quality delta. It then emits a conservative listing-derived
+bracket only when enough structured anchors exist on both sides of the current
+item. The model does not multiply price by relevance, infer a sale price, or
+promote scenario/Advisor readiness.
 
 ## Local Evidence Workspace
 

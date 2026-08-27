@@ -30,6 +30,10 @@ Executable contracts live in `packages/shared/donniecraftshell_contracts/valuati
 - `ComparableResult`: normalized listing evidence when currency conversion is available.
 - `ComparableRelevance`: deterministic structural similarity evidence between the current item and a structured comparable.
 - `ComparableQualityDelta`: deterministic directional modifier-quality evidence for corresponding parsed modifiers.
+- `ComparableValuationPolicy`: versioned policy for the conservative comparable-anchor valuation model.
+- `ComparableValuationAnchor`: one structured comparable listing interpreted as lower, upper, equivalent, or uninterpreted anchor evidence.
+- `ComparableValuationEstimate`: bracket-style listing-derived estimate from structured anchors, or an explicit insufficient-data result.
+- `ComparableValuationModel`: conservative v1 model over manual structured comparables.
 - `ComparableEvidenceSet`: query plus comparable results and readiness.
 - `ValuationAggregationPolicy`: configurable readiness, quantile, duplicate, stale, and outlier policy.
 - `ValuationAggregator`: manual comparable aggregation using robust Decimal statistics.
@@ -123,6 +127,47 @@ Quality delta counts are inspectable evidence only. They must not be used as
 market-value multipliers, valuation weights, EV inputs, Advisor ranking, or
 sale-price inference.
 
+## Comparable Valuation Model v1
+
+Issue 63 adds `ComparableValuationModel` as a conservative preview model over
+manual structured comparable listings. It does not replace
+`ValuationAggregator`; it adds an inspectable bracket beside the existing
+median/range output.
+
+The v1 model requires structured evidence for each usable anchor:
+
+- normalized listing price in Exalted economic units
+- parsed comparable item state
+- structural `ComparableRelevance`
+- directional `ComparableQualityDelta`
+
+Price-only evidence is retained but receives `UNINTERPRETED` anchor status. The
+model does not fabricate a relevance score, quality delta, or price adjustment.
+
+Anchor roles are assigned from quality delta, not from listing price:
+
+- `LOWER_ANCHOR`: the current item is structurally stronger on more matched
+  modifiers than the comparable, so the comparable listing can only support a
+  lower-style anchor.
+- `UPPER_ANCHOR`: the comparable item is structurally stronger on more matched
+  modifiers, so the comparable listing can only support an upper-style anchor.
+- `EQUIVALENT_ANCHOR`: matched modifier quality is roughly equivalent.
+- `UNINTERPRETED`: missing normalized price, insufficient relevance, missing
+  quality delta, or no directional quality evidence.
+
+Default policy `comparable-valuation-model-v1` requires at least two
+interpretable structured anchors, a high-relevance score of at least `0.75`,
+and both lower/equivalent and upper/equivalent bracket evidence before emitting
+a central estimate. The central estimate is the midpoint of the lower/upper
+anchor bracket. This midpoint is a descriptive listing-derived bracket center,
+not a realized sale price, EV input, or recommendation.
+
+Wide anchor spreads are preserved and warned on rather than hidden. A small
+two-anchor pilot can produce `PARTIAL` with low confidence even when a bracket
+exists. If anchor directions conflict with observed listing prices, the model
+fails closed with `INSUFFICIENT_DATA` rather than reversing the quality-derived
+anchor roles.
+
 ## Advisor API Preview
 
 The Advisor API exposes a thin manual-evidence preview endpoint for the web
@@ -141,8 +186,9 @@ remain separate by subject ID; outcome evidence must carry the deterministic
 endpoint parses and returns a structured comparable item summary in each
 `ComparableResult`. If the request also includes `subject_clipboard_text`, the
 preview attaches `ComparableRelevance` and `ComparableQualityDelta` results to
-each structured comparable. The preview still does not discard low-relevance
-comparables or alter valuation aggregation behavior.
+each structured comparable and returns an optional `comparable_valuation_estimate`
+summary. The preview still does not discard low-relevance comparables or alter
+the existing valuation aggregation behavior.
 
 ## Listing Evidence
 

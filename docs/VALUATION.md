@@ -19,6 +19,7 @@ HypotheticalItemState
 -> TradeProvider
 -> ComparableResult[]
 -> ValuationAggregator
+-> ComparableValuationModel preview
 -> ValuationResult
 ```
 
@@ -128,6 +129,19 @@ Task 10C uses `ValuationAggregator` over manual normalized comparable listings o
 - no estimate when sample size is too small or prices are unnormalized.
 
 Strict comparable evidence has precedence. Moderate evidence may supplement only when strict evidence is insufficient, and the result must warn that fallback evidence was used. See [VALUATION_AGGREGATION.md](VALUATION_AGGREGATION.md).
+
+## Comparable Valuation Model v1
+
+Issue 63 adds a structured-comparable preview model for the manual workflow.
+`ComparableValuationModel` consumes the same manual evidence set, but requires
+parsed comparable item state plus relevance and quality-delta evidence before a
+listing can become a valuation anchor.
+
+The model emits lower/upper/equivalent/uninterpreted anchors and, when enough
+anchors exist, a conservative listing-derived bracket midpoint. Anchor direction
+comes from quality delta, not listing price. The model does not multiply price
+by relevance, infer hidden market adjustments, produce realized-sale claims, or
+change Advisor/EV readiness.
 
 ## Confidence And Liquidity
 
