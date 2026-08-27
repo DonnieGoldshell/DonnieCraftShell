@@ -577,6 +577,7 @@ function ValuationPreview({ preview }: { preview: ManualValuationPreviewResponse
               <strong>{result.normalized_value ? formatEconomicValue(result.normalized_value) : "Unconvertible"}</strong>
               {result.comparable_item && <ComparableItemSummary comparable={result.comparable_item} />}
               {result.comparable_relevance && <ComparableRelevanceSummary relevance={result.comparable_relevance} />}
+              {result.comparable_quality_delta && <ComparableQualityDeltaSummary qualityDelta={result.comparable_quality_delta} />}
               {result.warnings.length > 0 && <small>{result.warnings.join(" ")}</small>}
             </li>
           ))}
@@ -589,6 +590,7 @@ function ValuationPreview({ preview }: { preview: ManualValuationPreviewResponse
 
 type StructuredComparableItem = NonNullable<ManualListingObservation["comparable_item"]>;
 type ComparableRelevance = NonNullable<ManualValuationPreviewResponse["comparable_results"][number]["comparable_relevance"]>;
+type ComparableQualityDelta = NonNullable<ManualValuationPreviewResponse["comparable_results"][number]["comparable_quality_delta"]>;
 
 function ComparableItemSummary({ comparable }: { comparable: StructuredComparableItem }) {
   const item = comparable.item;
@@ -629,6 +631,34 @@ function ComparableRelevanceSummary({ relevance }: { relevance: ComparableReleva
         </small>
       )}
       {relevance.warnings.length > 0 && <small>{relevance.warnings.join(" ")}</small>}
+    </div>
+  );
+}
+
+function ComparableQualityDeltaSummary({ qualityDelta }: { qualityDelta: ComparableQualityDelta }) {
+  const firstDirectional =
+    qualityDelta.modifier_deltas.find((delta) => delta.relationship === "CURRENT_BETTER" || delta.relationship === "COMPARABLE_BETTER") ??
+    qualityDelta.modifier_deltas.find((delta) => delta.relationship === "ROUGHLY_EQUIVALENT" || delta.origin_difference) ??
+    qualityDelta.modifier_deltas[0] ??
+    null;
+  return (
+    <div className="comparable-quality-summary" aria-label="Comparable modifier quality delta">
+      <strong>Modifier quality delta</strong>
+      <small>
+        Current better {qualityDelta.current_better_count} · Comparable better {qualityDelta.comparable_better_count} · Equivalent{" "}
+        {qualityDelta.roughly_equivalent_count} · Unknown {qualityDelta.unknown_count}
+      </small>
+      {firstDirectional && (
+        <small>
+          {firstDirectional.relationship}:{" "}
+          {[firstDirectional.current_display_name, firstDirectional.comparable_display_name].filter(Boolean).join(" vs ")}
+          {firstDirectional.current_tier || firstDirectional.comparable_tier
+            ? ` (T${firstDirectional.current_tier ?? "?"} vs T${firstDirectional.comparable_tier ?? "?"})`
+            : ""}
+          {firstDirectional.origin_difference ? " · origin differs" : ""}
+        </small>
+      )}
+      {qualityDelta.warnings.length > 0 && <small>{qualityDelta.warnings.join(" ")}</small>}
     </div>
   );
 }

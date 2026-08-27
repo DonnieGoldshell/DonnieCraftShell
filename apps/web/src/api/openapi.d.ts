@@ -652,6 +652,51 @@ export interface components {
             /** Tag Match */
             tag_match?: boolean | null;
         };
+        /** ComparableQualityDeltaDto */
+        ComparableQualityDeltaDto: {
+            /**
+             * Comparable Better Count
+             * @default 0
+             */
+            comparable_better_count: number;
+            /**
+             * Current Better Count
+             * @default 0
+             */
+            current_better_count: number;
+            /**
+             * Extra On Comparable Count
+             * @default 0
+             */
+            extra_on_comparable_count: number;
+            /**
+             * Missing From Comparable Count
+             * @default 0
+             */
+            missing_from_comparable_count: number;
+            /**
+             * Modifier Deltas
+             * @default []
+             */
+            modifier_deltas: components["schemas"]["ModifierQualityDeltaDto"][];
+            /** Policy Id */
+            policy_id: string;
+            /**
+             * Roughly Equivalent Count
+             * @default 0
+             */
+            roughly_equivalent_count: number;
+            /**
+             * Unknown Count
+             * @default 0
+             */
+            unknown_count: number;
+            /**
+             * Warnings
+             * @default []
+             */
+            warnings: string[];
+        };
         /** ComparableRelevanceDto */
         ComparableRelevanceDto: {
             /** Band */
@@ -696,6 +741,7 @@ export interface components {
             /** Comparable Id */
             comparable_id: string;
             comparable_item?: components["schemas"]["StructuredComparableItemDto"] | null;
+            comparable_quality_delta?: components["schemas"]["ComparableQualityDeltaDto"] | null;
             comparable_relevance?: components["schemas"]["ComparableRelevanceDto"] | null;
             /** Economy Freshness */
             economy_freshness: string;
@@ -1560,6 +1606,53 @@ export interface components {
             tags: string[];
             /** Tier */
             tier?: string | null;
+        };
+        /** ModifierQualityDeltaDto */
+        ModifierQualityDeltaDto: {
+            /** Affix Type */
+            affix_type: string;
+            /** Comparable Display Name */
+            comparable_display_name?: string | null;
+            /** Comparable Origin */
+            comparable_origin?: string | null;
+            /** Comparable Roll Quality */
+            comparable_roll_quality?: string | null;
+            /**
+             * Comparable Roll Values
+             * @default []
+             */
+            comparable_roll_values: string[];
+            /** Comparable Tier */
+            comparable_tier?: string | null;
+            /** Current Display Name */
+            current_display_name?: string | null;
+            /** Current Origin */
+            current_origin?: string | null;
+            /** Current Roll Quality */
+            current_roll_quality?: string | null;
+            /**
+             * Current Roll Values
+             * @default []
+             */
+            current_roll_values: string[];
+            /** Current Tier */
+            current_tier?: string | null;
+            /** Evidence */
+            evidence: string;
+            /**
+             * Origin Difference
+             * @default false
+             */
+            origin_difference: boolean;
+            /**
+             * Reasons
+             * @default []
+             */
+            reasons: string[];
+            /** Relationship */
+            relationship: string;
+            /** Semantic Identity */
+            semantic_identity: string;
         };
         /** ObservationClassificationDto */
         ObservationClassificationDto: {

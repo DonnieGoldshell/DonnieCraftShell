@@ -1063,6 +1063,59 @@ describe("AdvisorWorkbench", () => {
                 warnings: [],
                 policy_id: "comparable-relevance-policy-v1"
               },
+              comparable_quality_delta: {
+                modifier_deltas: [
+                  {
+                    relationship: "COMPARABLE_BETTER",
+                    evidence: "TIER",
+                    semantic_identity: "SUFFIX:#% increased critical hit chance for attacks",
+                    affix_type: "SUFFIX",
+                    current_display_name: "of Calamity",
+                    comparable_display_name: "of Unmaking",
+                    current_tier: "3",
+                    comparable_tier: "1",
+                    current_origin: "NATURAL",
+                    comparable_origin: "NATURAL",
+                    current_roll_quality: null,
+                    comparable_roll_quality: null,
+                    current_roll_values: ["value=29;range=25:29"],
+                    comparable_roll_values: ["value=37;range=35:38"],
+                    origin_difference: false,
+                    reasons: ["Comparable has the stronger parsed tier: T1 vs current T3."]
+                  },
+                  {
+                    relationship: "COMPARABLE_BETTER",
+                    evidence: "ROLL_WITHIN_TIER",
+                    semantic_identity: "SUFFIX:#% increased critical damage bonus for attack damage",
+                    affix_type: "SUFFIX",
+                    current_display_name: "of Destruction",
+                    comparable_display_name: "of Destruction",
+                    current_tier: "1",
+                    comparable_tier: "1",
+                    current_origin: "NATURAL",
+                    comparable_origin: "FRACTURED",
+                    current_roll_quality: "0.7500",
+                    comparable_roll_quality: "1.0000",
+                    current_roll_values: ["value=38;range=35:39"],
+                    comparable_roll_values: ["value=39;range=35:39"],
+                    origin_difference: true,
+                    reasons: [
+                      "Modifier origin differs: NATURAL vs FRACTURED; no market premium is inferred.",
+                      "Comparable has the better same-tier observed roll quality: 1.0000 vs 0.7500."
+                    ]
+                  }
+                ],
+                current_better_count: 0,
+                comparable_better_count: 2,
+                roughly_equivalent_count: 4,
+                unknown_count: 0,
+                missing_from_comparable_count: 0,
+                extra_on_comparable_count: 0,
+                warnings: [
+                  "Modifier quality delta is structural only; it is not a price multiplier, valuation weight, or recommendation signal."
+                ],
+                policy_id: "comparable-modifier-quality-delta-policy-v1"
+              },
               warnings: ["Manual API observation; listing price is not a realized sale."]
             }
           ]
@@ -1092,6 +1145,9 @@ describe("AdvisorWorkbench", () => {
     expect(screen.getByLabelText(/comparable relevance assessment/i)).toHaveTextContent("HIGH relevance");
     expect(screen.getByLabelText(/comparable relevance assessment/i)).toHaveTextContent("3 matched modifiers");
     expect(screen.getByLabelText(/comparable relevance assessment/i)).toHaveTextContent("TIER_DIFFERENCE");
+    expect(screen.getByLabelText(/comparable modifier quality delta/i)).toHaveTextContent("Modifier quality delta");
+    expect(screen.getByLabelText(/comparable modifier quality delta/i)).toHaveTextContent("Comparable better 2");
+    expect(screen.getByLabelText(/comparable modifier quality delta/i)).toHaveTextContent("of Calamity vs of Unmaking");
     const previewBody = JSON.parse(fetchMock.mock.calls[0][1].body as string);
     expect(previewBody.subject_clipboard_text).toContain("Bramble Spike");
     expect(previewBody.evidence.observations[0]).toEqual(
