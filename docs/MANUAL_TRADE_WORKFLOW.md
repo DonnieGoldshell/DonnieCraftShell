@@ -116,6 +116,13 @@ close high-usefulness comparables may support an `INFERRED_MARKET_BAND`; distant
 lower/upper anchors remain `BROAD_BRACKET_ONLY` and must not be displayed as a
 high-confidence midpoint market estimate.
 
+Issue 67 aligns the Manual Valuation headline with that inference state. The
+panel displays `Estimated market value: Insufficient precision` plus the
+supported market range for `BROAD_BRACKET_ONLY`, and it displays no point value
+for `INSUFFICIENT_EVIDENCE`. The old manual evidence median can still appear as
+diagnostics, but it is not the player-facing market estimate unless the
+inference state is `INFERRED_MARKET_BAND`.
+
 ## Local Evidence Workspace
 
 Manual comparable observations can be persisted locally through the Task 19B manual valuation workspace. The workspace is backup-friendly JSON under `.dcs/` by default, partitioned by canonical subject identity, and deliberately separate from Advisor submission. Loading persisted evidence into the Manual Valuation panel does not submit it to Advisor until the operator explicitly runs analysis. Details: [MANUAL_VALUATION_WORKSPACE.md](MANUAL_VALUATION_WORKSPACE.md).

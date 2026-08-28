@@ -534,6 +534,7 @@ function EvidenceList({
 }
 
 function ValuationPreview({ preview }: { preview: ManualValuationPreviewResponse }) {
+  const marketValuation = preview.market_valuation;
   return (
     <div className="valuation-preview">
       <div className="section-heading compact-heading">
@@ -550,22 +551,31 @@ function ValuationPreview({ preview }: { preview: ManualValuationPreviewResponse
           </dd>
         </div>
         <div>
-          <dt>Median estimate</dt>
-          <dd>{preview.estimated_value ? formatEconomicValue(preview.estimated_value) : "Unavailable"}</dd>
+          <dt>Estimated market value</dt>
+          <dd>
+            {marketValuation?.display_estimated_value ??
+              (marketValuation?.estimated_value ? formatEconomicValue(marketValuation.estimated_value) : "Unavailable")}
+          </dd>
         </div>
         <div>
-          <dt>Plausible range</dt>
+          <dt>Supported market range</dt>
           <dd>
-            {preview.plausible_low && preview.plausible_high
-              ? `${formatEconomicValue(preview.plausible_low)} - ${formatEconomicValue(preview.plausible_high)}`
-              : "Unavailable"}
+            {marketValuation?.display_supported_range ??
+              (marketValuation?.supported_low && marketValuation.supported_high
+                ? `${formatEconomicValue(marketValuation.supported_low)} - ${formatEconomicValue(marketValuation.supported_high)}`
+                : "Unavailable")}
           </dd>
         </div>
         <div>
           <dt>Confidence</dt>
-          <dd>{preview.confidence ? titleCase(preview.confidence.level) : "Unknown"}</dd>
+          <dd>{marketValuation?.confidence ? titleCase(marketValuation.confidence.level) : "Unknown"}</dd>
         </div>
       </dl>
+      {marketValuation?.legacy_statistical_median && (
+        <small>
+          Manual evidence median retained for diagnostics: {formatEconomicValue(marketValuation.legacy_statistical_median)}.
+        </small>
+      )}
       {preview.comparable_valuation_estimate && (
         <ComparableValuationEstimateSummary estimate={preview.comparable_valuation_estimate} />
       )}

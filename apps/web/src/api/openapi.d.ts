@@ -1537,6 +1537,7 @@ export interface components {
             evidence_set_id: string;
             /** Liquidity */
             liquidity: string;
+            market_valuation?: components["schemas"]["MarketValuationPresentationDto"] | null;
             /** Observation Count */
             observation_count: number;
             /** Outcome Id */
@@ -1674,6 +1675,27 @@ export interface components {
             warnings: string[];
             /** Workspace Version */
             workspace_version: string;
+        };
+        /** MarketValuationPresentationDto */
+        MarketValuationPresentationDto: {
+            confidence?: components["schemas"]["ValuationConfidenceDto"] | null;
+            /** Display Estimated Value */
+            display_estimated_value?: string | null;
+            /** Display Supported Range */
+            display_supported_range?: string | null;
+            estimated_value?: components["schemas"]["EconomicValueDto"] | null;
+            legacy_statistical_median?: components["schemas"]["EconomicValueDto"] | null;
+            /** Source Inference Status */
+            source_inference_status?: string | null;
+            /** Status */
+            status: string;
+            supported_high?: components["schemas"]["EconomicValueDto"] | null;
+            supported_low?: components["schemas"]["EconomicValueDto"] | null;
+            /**
+             * Warnings
+             * @default []
+             */
+            warnings: string[];
         };
         /** MaterialCostDto */
         MaterialCostDto: {

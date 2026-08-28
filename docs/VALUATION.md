@@ -152,6 +152,13 @@ median central estimate and quantile band. Sparse or distant lower/upper anchors
 remain `BROAD_BRACKET_ONLY`; DonnieCraftShell must not present their midpoint as
 a confident market price.
 
+Issue 67 makes that rule explicit in presentation contracts. Manual preview
+responses include a `market_valuation` headline object. Only
+`ESTIMATED_MARKET_VALUE` may populate a player-facing point estimate. Broad
+brackets display as supported ranges, and insufficient evidence displays no
+point value. Aggregator medians remain diagnostic listing statistics unless
+confirmed by structured market inference.
+
 ## Confidence And Liquidity
 
 Confidence inputs:

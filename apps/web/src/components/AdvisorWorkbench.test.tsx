@@ -555,6 +555,21 @@ function manualPreviewResponse(
       }
     ],
     comparable_valuation_estimate: null,
+    market_valuation: {
+      status: "INSUFFICIENT_MARKET_EVIDENCE",
+      source_inference_status: "INSUFFICIENT_EVIDENCE",
+      estimated_value: null,
+      supported_low: null,
+      supported_high: null,
+      display_estimated_value: "Insufficient market evidence",
+      display_supported_range: null,
+      confidence: {
+        level: "LOW",
+        reasons: ["Synthetic test preview lacks structured market inference."]
+      },
+      legacy_statistical_median: { amount: "120", unit: "EXALTED_ECONOMIC_UNIT" },
+      warnings: ["Manual evidence median is retained as diagnostics only."]
+    },
     warnings: ["Manual API observation; listing price is not a realized sale."],
     ...overrides
   };
@@ -1210,6 +1225,21 @@ describe("AdvisorWorkbench", () => {
               "Comparable evidence supports only a broad anchor bracket, not a tighter inferred market band."
             ],
             policy_id: "comparable-valuation-model-v1"
+          },
+          market_valuation: {
+            status: "SUPPORTED_RANGE_ONLY",
+            source_inference_status: "BROAD_BRACKET_ONLY",
+            estimated_value: null,
+            supported_low: { amount: "15219.0", unit: "EXALTED_ECONOMIC_UNIT" },
+            supported_high: { amount: "152190.0", unit: "EXALTED_ECONOMIC_UNIT" },
+            display_estimated_value: "Insufficient precision",
+            display_supported_range: "45-450 Divine",
+            confidence: {
+              level: "LOW",
+              reasons: ["Small anchor count or wide spread limits confidence."]
+            },
+            legacy_statistical_median: { amount: "152190.0", unit: "EXALTED_ECONOMIC_UNIT" },
+            warnings: ["Manual evidence median is retained as diagnostics only."]
           }
         })
     });
@@ -1240,6 +1270,8 @@ describe("AdvisorWorkbench", () => {
     expect(screen.getByLabelText(/comparable modifier quality delta/i)).toHaveTextContent("Modifier quality delta");
     expect(screen.getByLabelText(/comparable modifier quality delta/i)).toHaveTextContent("Comparable better 2");
     expect(screen.getByLabelText(/comparable modifier quality delta/i)).toHaveTextContent("of Calamity vs of Unmaking");
+    expect(screen.getByText(/estimated market value/i).closest("div")).toHaveTextContent("Insufficient precision");
+    expect(screen.getByText(/supported market range/i).closest("div")).toHaveTextContent("45-450 Divine");
     expect(screen.getByLabelText(/comparable valuation estimate/i)).toHaveTextContent("Comparable Valuation Model v1");
     expect(screen.getByLabelText(/comparable valuation estimate/i)).toHaveTextContent("Partial");
     expect(screen.getByLabelText(/comparable valuation estimate/i)).toHaveTextContent("Broad Bracket Only");

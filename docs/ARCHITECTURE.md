@@ -168,6 +168,8 @@ Issue 63 extends the manual valuation preview with Comparable Valuation Model v1
 
 Issue 65 layers scoped market inference v1 onto that preview model. It scores comparable usefulness from structural relevance, modifier quality similarity, freshness, and observable item-state differences, then emits `INFERRED_MARKET_BAND` only for sufficiently close high-usefulness evidence clusters. Broad lower/upper anchor brackets stay visible as `BROAD_BRACKET_ONLY` and are not promoted into confident market estimates.
 
+Issue 67 adds a headline valuation presentation boundary to the Advisor manual valuation preview. API clients should use `market_valuation` for player-facing estimated market value semantics and treat the raw aggregation median as diagnostics unless structured inference reaches `INFERRED_MARKET_BAND`.
+
 Task 11A adds [SCENARIO_ANALYSIS.md](SCENARIO_ANALYSIS.md) and [DECISION_READINESS.md](DECISION_READINESS.md). Scenario analysis is allowed when EV is not; `EV_READY` is a strict gate for future EV work and does not calculate EV.
 
 Task 11B adds [EXPECTED_VALUE.md](EXPECTED_VALUE.md). EV results retain contribution breakdowns, evidence references, economy snapshots, dataset versions, and algorithm version `dc-ev-v1`, but still produce no Advisor recommendation.
