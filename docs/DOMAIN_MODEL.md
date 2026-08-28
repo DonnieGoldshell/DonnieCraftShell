@@ -58,6 +58,13 @@ Modifier enrichment must preserve the original parsed observation and attach res
 
 Valuation evidence must preserve listing/source identity and keep listing-derived estimates separate from realized sale prices. Current parsed items and hypothetical outcome states should map into the same valuation subject abstraction. Missing comparable currency conversion is unavailable, never zero. Structured comparable anchors may bracket a current item only from parsed relevance plus quality-delta evidence; price-only evidence remains uninterpreted. Market inference usefulness is deterministic evidence quality, not a price multiplier or modifier premium.
 
+Manual valuation preview also exposes a `market_valuation` presentation contract
+for headline semantics. It is derived from Comparable Valuation Model inference
+state: broad brackets are range-only, insufficient evidence has no point value,
+and only inferred market bands may populate a headline estimated market value.
+The older manual evidence median remains diagnostic evidence, not automatically
+the item's market estimate.
+
 Craft action applicability must preserve unknowns. If a precondition such as open affix capacity is not verified, the result is `UNKNOWN`, not a guessed legal or illegal state. Required materials reference EconomyAsset IDs while action IDs remain separate mechanic identities.
 
 Affix capacity is not stored directly in parser logic. `ParsedItem.affix_state` remains clipboard observation; `AffixStateResolution` is derived data with provenance and warnings. Observed counts that exceed capacity are reported as conflicts and are not clamped.

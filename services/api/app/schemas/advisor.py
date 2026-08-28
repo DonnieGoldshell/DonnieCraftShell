@@ -140,6 +140,19 @@ class ComparableValuationEstimateDto(ApiModel):
     policy_id: str
 
 
+class MarketValuationPresentationDto(ApiModel):
+    status: str
+    source_inference_status: str | None = None
+    estimated_value: EconomicValueDto | None = None
+    supported_low: EconomicValueDto | None = None
+    supported_high: EconomicValueDto | None = None
+    display_estimated_value: str | None = None
+    display_supported_range: str | None = None
+    confidence: ValuationConfidenceDto | None = None
+    legacy_statistical_median: EconomicValueDto | None = None
+    warnings: list[str] = []
+
+
 class ManualValuationPreviewResponseDto(ApiModel):
     subject_id: str
     subject_type: str
@@ -160,6 +173,7 @@ class ManualValuationPreviewResponseDto(ApiModel):
     economy_snapshot_ids: list[str] = []
     comparable_results: list[ComparableResultPreviewDto] = []
     comparable_valuation_estimate: ComparableValuationEstimateDto | None = None
+    market_valuation: MarketValuationPresentationDto | None = None
     warnings: list[str] = []
 
 

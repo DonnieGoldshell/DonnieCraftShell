@@ -69,6 +69,7 @@ from services.api.app.schemas.advisor import (
     ManualValuationEvidenceDto,
     ManualValuationPreviewRequestDto,
     ManualValuationPreviewResponseDto,
+    MarketValuationPresentationDto,
     MaterialCostDto,
     MaterialRequirementDto,
     MissingRequirementDto,
@@ -224,6 +225,7 @@ def manual_valuation_preview_to_dto(
             for result in evidence_set.results
         ],
         comparable_valuation_estimate=_comparable_valuation_estimate_to_dto(comparable_valuation),
+        market_valuation=_market_valuation_presentation_to_dto(valuation, comparable_valuation),
         warnings=list((*evidence_set.warnings, *valuation.warnings)),
     )
 
@@ -398,6 +400,97 @@ def _comparable_valuation_estimate_to_dto(
     )
 
 
+def _market_valuation_presentation_to_dto(
+    valuation: ValuationResult,
+    comparable_valuation: ComparableValuationEstimate | None,
+) -> MarketValuationPresentationDto:
+    if comparable_valuation is None:
+        return MarketValuationPresentationDto(
+            status="INSUFFICIENT_MARKET_EVIDENCE",
+            estimated_value=None,
+            supported_low=None,
+            supported_high=None,
+            display_estimated_value=None,
+            display_supported_range=None,
+            confidence=(
+                ValuationConfidenceDto(
+                    level=valuation.confidence.level.value,
+                    reasons=list(valuation.confidence.reasons),
+                )
+                if valuation.confidence
+                else None
+            ),
+            legacy_statistical_median=economic_value_to_dto(valuation.estimated_value),
+            warnings=("No structured comparable market-inference estimate is available.",),
+        )
+
+    confidence = (
+        ValuationConfidenceDto(
+            level=comparable_valuation.confidence.level.value,
+            reasons=list(comparable_valuation.confidence.reasons),
+        )
+        if comparable_valuation.confidence
+        else None
+    )
+    warnings = list(comparable_valuation.warnings)
+    if valuation.estimated_value is not None:
+        warnings.append(
+            "Manual evidence median is retained as diagnostics only; market inference controls headline valuation."
+        )
+
+    if comparable_valuation.inference_status.value == "INFERRED_MARKET_BAND":
+        return MarketValuationPresentationDto(
+            status="ESTIMATED_MARKET_VALUE",
+            source_inference_status=comparable_valuation.inference_status.value,
+            estimated_value=economic_value_to_dto(comparable_valuation.inferred_market_central),
+            supported_low=economic_value_to_dto(comparable_valuation.inferred_market_low),
+            supported_high=economic_value_to_dto(comparable_valuation.inferred_market_high),
+            display_estimated_value=_display_economic_value_from_anchors(
+                comparable_valuation.inferred_market_central,
+                comparable_valuation,
+            ),
+            display_supported_range=_display_range_from_anchors(
+                comparable_valuation.inferred_market_low,
+                comparable_valuation.inferred_market_high,
+                comparable_valuation,
+            ),
+            confidence=confidence,
+            legacy_statistical_median=economic_value_to_dto(valuation.estimated_value),
+            warnings=warnings,
+        )
+
+    if comparable_valuation.inference_status.value == "BROAD_BRACKET_ONLY":
+        return MarketValuationPresentationDto(
+            status="SUPPORTED_RANGE_ONLY",
+            source_inference_status=comparable_valuation.inference_status.value,
+            estimated_value=None,
+            supported_low=economic_value_to_dto(comparable_valuation.plausible_low),
+            supported_high=economic_value_to_dto(comparable_valuation.plausible_high),
+            display_estimated_value="Insufficient precision",
+            display_supported_range=_display_range_from_anchors(
+                comparable_valuation.plausible_low,
+                comparable_valuation.plausible_high,
+                comparable_valuation,
+            ),
+            confidence=confidence,
+            legacy_statistical_median=economic_value_to_dto(valuation.estimated_value),
+            warnings=warnings,
+        )
+
+    return MarketValuationPresentationDto(
+        status="INSUFFICIENT_MARKET_EVIDENCE",
+        source_inference_status=comparable_valuation.inference_status.value,
+        estimated_value=None,
+        supported_low=None,
+        supported_high=None,
+        display_estimated_value="Insufficient market evidence",
+        display_supported_range=None,
+        confidence=confidence,
+        legacy_statistical_median=economic_value_to_dto(valuation.estimated_value),
+        warnings=warnings,
+    )
+
+
 def _comparable_valuation_anchor_to_dto(anchor: ComparableValuationAnchor) -> ComparableValuationAnchorDto:
     return ComparableValuationAnchorDto(
         comparable_id=anchor.comparable_id,
@@ -417,6 +510,75 @@ def _comparable_valuation_anchor_to_dto(anchor: ComparableValuationAnchor) -> Co
         reasons=list(anchor.reasons),
         warnings=list(anchor.warnings),
     )
+
+
+def _display_range_from_anchors(
+    low: EconomicValue | None,
+    high: EconomicValue | None,
+    estimate: ComparableValuationEstimate,
+) -> str | None:
+    common_currency = _common_listing_currency(estimate)
+    if common_currency is not None:
+        prices = sorted(anchor.listing_price for anchor in estimate.anchor_results if anchor.normalized_value is not None)
+        if prices:
+            return f"{_display_decimal(prices[0])}-{_display_decimal(prices[-1])} {_currency_display_name(common_currency)}"
+    if low is not None and high is not None:
+        return f"{_display_decimal(low.amount)}-{_display_decimal(high.amount)} Ex"
+    return None
+
+
+def _display_economic_value_from_anchors(
+    value: EconomicValue | None,
+    estimate: ComparableValuationEstimate,
+) -> str | None:
+    if value is None:
+        return None
+    common_currency = _common_listing_currency(estimate)
+    if common_currency is not None:
+        converted = _normalized_to_common_listing_currency(value, estimate)
+        if converted is not None:
+            return f"{_display_decimal(converted)} {_currency_display_name(common_currency)}"
+    return f"{_display_decimal(value.amount)} Ex"
+
+
+def _common_listing_currency(estimate: ComparableValuationEstimate) -> str | None:
+    currencies = {
+        anchor.listing_currency_asset_id
+        for anchor in estimate.anchor_results
+        if anchor.normalized_value is not None
+    }
+    if len(currencies) == 1:
+        return next(iter(currencies))
+    return None
+
+
+def _normalized_to_common_listing_currency(
+    value: EconomicValue,
+    estimate: ComparableValuationEstimate,
+) -> Decimal | None:
+    ratios: set[Decimal] = set()
+    for anchor in estimate.anchor_results:
+        if anchor.normalized_value is None or anchor.listing_price == 0:
+            continue
+        ratios.add(anchor.normalized_value.amount / anchor.listing_price)
+    if len(ratios) != 1:
+        return None
+    ratio = next(iter(ratios))
+    if ratio == 0:
+        return None
+    return value.amount / ratio
+
+
+def _currency_display_name(asset_id: str) -> str:
+    if asset_id.endswith(":divine-orb"):
+        return "Divine"
+    if asset_id.endswith(":exalted-orb"):
+        return "Exalted"
+    return asset_id
+
+
+def _display_decimal(value: Decimal) -> str:
+    return format(value.normalize(), "f")
 
 
 def _comparable_valuation_usefulness_to_dto(

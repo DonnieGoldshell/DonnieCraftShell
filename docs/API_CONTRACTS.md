@@ -157,6 +157,16 @@ from `INFERRED_MARKET_BAND`; a distant lower/upper anchor bracket is not a
 high-confidence market estimate. Usefulness diagnostics are evidence
 explainability only and must not be interpreted as game-economy premiums.
 
+Issue 67 adds `market_valuation` to manual valuation preview responses. This
+is the headline presentation contract. It exposes status
+`INSUFFICIENT_MARKET_EVIDENCE`, `SUPPORTED_RANGE_ONLY`, or
+`ESTIMATED_MARKET_VALUE`, optional inferred/structured market values, optional
+player-readable display strings, inference confidence, and
+`legacy_statistical_median` for diagnostics. Clients must use
+`market_valuation.estimated_value` for headline estimated market value and must
+not fall back to preview `estimated_value` when `market_valuation.status` is
+not `ESTIMATED_MARKET_VALUE`.
+
 Task 15B extends the same endpoint with optional empirical probability dataset selection and serialized probability evidence details. Default production assembly skips synthetic empirical fixtures and keeps real actions `UNKNOWN` without compatible evidence.
 
 Task 15C adds an offline operator workflow rather than a public HTTP endpoint:

@@ -3079,6 +3079,16 @@
             "title": "Liquidity",
             "type": "string"
           },
+          "market_valuation": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/MarketValuationPresentationDto"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "observation_count": {
             "title": "Observation Count",
             "type": "integer"
@@ -3494,6 +3504,110 @@
           "persistence"
         ],
         "title": "ManualValuationWorkspaceSaveResponseDto",
+        "type": "object"
+      },
+      "MarketValuationPresentationDto": {
+        "properties": {
+          "confidence": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ValuationConfidenceDto"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "display_estimated_value": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Display Estimated Value"
+          },
+          "display_supported_range": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Display Supported Range"
+          },
+          "estimated_value": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/EconomicValueDto"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "legacy_statistical_median": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/EconomicValueDto"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "source_inference_status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Inference Status"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "supported_high": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/EconomicValueDto"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "supported_low": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/EconomicValueDto"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "warnings": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Warnings",
+            "type": "array"
+          }
+        },
+        "required": [
+          "status"
+        ],
+        "title": "MarketValuationPresentationDto",
         "type": "object"
       },
       "MaterialCostDto": {

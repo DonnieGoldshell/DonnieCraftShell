@@ -222,6 +222,21 @@ summary. The UI should show these fields as diagnostics beside the manual
 listing evidence. They are not Advisor decisions and they do not bypass EV or
 probability readiness gates.
 
+Issue 67 adds a separate preview-level `market_valuation` presentation contract
+so player-facing headline valuation follows the market-inference state:
+
+- `INSUFFICIENT_EVIDENCE`: no headline point estimate; communicate
+  insufficient market evidence.
+- `BROAD_BRACKET_ONLY`: no headline point estimate; show the supported market
+  range only.
+- `INFERRED_MARKET_BAND`: the inferred central value and inferred band may be
+  used as the headline estimated market value.
+
+The legacy manual evidence median remains available as
+`legacy_statistical_median` diagnostics, but it must not masquerade as
+estimated market value when the structured inference model does not support a
+point estimate.
+
 ## Listing Evidence
 
 `ComparableResult` represents listing/observation evidence, not completed sale evidence. A listing price must not be treated as realized sale value.
