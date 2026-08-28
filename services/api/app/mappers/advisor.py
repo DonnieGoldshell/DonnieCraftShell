@@ -517,12 +517,16 @@ def _display_range_from_anchors(
     high: EconomicValue | None,
     estimate: ComparableValuationEstimate,
 ) -> str | None:
-    common_currency = _common_listing_currency(estimate)
-    if common_currency is not None:
-        prices = sorted(anchor.listing_price for anchor in estimate.anchor_results if anchor.normalized_value is not None)
-        if prices:
-            return f"{_display_decimal(prices[0])}-{_display_decimal(prices[-1])} {_currency_display_name(common_currency)}"
     if low is not None and high is not None:
+        common_currency = _common_listing_currency(estimate)
+        if common_currency is not None:
+            converted_low = _normalized_to_common_listing_currency(low, estimate)
+            converted_high = _normalized_to_common_listing_currency(high, estimate)
+            if converted_low is not None and converted_high is not None:
+                return (
+                    f"{_display_decimal(converted_low)}-{_display_decimal(converted_high)} "
+                    f"{_currency_display_name(common_currency)}"
+                )
         return f"{_display_decimal(low.amount)}-{_display_decimal(high.amount)} Ex"
     return None
 

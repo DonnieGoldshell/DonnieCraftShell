@@ -861,7 +861,54 @@ class AdvisorApiTests(unittest.TestCase):
         self.assertEqual(headline["status"], "ESTIMATED_MARKET_VALUE")
         self.assertEqual(headline["estimated_value"]["amount"], "105")
         self.assertEqual(headline["display_estimated_value"], "105 Exalted")
-        self.assertEqual(headline["display_supported_range"], "100-110 Exalted")
+        self.assertEqual(headline["display_supported_range"], "100-105 Exalted")
+
+    def test_manual_valuation_preview_inferred_display_range_ignores_non_influential_anchor_spread(self):
+        observations = [
+            {
+                "amount": amount,
+                "currency_asset_id": "dc:poe2:economy-asset:currency:divine-orb",
+                "external_listing_id": f"exact-divine-comparable-{amount}",
+                "observed_at": AS_OF,
+                "item_summary": "synthetic test-only exact structured comparable",
+                "comparable_clipboard_text": fixture("quiver_6_crafted_desecrated_advanced.txt"),
+            }
+            for amount in ("100", "105", "110")
+        ]
+        observations.append(
+            {
+                "amount": "450",
+                "currency_asset_id": "dc:poe2:economy-asset:currency:divine-orb",
+                "external_listing_id": "distant-gloom-barb-450-divine",
+                "observed_at": AS_OF,
+                "item_summary": "synthetic test-only distant same-currency upper anchor",
+                "comparable_clipboard_text": fixture("gloom_barb_visceral_quiver_comparable_advanced.txt"),
+            }
+        )
+
+        response = self.client.post(
+            "/api/v1/advisor/manual-valuation/preview",
+            json={
+                "subject_id": "current",
+                "subject_type": "CURRENT_ITEM",
+                "subject_clipboard_text": fixture("quiver_6_crafted_desecrated_advanced.txt"),
+                "league": LEAGUE,
+                "as_of": AS_OF,
+                "evidence": {"strategy": "STRICT", "observations": observations},
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        body = response.json()
+        estimate = body["comparable_valuation_estimate"]
+        self.assertEqual(estimate["inference_status"], "INFERRED_MARKET_BAND")
+        self.assertEqual(len(estimate["influential_observation_ids"]), 3)
+        self.assertTrue(all("strict:" in item for item in estimate["influential_observation_ids"]))
+        headline = body["market_valuation"]
+        self.assertEqual(headline["status"], "ESTIMATED_MARKET_VALUE")
+        self.assertEqual(headline["display_estimated_value"], "105 Divine")
+        self.assertEqual(headline["display_supported_range"], "100-105 Divine")
+        self.assertNotEqual(headline["display_supported_range"], "100-450 Divine")
 
     def test_manual_valuation_preview_price_only_evidence_has_no_relevance_score(self):
         response = self.client.post(
