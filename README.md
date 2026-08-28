@@ -90,6 +90,7 @@ Implemented API endpoints:
 - `POST /api/v1/items/parse`
 - `POST /api/v1/advisor/analyze`
 - `POST /api/v1/advisor/manual-valuation/preview`
+- `POST /api/v1/advisor/craft-investment/preview`
 - `POST /api/v1/observations/record`
 - `POST /api/v1/observations/export`
 - `POST /api/v1/observations/review`
@@ -149,3 +150,13 @@ npm run build
 ## Manual Valuation Workspace
 
 Manual comparable listing observations can be saved locally through the API and web Manual Valuation panel. The default workspace file is `.dcs/manual_valuation_workspace.json` and is ignored by git. Persistence is scoped by valuation subject (`current` or `outcome:{outcome_id}`) and does not automatically submit evidence to Advisor. See [docs/MANUAL_VALUATION_WORKSPACE.md](docs/MANUAL_VALUATION_WORKSPACE.md).
+
+## Craft Investment Ledger
+
+Realized base cost and crafting spend can be entered in the web workbench and
+previewed against the current market valuation status. The default local file is
+`.dcs/craft_investment_workspace.json`; set
+`DCS_CRAFT_INVESTMENT_WORKSPACE_PATH=disabled` for in-memory mode. Broad market
+brackets produce supported profit ranges only, and insufficient market evidence
+does not produce an unrealized profit point. See
+[docs/CRAFT_INVESTMENT_LEDGER.md](docs/CRAFT_INVESTMENT_LEDGER.md).

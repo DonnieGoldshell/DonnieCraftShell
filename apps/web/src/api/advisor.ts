@@ -23,6 +23,13 @@ export type EconomyQuoteWorkspaceSaveRequest = components["schemas"]["EconomyQuo
 export type EconomyQuoteWorkspaceSaveResponse = components["schemas"]["EconomyQuoteWorkspaceSaveResponseDto"];
 export type EconomyQuoteWorkspaceListResponse = components["schemas"]["EconomyQuoteWorkspaceListResponseDto"];
 export type EconomyQuoteWorkspaceDeleteResponse = components["schemas"]["EconomyQuoteWorkspaceDeleteResponseDto"];
+export type CraftInvestmentWorkspaceRecord = components["schemas"]["CraftInvestmentWorkspaceRecordDto"];
+export type CraftInvestmentWorkspaceSaveRequest = components["schemas"]["CraftInvestmentWorkspaceSaveRequestDto"];
+export type CraftInvestmentWorkspaceSaveResponse = components["schemas"]["CraftInvestmentWorkspaceSaveResponseDto"];
+export type CraftInvestmentWorkspaceListResponse = components["schemas"]["CraftInvestmentWorkspaceListResponseDto"];
+export type CraftInvestmentWorkspaceDeleteResponse = components["schemas"]["CraftInvestmentWorkspaceDeleteResponseDto"];
+export type CraftInvestmentPreviewRequest = components["schemas"]["CraftInvestmentPreviewRequestDto"];
+export type CraftInvestmentPreviewResponse = components["schemas"]["CraftInvestmentPreviewResponseDto"];
 export type OutcomeManualValuationEvidence = components["schemas"]["OutcomeManualValuationEvidenceDto"];
 export type CraftObservationRecordRequest = components["schemas"]["CraftObservationRecordRequestDto"];
 export type CraftObservationRecordResponse = components["schemas"]["CraftObservationRecordResponseDto"];
@@ -339,6 +346,95 @@ export async function clearEconomyQuoteWorkspaceQuotes(
   }
 
   return response.json() as Promise<EconomyQuoteWorkspaceDeleteResponse>;
+}
+
+export async function previewCraftInvestment(
+  request: CraftInvestmentPreviewRequest
+): Promise<CraftInvestmentPreviewResponse> {
+  const response = await fetch(`${API_BASE_URL}/api/v1/advisor/craft-investment/preview`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(request)
+  });
+
+  if (!response.ok) {
+    let message = `Craft investment preview API returned ${response.status}`;
+    try {
+      const payload = await response.json();
+      message = payload?.detail?.message ?? payload?.detail ?? message;
+    } catch {
+      // Keep the status-based message.
+    }
+    throw new Error(message);
+  }
+
+  return response.json() as Promise<CraftInvestmentPreviewResponse>;
+}
+
+export async function saveCraftInvestmentWorkspaceEntry(
+  request: CraftInvestmentWorkspaceSaveRequest
+): Promise<CraftInvestmentWorkspaceSaveResponse> {
+  const response = await fetch(`${API_BASE_URL}/api/v1/advisor/craft-investment/workspace/entries`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(request)
+  });
+
+  if (!response.ok) {
+    let message = `Craft investment workspace save API returned ${response.status}`;
+    try {
+      const payload = await response.json();
+      message = payload?.detail?.message ?? payload?.detail ?? message;
+    } catch {
+      // Keep the status-based message.
+    }
+    throw new Error(message);
+  }
+
+  return response.json() as Promise<CraftInvestmentWorkspaceSaveResponse>;
+}
+
+export async function listCraftInvestmentWorkspaceEntries(
+  ledgerId?: string,
+  subjectId?: string
+): Promise<CraftInvestmentWorkspaceListResponse> {
+  const query = new URLSearchParams();
+  if (ledgerId) query.set("ledger_id", ledgerId);
+  if (subjectId) query.set("subject_id", subjectId);
+  const suffix = query.toString() ? `?${query.toString()}` : "";
+  const response = await fetch(`${API_BASE_URL}/api/v1/advisor/craft-investment/workspace/entries${suffix}`);
+
+  if (!response.ok) {
+    throw new Error(`Craft investment workspace list API returned ${response.status}`);
+  }
+
+  return response.json() as Promise<CraftInvestmentWorkspaceListResponse>;
+}
+
+export async function clearCraftInvestmentWorkspaceLedger(
+  ledgerId: string
+): Promise<CraftInvestmentWorkspaceDeleteResponse> {
+  const response = await fetch(
+    `${API_BASE_URL}/api/v1/advisor/craft-investment/workspace/ledger?ledger_id=${encodeURIComponent(ledgerId)}`,
+    { method: "DELETE" }
+  );
+
+  if (!response.ok) {
+    let message = `Craft investment workspace clear API returned ${response.status}`;
+    try {
+      const payload = await response.json();
+      message = payload?.detail?.message ?? payload?.detail ?? message;
+    } catch {
+      // Keep the status-based message.
+    }
+    throw new Error(message);
+  }
+
+  return response.json() as Promise<CraftInvestmentWorkspaceDeleteResponse>;
 }
 
 export async function recordCraftObservation(

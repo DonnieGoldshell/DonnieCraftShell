@@ -7,6 +7,11 @@ from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, HTTPException
 
 from packages.shared.donniecraftshell_contracts.advisor_orchestration import CraftAdvisorOrchestrator
+from packages.shared.donniecraftshell_contracts.craft_investment import (
+    CRAFT_INVESTMENT_WORKSPACE_VERSION,
+    CraftInvestmentWorkspaceRepository,
+    CraftInvestmentWorkspaceSaveStatus,
+)
 from packages.shared.donniecraftshell_contracts.economy_repository import EconomyRepository
 from packages.shared.donniecraftshell_contracts.economy_quote_workspace import (
     ECONOMY_QUOTE_WORKSPACE_VERSION,
@@ -21,6 +26,7 @@ from packages.shared.donniecraftshell_contracts.manual_valuation_workspace impor
 
 from services.api.app.dependencies.advisor import (
     get_advisor_orchestrator,
+    get_craft_investment_workspace,
     get_economy_repository,
     get_economy_quote_workspace,
     get_manual_valuation_workspace,
@@ -28,12 +34,22 @@ from services.api.app.dependencies.advisor import (
 from services.api.app.mappers.advisor import (
     advisor_request_to_domain,
     advisor_result_to_dto,
+    craft_investment_preview_to_dto,
+    craft_investment_workspace_record_to_storage,
     manual_valuation_preview_to_dto,
     manual_valuation_workspace_record_to_storage,
 )
 from services.api.app.schemas.advisor import (
     AdvisorAnalyzeRequestDto,
     AdvisorAnalyzeResponseDto,
+    CraftInvestmentPreviewRequestDto,
+    CraftInvestmentPreviewResponseDto,
+    CraftInvestmentWorkspaceDeleteResponseDto,
+    CraftInvestmentWorkspaceListResponseDto,
+    CraftInvestmentWorkspacePersistenceStatusDto,
+    CraftInvestmentWorkspaceRecordDto,
+    CraftInvestmentWorkspaceSaveRequestDto,
+    CraftInvestmentWorkspaceSaveResponseDto,
     EconomyQuoteWorkspaceDeleteResponseDto,
     EconomyQuoteWorkspaceListResponseDto,
     EconomyQuoteWorkspacePersistenceStatusDto,
@@ -192,6 +208,88 @@ def preview_manual_valuation(
         ) from exc
 
 
+@router.post("/craft-investment/preview", response_model=CraftInvestmentPreviewResponseDto)
+def preview_craft_investment(
+    request: CraftInvestmentPreviewRequestDto,
+) -> CraftInvestmentPreviewResponseDto:
+    try:
+        return craft_investment_preview_to_dto(request)
+    except ValueError as exc:
+        _bad_request("Craft investment preview was rejected.", (str(exc),))
+
+
+@router.post("/craft-investment/workspace/entries", response_model=CraftInvestmentWorkspaceSaveResponseDto)
+def save_craft_investment_entry(
+    request: CraftInvestmentWorkspaceSaveRequestDto,
+    workspace: CraftInvestmentWorkspaceRepository = Depends(get_craft_investment_workspace),
+) -> CraftInvestmentWorkspaceSaveResponseDto:
+    result = workspace.save_record(craft_investment_workspace_record_to_storage(request.record))
+    if result.status == CraftInvestmentWorkspaceSaveStatus.REJECTED:
+        _bad_request("Craft investment workspace entry was rejected.", result.warnings)
+    return _craft_investment_save_response(result, workspace)
+
+
+@router.put("/craft-investment/workspace/entries/{entry_id}", response_model=CraftInvestmentWorkspaceSaveResponseDto)
+def update_craft_investment_entry(
+    entry_id: str,
+    request: CraftInvestmentWorkspaceSaveRequestDto,
+    workspace: CraftInvestmentWorkspaceRepository = Depends(get_craft_investment_workspace),
+) -> CraftInvestmentWorkspaceSaveResponseDto:
+    result = workspace.update_record(entry_id, craft_investment_workspace_record_to_storage(request.record))
+    if result.status in {CraftInvestmentWorkspaceSaveStatus.REJECTED, CraftInvestmentWorkspaceSaveStatus.NOT_FOUND}:
+        _bad_request("Craft investment workspace update was rejected.", result.warnings)
+    return _craft_investment_save_response(result, workspace)
+
+
+@router.get("/craft-investment/workspace/entries", response_model=CraftInvestmentWorkspaceListResponseDto)
+def list_craft_investment_entries(
+    ledger_id: str | None = None,
+    subject_id: str | None = None,
+    workspace: CraftInvestmentWorkspaceRepository = Depends(get_craft_investment_workspace),
+) -> CraftInvestmentWorkspaceListResponseDto:
+    return CraftInvestmentWorkspaceListResponseDto(
+        workspace_version=CRAFT_INVESTMENT_WORKSPACE_VERSION,
+        records=[CraftInvestmentWorkspaceRecordDto(**record) for record in workspace.list_records(ledger_id, subject_id)],
+        persistence=_craft_investment_persistence_to_dto(workspace.persistence_status()),
+    )
+
+
+@router.delete("/craft-investment/workspace/entries/{entry_id}", response_model=CraftInvestmentWorkspaceDeleteResponseDto)
+def delete_craft_investment_entry(
+    entry_id: str,
+    workspace: CraftInvestmentWorkspaceRepository = Depends(get_craft_investment_workspace),
+) -> CraftInvestmentWorkspaceDeleteResponseDto:
+    result = workspace.delete_record(entry_id)
+    if result.status == CraftInvestmentWorkspaceSaveStatus.REJECTED:
+        _bad_request("Craft investment workspace delete was rejected.", result.warnings)
+    return CraftInvestmentWorkspaceDeleteResponseDto(
+        workspace_version=CRAFT_INVESTMENT_WORKSPACE_VERSION,
+        status=result.status.value,
+        entry_id=result.entry_id,
+        deleted_count=1 if result.record else 0,
+        persistence=_craft_investment_persistence_to_dto(workspace.persistence_status()),
+        warnings=list(result.warnings),
+    )
+
+
+@router.delete("/craft-investment/workspace/ledger", response_model=CraftInvestmentWorkspaceDeleteResponseDto)
+def clear_craft_investment_ledger(
+    ledger_id: str,
+    workspace: CraftInvestmentWorkspaceRepository = Depends(get_craft_investment_workspace),
+) -> CraftInvestmentWorkspaceDeleteResponseDto:
+    result = workspace.clear_ledger(ledger_id)
+    if result.status == CraftInvestmentWorkspaceSaveStatus.REJECTED:
+        _bad_request("Craft investment workspace ledger clear was rejected.", result.warnings)
+    return CraftInvestmentWorkspaceDeleteResponseDto(
+        workspace_version=CRAFT_INVESTMENT_WORKSPACE_VERSION,
+        status=result.status.value,
+        entry_id=None,
+        deleted_count=len(result.records),
+        persistence=_craft_investment_persistence_to_dto(workspace.persistence_status()),
+        warnings=list(result.warnings),
+    )
+
+
 @router.post("/manual-valuation/workspace/evidence", response_model=ManualValuationWorkspaceSaveResponseDto)
 def save_manual_valuation_evidence(
     request: ManualValuationWorkspaceSaveRequestDto,
@@ -319,6 +417,26 @@ def _economy_quote_record_to_dto(record) -> EconomyQuoteWorkspaceRecordDto | Non
     return EconomyQuoteWorkspaceRecordDto(**record)
 
 
+def _craft_investment_save_response(
+    result,
+    workspace: CraftInvestmentWorkspaceRepository,
+) -> CraftInvestmentWorkspaceSaveResponseDto:
+    return CraftInvestmentWorkspaceSaveResponseDto(
+        workspace_version=CRAFT_INVESTMENT_WORKSPACE_VERSION,
+        status=result.status.value,
+        entry_id=result.entry_id,
+        record=_craft_investment_record_to_dto(result.record),
+        persistence=_craft_investment_persistence_to_dto(workspace.persistence_status()),
+        warnings=list(result.warnings),
+    )
+
+
+def _craft_investment_record_to_dto(record) -> CraftInvestmentWorkspaceRecordDto | None:
+    if record is None:
+        return None
+    return CraftInvestmentWorkspaceRecordDto(**record)
+
+
 def _manual_workspace_persistence_to_dto(status) -> ManualValuationWorkspacePersistenceStatusDto:
     return ManualValuationWorkspacePersistenceStatusDto(
         storage_version=status.storage_version,
@@ -337,6 +455,17 @@ def _economy_quote_persistence_to_dto(status) -> EconomyQuoteWorkspacePersistenc
         persistence_enabled=status.persistence_enabled,
         loaded_quote_count=status.loaded_quote_count,
         skipped_quote_count=status.skipped_quote_count,
+        warnings=list(status.warnings),
+    )
+
+
+def _craft_investment_persistence_to_dto(status) -> CraftInvestmentWorkspacePersistenceStatusDto:
+    return CraftInvestmentWorkspacePersistenceStatusDto(
+        storage_version=status.storage_version,
+        storage_mode=status.storage_mode,
+        persistence_enabled=status.persistence_enabled,
+        loaded_entry_count=status.loaded_entry_count,
+        skipped_entry_count=status.skipped_entry_count,
         warnings=list(status.warnings),
     )
 

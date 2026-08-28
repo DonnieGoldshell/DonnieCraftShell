@@ -36,6 +36,7 @@ POST /api/v1/crafts/expected-value
 POST /api/v1/advisor
 POST /api/v1/advisor/analyze
 POST /api/v1/advisor/manual-valuation/preview
+POST /api/v1/advisor/craft-investment/preview
 POST /api/v1/advisor/economy-quotes/workspace/quotes
 GET  /api/v1/advisor/economy-quotes/workspace/quotes
 POST /api/v1/observations/workspace/records
@@ -166,6 +167,15 @@ player-readable display strings, inference confidence, and
 `market_valuation.estimated_value` for headline estimated market value and must
 not fall back to preview `estimated_value` when `market_valuation.status` is
 not `ESTIMATED_MARKET_VALUE`.
+
+Issue 69 adds craft investment transport contracts. Ledger preview accepts
+operator-entered realized cost entries plus the current `market_valuation`
+object and returns cost basis and current profit-position status. Point
+unrealized profit is serialized only for `ESTIMATED_MARKET_VALUE`; range-only
+valuation serializes supported profit low/high only; insufficient market
+evidence returns no fabricated profit. Local workspace endpoints persist ledger
+entries under `.dcs/` and do not submit, infer, or recommend actions by
+themselves.
 
 Task 15B extends the same endpoint with optional empirical probability dataset selection and serialized probability evidence details. Default production assembly skips synthetic empirical fixtures and keeps real actions `UNKNOWN` without compatible evidence.
 

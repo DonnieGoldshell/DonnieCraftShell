@@ -21,6 +21,76 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/advisor/craft-investment/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Preview Craft Investment */
+        post: operations["preview_craft_investment_api_v1_advisor_craft_investment_preview_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/advisor/craft-investment/workspace/entries": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Craft Investment Entries */
+        get: operations["list_craft_investment_entries_api_v1_advisor_craft_investment_workspace_entries_get"];
+        put?: never;
+        /** Save Craft Investment Entry */
+        post: operations["save_craft_investment_entry_api_v1_advisor_craft_investment_workspace_entries_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/advisor/craft-investment/workspace/entries/{entry_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Update Craft Investment Entry */
+        put: operations["update_craft_investment_entry_api_v1_advisor_craft_investment_workspace_entries__entry_id__put"];
+        post?: never;
+        /** Delete Craft Investment Entry */
+        delete: operations["delete_craft_investment_entry_api_v1_advisor_craft_investment_workspace_entries__entry_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/advisor/craft-investment/workspace/ledger": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Clear Craft Investment Ledger */
+        delete: operations["clear_craft_investment_ledger_api_v1_advisor_craft_investment_workspace_ledger_delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/advisor/economy-quotes/workspace/quotes": {
         parameters: {
             query?: never;
@@ -895,6 +965,196 @@ export interface components {
              */
             warnings: string[];
         };
+        /** CraftInvestmentCostBasisDto */
+        CraftInvestmentCostBasisDto: {
+            base_acquisition_total: components["schemas"]["EconomicValueDto"];
+            crafting_spend_total: components["schemas"]["EconomicValueDto"];
+            /**
+             * Included Entry Ids
+             * @default []
+             */
+            included_entry_ids: string[];
+            /**
+             * Incomplete Entry Ids
+             * @default []
+             */
+            incomplete_entry_ids: string[];
+            known_invested: components["schemas"]["EconomicValueDto"];
+            /** Ledger Id */
+            ledger_id: string;
+            /** Status */
+            status: string;
+            total_invested?: components["schemas"]["EconomicValueDto"] | null;
+            /**
+             * Warnings
+             * @default []
+             */
+            warnings: string[];
+        };
+        /** CraftInvestmentPreviewRequestDto */
+        CraftInvestmentPreviewRequestDto: {
+            /**
+             * Entries
+             * @default []
+             */
+            entries: components["schemas"]["CraftInvestmentWorkspaceRecordDto"][];
+            /**
+             * Ledger Id
+             * @default current
+             */
+            ledger_id: string;
+            market_valuation: components["schemas"]["MarketValuationPresentationDto"];
+            /**
+             * Subject Id
+             * @default current
+             */
+            subject_id: string;
+        };
+        /** CraftInvestmentPreviewResponseDto */
+        CraftInvestmentPreviewResponseDto: {
+            /** Base Entry Count */
+            base_entry_count: number;
+            cost_basis: components["schemas"]["CraftInvestmentCostBasisDto"];
+            /** Crafting Spend Entry Count */
+            crafting_spend_entry_count: number;
+            current_profit_position: components["schemas"]["CurrentProfitPositionDto"];
+            /** Entry Count */
+            entry_count: number;
+            /** Ledger Id */
+            ledger_id: string;
+            /** Ledger Version */
+            ledger_version: string;
+            /** Subject Id */
+            subject_id: string;
+            /**
+             * Warnings
+             * @default []
+             */
+            warnings: string[];
+        };
+        /** CraftInvestmentWorkspaceDeleteResponseDto */
+        CraftInvestmentWorkspaceDeleteResponseDto: {
+            /**
+             * Deleted Count
+             * @default 0
+             */
+            deleted_count: number;
+            /** Entry Id */
+            entry_id?: string | null;
+            persistence: components["schemas"]["CraftInvestmentWorkspacePersistenceStatusDto"];
+            /** Status */
+            status: string;
+            /**
+             * Warnings
+             * @default []
+             */
+            warnings: string[];
+            /** Workspace Version */
+            workspace_version: string;
+        };
+        /** CraftInvestmentWorkspaceListResponseDto */
+        CraftInvestmentWorkspaceListResponseDto: {
+            persistence: components["schemas"]["CraftInvestmentWorkspacePersistenceStatusDto"];
+            /** Records */
+            records: components["schemas"]["CraftInvestmentWorkspaceRecordDto"][];
+            /**
+             * Warnings
+             * @default []
+             */
+            warnings: string[];
+            /** Workspace Version */
+            workspace_version: string;
+        };
+        /** CraftInvestmentWorkspacePersistenceStatusDto */
+        CraftInvestmentWorkspacePersistenceStatusDto: {
+            /** Loaded Entry Count */
+            loaded_entry_count: number;
+            /** Persistence Enabled */
+            persistence_enabled: boolean;
+            /**
+             * Skipped Entry Count
+             * @default 0
+             */
+            skipped_entry_count: number;
+            /** Storage Mode */
+            storage_mode: string;
+            /** Storage Version */
+            storage_version: string;
+            /**
+             * Warnings
+             * @default []
+             */
+            warnings: string[];
+        };
+        /** CraftInvestmentWorkspaceRecordDto */
+        CraftInvestmentWorkspaceRecordDto: {
+            /** Action Id */
+            action_id?: string | null;
+            /**
+             * Amount
+             * @description Original Decimal cost amount encoded as string.
+             */
+            amount: string;
+            /** Created At */
+            created_at?: string | null;
+            /** Currency Asset Id */
+            currency_asset_id: string;
+            /**
+             * Description
+             * @default
+             */
+            description: string;
+            /** Economy Snapshot Id */
+            economy_snapshot_id?: string | null;
+            /** Entry Id */
+            entry_id?: string | null;
+            /** Incurred At */
+            incurred_at?: string | null;
+            /** Kind */
+            kind: string;
+            /**
+             * Ledger Id
+             * @default current
+             */
+            ledger_id: string;
+            normalized_value?: components["schemas"]["EconomicValueDto"] | null;
+            /** Notes */
+            notes?: string | null;
+            /** Source Reference */
+            source_reference?: string | null;
+            /**
+             * Subject Id
+             * @default current
+             */
+            subject_id: string;
+            /** Updated At */
+            updated_at?: string | null;
+            /**
+             * Warnings
+             * @default []
+             */
+            warnings: string[];
+        };
+        /** CraftInvestmentWorkspaceSaveRequestDto */
+        CraftInvestmentWorkspaceSaveRequestDto: {
+            record: components["schemas"]["CraftInvestmentWorkspaceRecordDto"];
+        };
+        /** CraftInvestmentWorkspaceSaveResponseDto */
+        CraftInvestmentWorkspaceSaveResponseDto: {
+            /** Entry Id */
+            entry_id?: string | null;
+            persistence: components["schemas"]["CraftInvestmentWorkspacePersistenceStatusDto"];
+            record?: components["schemas"]["CraftInvestmentWorkspaceRecordDto"] | null;
+            /** Status */
+            status: string;
+            /**
+             * Warnings
+             * @default []
+             */
+            warnings: string[];
+            /** Workspace Version */
+            workspace_version: string;
+        };
         /** CraftObservationExportRequestDto */
         CraftObservationExportRequestDto: {
             /** Observations */
@@ -1050,6 +1310,34 @@ export interface components {
             raw_record_id?: string | null;
             /** Reason */
             reason: string;
+        };
+        /** CurrentProfitPositionDto */
+        CurrentProfitPositionDto: {
+            /** Confidence Level */
+            confidence_level?: string | null;
+            known_invested?: components["schemas"]["EconomicValueDto"] | null;
+            /** Label */
+            label: string;
+            /** Ledger Id */
+            ledger_id: string;
+            market_estimated_value?: components["schemas"]["EconomicValueDto"] | null;
+            /** Market Valuation Status */
+            market_valuation_status: string;
+            /** Status */
+            status: string;
+            supported_market_high?: components["schemas"]["EconomicValueDto"] | null;
+            supported_market_low?: components["schemas"]["EconomicValueDto"] | null;
+            supported_profit_high?: components["schemas"]["EconomicValueDto"] | null;
+            supported_profit_low?: components["schemas"]["EconomicValueDto"] | null;
+            total_invested?: components["schemas"]["EconomicValueDto"] | null;
+            unrealized_profit?: components["schemas"]["EconomicValueDto"] | null;
+            /** Unrealized Roi */
+            unrealized_roi?: string | null;
+            /**
+             * Warnings
+             * @default []
+             */
+            warnings: string[];
         };
         /** EconomicValueDto */
         EconomicValueDto: {
@@ -2382,6 +2670,201 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AdvisorAnalyzeResponseDto"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    preview_craft_investment_api_v1_advisor_craft_investment_preview_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CraftInvestmentPreviewRequestDto"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CraftInvestmentPreviewResponseDto"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_craft_investment_entries_api_v1_advisor_craft_investment_workspace_entries_get: {
+        parameters: {
+            query?: {
+                ledger_id?: string | null;
+                subject_id?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CraftInvestmentWorkspaceListResponseDto"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    save_craft_investment_entry_api_v1_advisor_craft_investment_workspace_entries_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CraftInvestmentWorkspaceSaveRequestDto"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CraftInvestmentWorkspaceSaveResponseDto"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_craft_investment_entry_api_v1_advisor_craft_investment_workspace_entries__entry_id__put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                entry_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CraftInvestmentWorkspaceSaveRequestDto"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CraftInvestmentWorkspaceSaveResponseDto"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_craft_investment_entry_api_v1_advisor_craft_investment_workspace_entries__entry_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                entry_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CraftInvestmentWorkspaceDeleteResponseDto"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    clear_craft_investment_ledger_api_v1_advisor_craft_investment_workspace_ledger_delete: {
+        parameters: {
+            query: {
+                ledger_id: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CraftInvestmentWorkspaceDeleteResponseDto"];
                 };
             };
             /** @description Validation Error */

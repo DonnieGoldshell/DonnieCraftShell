@@ -8,6 +8,10 @@ from packages.shared.donniecraftshell_contracts.advisor_orchestration import Cra
 from packages.shared.donniecraftshell_contracts.affix_capacity import AffixStateResolver, load_affix_capacity_dataset
 from packages.shared.donniecraftshell_contracts.analytical_probability_registry import AnalyticalMechanicRegistry
 from packages.shared.donniecraftshell_contracts.crafting_actions import CraftActionEngine, load_crafting_dataset
+from packages.shared.donniecraftshell_contracts.craft_investment import (
+    CraftInvestmentWorkspaceRepository,
+    FileBackedCraftInvestmentWorkspaceRepository,
+)
 from packages.shared.donniecraftshell_contracts.economy_repository import EconomyRepository
 from packages.shared.donniecraftshell_contracts.economy_quote_workspace import (
     EconomyQuoteWorkspaceRepository,
@@ -92,6 +96,14 @@ def get_economy_quote_workspace() -> EconomyQuoteWorkspaceRepository:
     if settings.economy_quote_workspace_storage_path is not None:
         return FileBackedEconomyQuoteWorkspaceRepository(settings.economy_quote_workspace_storage_path)
     return EconomyQuoteWorkspaceRepository()
+
+
+@lru_cache(maxsize=1)
+def get_craft_investment_workspace() -> CraftInvestmentWorkspaceRepository:
+    settings = get_cached_settings()
+    if settings.craft_investment_workspace_storage_path is not None:
+        return FileBackedCraftInvestmentWorkspaceRepository(settings.craft_investment_workspace_storage_path)
+    return CraftInvestmentWorkspaceRepository()
 
 
 @lru_cache(maxsize=1)

@@ -47,6 +47,7 @@ apps/web
 - **Advisor Decision Engine**: compares SELL NOW with EV-ready craft candidates and may return `NO_RECOMMENDATION`; scenario-only actions remain non-rankable.
 - **Risk And Bankroll Policy**: filters raw Advisor decisions by transparent bankroll/exposure gates without modifying EV.
 - **Advisor Orchestration**: composes parser, enrichment, affix state, action candidates, costs, outcomes, probabilities, valuations, scenarios, EV, raw Advisor decision, and optional risk adjustment into one partial-result-aware analysis.
+- **Craft Investment Ledger**: records operator-entered realized base cost and historical crafting spend, then compares complete cost basis to authoritative market valuation status without fabricating point profit from broad brackets or diagnostic medians.
 - **Modifier Pool Resolver**: filters natural explicit modifier candidates by item class, side, item level, capacity, and source-backed modifier-group conflicts.
 - **Craft Simulator**: models legal actions and outcomes only when mechanics are verified.
 
@@ -203,3 +204,11 @@ See [GAME_DATA_IMPORT.md](GAME_DATA_IMPORT.md) and [MODIFIER_RESOLUTION.md](MODI
 ## Manual Valuation Workspace
 
 The API includes a framework-independent manual valuation evidence workspace used by the Manual Valuation panel. It persists operator-entered listing observations locally, enforces canonical subject identity, and keeps persistence separate from valuation preview, Advisor analysis, and EV readiness. See [MANUAL_VALUATION_WORKSPACE.md](MANUAL_VALUATION_WORKSPACE.md).
+
+## Craft Investment Workspace
+
+Issue 69 adds [CRAFT_INVESTMENT_LEDGER.md](CRAFT_INVESTMENT_LEDGER.md). The
+craft investment workspace persists realized operator-entered ledger entries
+locally under `.dcs/craft_investment_workspace.json` by default. It is an
+accounting input for current profit position only; it does not infer spend,
+scrape prices, recommend SELL/CONTINUE/STOP, or alter Advisor EV math.

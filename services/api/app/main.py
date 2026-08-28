@@ -22,7 +22,7 @@ if settings.cors_allowed_origins:
         CORSMiddleware,
         allow_origins=list(settings.cors_allowed_origins),
         allow_credentials=False,
-        allow_methods=["GET", "POST", "OPTIONS"],
+        allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
         allow_headers=["content-type"],
     )
 app.include_router(health.router)
