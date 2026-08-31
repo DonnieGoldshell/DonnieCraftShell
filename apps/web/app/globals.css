@@ -476,6 +476,41 @@ th {
   padding-top: 12px;
 }
 
+.decision-economics {
+  border-top: 1px solid var(--line);
+  margin-top: 12px;
+  padding-top: 12px;
+}
+
+.decision-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin: 12px 0;
+}
+
+.decision-grid div {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 10px;
+}
+
+.decision-grid dt {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.decision-grid dd {
+  margin: 4px 0 0;
+  font-weight: 700;
+}
+
+.why-disclosure {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 10px;
+}
+
 .evidence-form {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));

@@ -483,7 +483,7 @@ class AdvisorApiTests(unittest.TestCase):
         initial = self.client.post("/api/v1/advisor/analyze", json=base_request()).json()
         annulment = self._action(initial, "dc:poe2:craft-action:orb-of-annulment")
         request = base_request()
-        request["current_valuation_evidence"] = self._valuation_evidence("100")
+        request["current_valuation_evidence"] = self._inferred_market_evidence("100", "105", "110")
         request["outcome_valuation_evidence"] = [
             {"outcome_id": outcome_id, "evidence": self._valuation_evidence("110")}
             for outcome_id in annulment["outcome_ids"]
@@ -807,6 +807,53 @@ class AdvisorApiTests(unittest.TestCase):
         self.assertEqual(headline["display_estimated_value"], "Insufficient precision")
         self.assertEqual(headline["display_supported_range"], "45-450 Divine")
         self.assertEqual(headline["legacy_statistical_median"]["amount"], "152190.0")
+
+    def test_advisor_analyze_broad_market_evidence_does_not_create_stop_continue_recommendation(self):
+        request = base_request()
+        request["current_valuation_evidence"] = {
+            "strategy": "STRICT",
+            "observations": [
+                {
+                    "amount": "450",
+                    "currency_asset_id": "dc:poe2:economy-asset:currency:divine-orb",
+                    "external_listing_id": "gloom-barb-450-divine",
+                    "observed_at": AS_OF,
+                    "item_summary": "synthetic test-only structured comparable upper anchor",
+                    "comparable_clipboard_text": fixture("gloom_barb_visceral_quiver_comparable_advanced.txt"),
+                },
+                {
+                    "amount": "450",
+                    "currency_asset_id": "dc:poe2:economy-asset:currency:divine-orb",
+                    "external_listing_id": "bramble-barb-450-divine",
+                    "observed_at": AS_OF,
+                    "item_summary": "synthetic test-only second upper anchor using same parsed fixture shape",
+                    "comparable_clipboard_text": fixture("gloom_barb_visceral_quiver_comparable_advanced.txt"),
+                },
+                {
+                    "amount": "45",
+                    "currency_asset_id": "dc:poe2:economy-asset:currency:divine-orb",
+                    "external_listing_id": "skull-quill-45-divine",
+                    "observed_at": AS_OF,
+                    "item_summary": "synthetic test-only structured comparable lower anchor",
+                    "comparable_clipboard_text": fixture("skull_quill_primed_quiver_comparable_advanced.txt"),
+                },
+            ],
+        }
+
+        response = self.client.post("/api/v1/advisor/analyze", json=request)
+
+        self.assertEqual(response.status_code, 200)
+        body = response.json()
+        self.assertEqual(body["current_market_valuation"]["status"], "SUPPORTED_RANGE_ONLY")
+        self.assertIsNone(body["current_market_valuation"]["estimated_value"])
+        self.assertEqual(body["current_market_valuation"]["supported_low"]["amount"], "15219.0")
+        self.assertEqual(body["current_market_valuation"]["supported_high"]["amount"], "152190.0")
+        self.assertEqual(body["current_market_valuation"]["display_supported_range"], "45-450 Divine")
+        self.assertEqual(body["decision"]["decision_type"], "NO_RECOMMENDATION")
+        self.assertEqual(body["stop_continue_decision"]["decision_type"], "NO_RECOMMENDATION")
+        self.assertEqual(body["stop_continue_decision"]["readiness"], "NO_POINT_SELL_BASELINE")
+        self.assertIsNone(body["stop_continue_decision"]["sell_now_value"])
+        self.assertTrue(any("point market valuation" in item for item in body["stop_continue_decision"]["blockers"]))
 
     def test_manual_valuation_preview_insufficient_evidence_has_no_headline_estimate(self):
         response = self.client.post(
@@ -1317,7 +1364,7 @@ class AdvisorApiTests(unittest.TestCase):
         initial = self.client.post("/api/v1/advisor/analyze", json=base_request()).json()
         annulment = self._action(initial, "dc:poe2:craft-action:orb-of-annulment")
         request = base_request()
-        request["current_valuation_evidence"] = self._valuation_evidence("100")
+        request["current_valuation_evidence"] = self._inferred_market_evidence("100", "105", "110")
         request["outcome_valuation_evidence"] = [
             {"outcome_id": outcome_id, "evidence": self._valuation_evidence("130")}
             for outcome_id in annulment["outcome_ids"]
@@ -1333,8 +1380,38 @@ class AdvisorApiTests(unittest.TestCase):
         self.assertEqual(body["status"], "DECISION_READY")
         self.assertEqual(body["decision"]["decision_type"], "CRAFT")
         self.assertEqual(body["risk_adjusted_decision"]["decision_type"], "CRAFT")
+        self.assertEqual(body["current_market_valuation"]["status"], "ESTIMATED_MARKET_VALUE")
+        self.assertEqual(body["stop_continue_decision"]["decision_type"], "CRAFT")
+        self.assertEqual(body["stop_continue_decision"]["expected_incremental_craft_cost"]["amount"], "10")
         self.assertTrue(annulment["expected_value"]["available"])
         self.assertEqual(annulment["expected_value"]["net_expected_value"]["amount"], "120.0000000000000000000000000")
+
+    def test_stop_continue_decision_follows_risk_adjusted_veto(self):
+        self._install_synthetic_dependencies()
+        initial = self.client.post("/api/v1/advisor/analyze", json=base_request()).json()
+        annulment = self._action(initial, "dc:poe2:craft-action:orb-of-annulment")
+        request = base_request()
+        request["current_valuation_evidence"] = self._inferred_market_evidence("100", "105", "110")
+        request["outcome_valuation_evidence"] = [
+            {"outcome_id": outcome_id, "evidence": self._valuation_evidence("130")}
+            for outcome_id in annulment["outcome_ids"]
+        ]
+        request["bankroll"] = {"amount": "20", "unit": "EXALTED_ECONOMIC_UNIT"}
+        request["risk_profile"] = "CONSERVATIVE"
+
+        response = self.client.post("/api/v1/advisor/analyze", json=request)
+
+        self.assertEqual(response.status_code, 200)
+        body = response.json()
+        self.assertEqual(body["decision"]["decision_type"], "CRAFT")
+        self.assertEqual(body["risk_adjusted_decision"]["decision_type"], "SELL_NOW")
+        self.assertEqual(body["stop_continue_decision"]["decision_type"], "SELL_NOW")
+        self.assertIsNone(body["stop_continue_decision"]["selected_action_id"])
+        self.assertEqual(
+            body["stop_continue_decision"]["best_continue_action_id"],
+            "dc:poe2:craft-action:orb-of-annulment",
+        )
+        self.assertTrue(any("risk policy rejects" in reason for reason in body["stop_continue_decision"]["reasons"]))
 
     def test_synthetic_empirical_probability_flows_through_api_response(self):
         self._install_synthetic_empirical_dependencies()
@@ -1342,7 +1419,7 @@ class AdvisorApiTests(unittest.TestCase):
         annulment = self._action(initial, "dc:poe2:craft-action:orb-of-annulment")
         request = base_request()
         request["empirical_probability_dataset_version"] = "synthetic-api-empirical-probability"
-        request["current_valuation_evidence"] = self._valuation_evidence("100")
+        request["current_valuation_evidence"] = self._inferred_market_evidence("100", "105", "110")
         request["outcome_valuation_evidence"] = [
             {"outcome_id": outcome_id, "evidence": self._valuation_evidence("130")}
             for outcome_id in annulment["outcome_ids"]
@@ -1362,6 +1439,7 @@ class AdvisorApiTests(unittest.TestCase):
         self.assertIsInstance(annulment["probability"]["outcome_probabilities"][0]["probability"], str)
         self.assertTrue(annulment["expected_value"]["available"])
         self.assertEqual(body["decision"]["decision_type"], "CRAFT")
+        self.assertEqual(body["stop_continue_decision"]["decision_type"], "CRAFT")
 
     def test_context_incompatible_empirical_probability_surfaces_unknown_warning(self):
         self._install_synthetic_empirical_dependencies()
@@ -1931,7 +2009,7 @@ class AdvisorApiTests(unittest.TestCase):
         self.assertFalse(initial_exalted["missing_requirements"])
 
         missing_economy_request = base_request()
-        missing_economy_request["current_valuation_evidence"] = self._valuation_evidence("100")
+        missing_economy_request["current_valuation_evidence"] = self._inferred_market_evidence("100", "105", "110")
         missing_economy_request["outcome_valuation_evidence"] = [
             {"outcome_id": outcome_id, "evidence": self._valuation_evidence("130")}
             for outcome_id in initial_annulment["outcome_ids"]
@@ -1996,6 +2074,9 @@ class AdvisorApiTests(unittest.TestCase):
         self.assertEqual(ready["decision"]["decision_type"], "CRAFT")
         self.assertEqual(ready["decision"]["selected_candidate_id"], f"advisor-candidate:craft:{initial_annulment['action_id']}")
         self.assertEqual(ready["risk_adjusted_decision"]["decision_type"], "CRAFT")
+        self.assertEqual(ready["stop_continue_decision"]["decision_type"], "CRAFT")
+        self.assertEqual(ready["stop_continue_decision"]["best_continue_action_id"], initial_annulment["action_id"])
+        self.assertEqual(ready["stop_continue_decision"]["expected_incremental_craft_cost"]["amount"], "7.5")
         self.assertFalse(self._has_missing(ready, "ECONOMY_QUOTE_REQUIRED", initial_annulment["action_id"]))
         self.assertFalse(self._has_missing(ready, "PROBABILITY_EVIDENCE_REQUIRED", initial_annulment["action_id"]))
         self.assertFalse(self._has_missing(ready, "OUTCOME_VALUATION_EVIDENCE_REQUIRED", initial_annulment["action_id"]))
@@ -2512,6 +2593,23 @@ class AdvisorApiTests(unittest.TestCase):
                 for index in range(3)
             ],
             "notes": "synthetic test-only valuation evidence",
+        }
+
+    def _inferred_market_evidence(self, *amounts: str) -> dict:
+        return {
+            "strategy": "STRICT",
+            "observations": [
+                {
+                    "amount": amount,
+                    "currency_asset_id": "dc:poe2:economy-asset:currency:exalted-orb",
+                    "external_listing_id": f"synthetic-inferred-{amount}-{index}",
+                    "observed_at": AS_OF,
+                    "item_summary": "synthetic test-only structured same-item comparable",
+                    "comparable_clipboard_text": fixture("quiver_6_crafted_desecrated_advanced.txt"),
+                }
+                for index, amount in enumerate(amounts)
+            ],
+            "notes": "synthetic test-only inferred market band evidence",
         }
 
     def _manual_workspace_record(

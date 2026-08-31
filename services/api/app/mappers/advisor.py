@@ -31,6 +31,7 @@ from packages.shared.donniecraftshell_contracts.craft_investment import (
     CraftInvestmentLedger,
     CurrentMarketValuation,
 )
+from packages.shared.donniecraftshell_contracts.decision_economics import StopContinueDecisionEconomics
 from packages.shared.donniecraftshell_contracts.game_data import ItemEnrichment, ResolutionStatus
 from packages.shared.donniecraftshell_contracts.parser import parse_clipboard_item
 from packages.shared.donniecraftshell_contracts.valuation import (
@@ -41,6 +42,7 @@ from packages.shared.donniecraftshell_contracts.valuation import (
     ComparableRelevanceAssessor,
     ComparableValuationAnchor,
     ComparableValuationEstimate,
+    ComparableMarketInferenceStatus,
     ComparableValuationModel,
     ComparableValuationUsefulness,
     ManualListingObservation,
@@ -49,6 +51,8 @@ from packages.shared.donniecraftshell_contracts.valuation import (
     StructuredComparableItem,
     ValuationAggregator,
     ValuationEvidencePolicy,
+    ValuationEstimateType,
+    ValuationReadiness,
     ValuationResult,
     evidence_set_from_results,
 )
@@ -94,6 +98,7 @@ from services.api.app.schemas.advisor import (
     ProbabilitySummaryDto,
     RiskAdjustedDecisionDto,
     ScenarioSummaryDto,
+    StopContinueDecisionEconomicsDto,
     StructuredComparableItemDto,
     ValuationConfidenceDto,
 )
@@ -104,12 +109,13 @@ def advisor_request_to_domain(
     economy_repository: EconomyRepository,
 ) -> AdvisorAnalysisRequest:
     as_of = request.as_of or datetime.now(timezone.utc)
-    current_valuation = _valuation_from_evidence(
+    current_valuation, current_market_valuation = _current_valuation_from_evidence(
         request.current_valuation_evidence,
         "current",
         request.league,
         economy_repository,
         as_of,
+        request.clipboard_text,
     )
     outcome_valuations = {
         item.outcome_id: valuation
@@ -144,6 +150,7 @@ def advisor_request_to_domain(
         affix_capacity_dataset_version=request.affix_capacity_dataset_version,
         empirical_probability_dataset_version=request.empirical_probability_dataset_version,
         current_valuation=current_valuation,
+        current_market_valuation=current_market_valuation,
         outcome_valuations_by_outcome_id=outcome_valuations,
         risk_context=_risk_context(request),
         as_of=as_of,
@@ -171,8 +178,10 @@ def advisor_result_to_dto(result: AdvisorAnalysisResult) -> AdvisorAnalyzeRespon
             _action_result_to_dto(action_result, advisor_status.get(action_result.action_id))
             for action_result in result.action_results
         ],
+        current_market_valuation=_market_valuation_to_dto(result),
         decision=_decision_to_dto(result.raw_advisor_decision),
         risk_adjusted_decision=_risk_decision_to_dto(result.risk_adjusted_decision),
+        stop_continue_decision=_stop_continue_to_dto(result.stop_continue_decision),
         evidence_readiness=_evidence_readiness_to_dto(result.evidence_readiness),
         missing_requirements=[_missing_to_dto(item) for item in result.missing_requirements],
         warnings=list(result.warnings),
@@ -321,6 +330,59 @@ def _valuation_from_evidence(
     return ValuationAggregator().aggregate(evidence_set)
 
 
+def _current_valuation_from_evidence(
+    evidence: ManualValuationEvidenceDto | None,
+    subject_id: str,
+    league: str,
+    economy_repository: EconomyRepository,
+    as_of: datetime,
+    subject_clipboard_text: str | None = None,
+) -> tuple[ValuationResult | None, CurrentMarketValuation | None]:
+    if evidence is None:
+        return None, None
+    evidence_set = _manual_evidence_set(evidence, subject_id, league, economy_repository, as_of, subject_clipboard_text)
+    aggregate = ValuationAggregator().aggregate(evidence_set)
+    comparable = ComparableValuationModel().estimate(evidence_set)
+    presentation = _market_valuation_presentation_to_dto(aggregate, comparable)
+    market = _market_valuation_from_dto(presentation)
+    return _valuation_result_with_market_authority(aggregate, comparable), market
+
+
+def _valuation_result_with_market_authority(
+    aggregate: ValuationResult,
+    comparable: ComparableValuationEstimate,
+) -> ValuationResult:
+    warnings = (
+        *aggregate.warnings,
+        *comparable.warnings,
+        "Current item sell-now baseline is controlled by Comparable Valuation Model inference status.",
+    )
+    if comparable.inference_status == ComparableMarketInferenceStatus.INFERRED_MARKET_BAND:
+        return replace(
+            aggregate,
+            readiness=ValuationReadiness.READY if comparable.status.value == "READY" else ValuationReadiness.PARTIAL,
+            estimate_type=ValuationEstimateType.LISTING_DERIVED,
+            estimated_value=comparable.inferred_market_central,
+            plausible_low=comparable.inferred_market_low,
+            plausible_high=comparable.inferred_market_high,
+            confidence=comparable.confidence,
+            warnings=warnings,
+        )
+    return replace(
+        aggregate,
+        readiness=ValuationReadiness.INSUFFICIENT_DATA,
+        estimate_type=ValuationEstimateType.NONE,
+        estimated_value=None,
+        plausible_low=None,
+        plausible_high=None,
+        confidence=comparable.confidence or aggregate.confidence,
+        warnings=(
+            *warnings,
+            "Current item comparable evidence does not support a point sell-now baseline.",
+        ),
+    )
+
+
 def _craft_investment_entry_from_dto(
     record: CraftInvestmentWorkspaceRecordDto,
     index: int = 0,
@@ -367,6 +429,9 @@ def _market_valuation_from_dto(dto: MarketValuationPresentationDto) -> CurrentMa
             if dto.supported_high is not None
             else None
         ),
+        source_inference_status=dto.source_inference_status,
+        display_estimated_value=dto.display_estimated_value,
+        display_supported_range=dto.display_supported_range,
         legacy_statistical_median=(
             EconomicValue(Decimal(dto.legacy_statistical_median.amount), dto.legacy_statistical_median.unit)
             if dto.legacy_statistical_median is not None
@@ -1065,6 +1130,58 @@ def _decision_to_dto(decision: AdvisorDecision | None) -> AdvisorDecisionDto | N
         decision_type=decision.decision_type.value,
         selected_candidate_id=decision.selected_candidate_id,
         reasons=list(decision.decision_reasons),
+        warnings=list(decision.warnings),
+        algorithm_version=decision.algorithm_version,
+    )
+
+
+def _market_valuation_to_dto(result: AdvisorAnalysisResult) -> MarketValuationPresentationDto | None:
+    valuation = result.current_market_valuation
+    if valuation is None:
+        return None
+    return MarketValuationPresentationDto(
+        status=valuation.status,
+        estimated_value=economic_value_to_dto(valuation.estimated_value),
+        supported_low=economic_value_to_dto(valuation.supported_low),
+        supported_high=economic_value_to_dto(valuation.supported_high),
+        source_inference_status=valuation.source_inference_status,
+        display_estimated_value=valuation.display_estimated_value,
+        display_supported_range=valuation.display_supported_range,
+        confidence=(
+            ValuationConfidenceDto(
+                level=valuation.confidence_level,
+                reasons=[],
+            )
+            if valuation.confidence_level
+            else None
+        ),
+        legacy_statistical_median=economic_value_to_dto(valuation.legacy_statistical_median),
+        warnings=list(valuation.warnings),
+    )
+
+
+def _stop_continue_to_dto(decision: StopContinueDecisionEconomics | None) -> StopContinueDecisionEconomicsDto | None:
+    if decision is None:
+        return None
+    return StopContinueDecisionEconomicsDto(
+        decision_type=decision.decision_type.value,
+        readiness=decision.readiness.value,
+        selected_candidate_id=decision.selected_candidate_id,
+        selected_action_id=decision.selected_action_id,
+        current_market_valuation_status=decision.current_market_valuation_status,
+        sell_now_value=economic_value_to_dto(decision.sell_now_value),
+        best_continue_candidate_id=decision.best_continue_candidate_id,
+        best_continue_action_id=decision.best_continue_action_id,
+        expected_post_craft_value=economic_value_to_dto(decision.expected_post_craft_value),
+        expected_incremental_craft_cost=economic_value_to_dto(decision.expected_incremental_craft_cost),
+        expected_net_after_craft=economic_value_to_dto(decision.expected_net_after_craft),
+        gain_loss_vs_sell_now=economic_value_to_dto(decision.gain_loss_vs_sell_now),
+        cost_basis_status=decision.cost_basis_status.value if decision.cost_basis_status else None,
+        total_invested=economic_value_to_dto(decision.total_invested),
+        comparison_ready=decision.comparison_ready,
+        decision_margin_source=decision.decision_margin_source,
+        reasons=list(decision.reasons),
+        blockers=list(decision.blockers),
         warnings=list(decision.warnings),
         algorithm_version=decision.algorithm_version,
     )

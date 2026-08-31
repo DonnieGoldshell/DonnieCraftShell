@@ -486,6 +486,29 @@ class CurrentProfitPositionDto(ApiModel):
     warnings: list[str] = []
 
 
+class StopContinueDecisionEconomicsDto(ApiModel):
+    decision_type: str
+    readiness: str
+    selected_candidate_id: str | None = None
+    selected_action_id: str | None = None
+    current_market_valuation_status: str | None = None
+    sell_now_value: EconomicValueDto | None = None
+    best_continue_candidate_id: str | None = None
+    best_continue_action_id: str | None = None
+    expected_post_craft_value: EconomicValueDto | None = None
+    expected_incremental_craft_cost: EconomicValueDto | None = None
+    expected_net_after_craft: EconomicValueDto | None = None
+    gain_loss_vs_sell_now: EconomicValueDto | None = None
+    cost_basis_status: str | None = None
+    total_invested: EconomicValueDto | None = None
+    comparison_ready: bool
+    decision_margin_source: str
+    reasons: list[str] = []
+    blockers: list[str] = []
+    warnings: list[str] = []
+    algorithm_version: str
+
+
 class CraftInvestmentPreviewRequestDto(ApiModel):
     ledger_id: str = "current"
     subject_id: str = "current"
@@ -732,8 +755,10 @@ class AdvisorAnalyzeResponseDto(ApiModel):
     enrichment_summary: EnrichmentSummaryDto | None = None
     affix_state: AffixStateDto | None = None
     actions: list[ActionAnalysisDto] = []
+    current_market_valuation: MarketValuationPresentationDto | None = None
     decision: AdvisorDecisionDto | None = None
     risk_adjusted_decision: RiskAdjustedDecisionDto | None = None
+    stop_continue_decision: StopContinueDecisionEconomicsDto | None = None
     evidence_readiness: AdvisorEvidenceReadinessDto | None = None
     missing_requirements: list[MissingRequirementDto] = []
     warnings: list[str] = []

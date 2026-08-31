@@ -172,12 +172,20 @@ The response includes:
 - affix state
 - action summaries
 - probability summaries for each modeled action
+- current market valuation presentation
+- stop/continue decision economics
 - raw Advisor decision
 - optional risk-adjusted decision
 - missing requirements
 - warnings and provenance
 
 Partial analysis is HTTP 200. `NO_RECOMMENDATION` is also HTTP 200.
+
+`current_market_valuation` is the authoritative headline market-value contract
+for the current item. `stop_continue_decision` may compare SELL NOW to an
+EV-ready continuation only when that valuation status is
+`ESTIMATED_MARKET_VALUE`. `SUPPORTED_RANGE_ONLY` responses should show the
+supported range and keep `stop_continue_decision.sell_now_value = null`.
 
 Each action probability summary includes completeness, total known probability
 mass, outcome probabilities where available, evidence type, sample size,

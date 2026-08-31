@@ -554,6 +554,7 @@ export interface components {
             /** Analysis Id */
             analysis_id: string;
             context: components["schemas"]["AdvisorContextDto"];
+            current_market_valuation?: components["schemas"]["MarketValuationPresentationDto"] | null;
             decision?: components["schemas"]["AdvisorDecisionDto"] | null;
             enrichment_summary?: components["schemas"]["EnrichmentSummaryDto"] | null;
             evidence_readiness?: components["schemas"]["AdvisorEvidenceReadinessDto"] | null;
@@ -573,6 +574,7 @@ export interface components {
             risk_adjusted_decision?: components["schemas"]["RiskAdjustedDecisionDto"] | null;
             /** Status */
             status: string;
+            stop_continue_decision?: components["schemas"]["StopContinueDecisionEconomicsDto"] | null;
             /**
              * Warnings
              * @default []
@@ -2596,6 +2598,52 @@ export interface components {
              */
             valued_outcome_count: number;
             worst_valuated_outcome?: components["schemas"]["EconomicValueDto"] | null;
+        };
+        /** StopContinueDecisionEconomicsDto */
+        StopContinueDecisionEconomicsDto: {
+            /** Algorithm Version */
+            algorithm_version: string;
+            /** Best Continue Action Id */
+            best_continue_action_id?: string | null;
+            /** Best Continue Candidate Id */
+            best_continue_candidate_id?: string | null;
+            /**
+             * Blockers
+             * @default []
+             */
+            blockers: string[];
+            /** Comparison Ready */
+            comparison_ready: boolean;
+            /** Cost Basis Status */
+            cost_basis_status?: string | null;
+            /** Current Market Valuation Status */
+            current_market_valuation_status?: string | null;
+            /** Decision Margin Source */
+            decision_margin_source: string;
+            /** Decision Type */
+            decision_type: string;
+            expected_incremental_craft_cost?: components["schemas"]["EconomicValueDto"] | null;
+            expected_net_after_craft?: components["schemas"]["EconomicValueDto"] | null;
+            expected_post_craft_value?: components["schemas"]["EconomicValueDto"] | null;
+            gain_loss_vs_sell_now?: components["schemas"]["EconomicValueDto"] | null;
+            /** Readiness */
+            readiness: string;
+            /**
+             * Reasons
+             * @default []
+             */
+            reasons: string[];
+            /** Selected Action Id */
+            selected_action_id?: string | null;
+            /** Selected Candidate Id */
+            selected_candidate_id?: string | null;
+            sell_now_value?: components["schemas"]["EconomicValueDto"] | null;
+            total_invested?: components["schemas"]["EconomicValueDto"] | null;
+            /**
+             * Warnings
+             * @default []
+             */
+            warnings: string[];
         };
         /** StructuredComparableItemDto */
         StructuredComparableItemDto: {

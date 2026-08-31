@@ -64,3 +64,7 @@ The engine does not automate gameplay, scrape Trade, estimate probabilities, ran
 Risk and bankroll policy is separate. See [RISK_AND_BANKROLL.md](RISK_AND_BANKROLL.md). Risk may veto or annotate an EV-positive craft, but it must preserve the raw Advisor decision and raw EV values.
 
 Task 13A orchestration is also separate. See [ADVISOR_ORCHESTRATION.md](ADVISOR_ORCHESTRATION.md). The orchestrator feeds `AdvisorDecisionEngine` with existing `AdvisorCraftInput` objects and preserves the resulting raw decision; it does not rank actions itself or recalculate EV.
+
+Issue 71 adds [STOP_CONTINUE_DECISION_ECONOMICS.md](STOP_CONTINUE_DECISION_ECONOMICS.md), a compact presentation layer for sell-now versus continue-crafting economics. It uses `CurrentMarketValuation.status` as the authority for whether a point sell-now baseline exists, so `SUPPORTED_RANGE_ONLY`/`BROAD_BRACKET_ONLY` evidence can show a supported range but cannot be ranked as a point market value.
+
+When risk context is supplied, the STOP/CONTINUE layer follows the existing risk-adjusted Advisor decision for the player-facing recommendation while preserving the raw Advisor decision and raw EV values separately.

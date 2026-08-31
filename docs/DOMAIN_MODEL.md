@@ -37,6 +37,7 @@ The initial executable contracts live in `packages/shared/donniecraftshell_contr
 - Task 17A/17B extend `empirical_probability.py` with `EmpiricalProbabilityDatasetRegistry`, `FileBackedEmpiricalProbabilityDatasetRegistry`, registration results, persistence status, and dataset summaries. The registry stores loaded empirical datasets by ID, rejects conflicting duplicate IDs, persists successful registrations when configured, skips corrupt persisted entries with warnings, and never activates a dataset unless Advisor analysis explicitly selects its ID. See [EMPIRICAL_DATASET_REGISTRY.md](EMPIRICAL_DATASET_REGISTRY.md).
 - Task 18A/18B add `observation_workspace.py`: `ObservationWorkspaceRepository`, `FileBackedObservationWorkspaceRepository`, workspace entries, save/restore results, backup/restore modes, and persistence status. These persist raw recorder records and separate review decisions locally, reject conflicting `raw_record_id` content, skip corrupt/version-incompatible storage conservatively, support transactional `MERGE`/`REPLACE` backup restore, and export accepted records only through the existing review/import gates. See [OBSERVATION_WORKSPACE.md](OBSERVATION_WORKSPACE.md).
 - Issue 69 adds `craft_investment.py`: `CraftInvestmentEntry`, `CraftInvestmentLedger`, `CraftInvestmentCostBasis`, `CurrentMarketValuation`, and `CurrentProfitPosition`. These track realized operator-entered base/craft spend and compare complete cost basis to authoritative market valuation status without using diagnostic medians as point values. See [CRAFT_INVESTMENT_LEDGER.md](CRAFT_INVESTMENT_LEDGER.md).
+- Issue 71 adds `decision_economics.py`: `StopContinueDecisionEconomics` and `StopContinueDecisionEconomicsEngine`. These compose the authoritative current market valuation status with existing EV-ready Advisor candidates to present sell-now versus continue-crafting economics. `SUPPORTED_RANGE_ONLY` remains range-only, historical investment spend remains cost-basis context, and the layer does not recalculate EV or reapply Advisor margins. See [STOP_CONTINUE_DECISION_ECONOMICS.md](STOP_CONTINUE_DECISION_ECONOMICS.md).
 - Task 11A adds `scenario_analysis.py`: `OutcomeValuation`, `ScenarioValue`, `ScenarioAnalysis`, `DecisionReadiness`, and `ScenarioAnalysisService`. These compose current valuation, action candidates, outcome sets, probability models, and outcome valuations without calculating EV or ranking actions.
 - Task 11B adds `expected_value.py`: `ExpectedValueEngine`, `ExpectedValueResult`, and `OutcomeExpectedValueContribution`. EV is calculated only from `EV_READY` scenarios with complete probability mass, complete aligned outcome valuations, complete normalized craft cost, and retained evidence references. See [EXPECTED_VALUE.md](EXPECTED_VALUE.md).
 - Task 12A adds `advisor_decision.py`: `AdvisorCandidate`, `AdvisorDecision`, `AdvisorPolicy`, and `AdvisorDecisionEngine`. SELL NOW and craft actions share a candidate layer; only EV-ready craft candidates are rankable. See [ADVISOR_DECISION_ENGINE.md](ADVISOR_DECISION_ENGINE.md).
@@ -70,6 +71,12 @@ Craft investment/current profit position uses that same `market_valuation`
 status. Range-only market evidence can produce only a supported profit range;
 insufficient market evidence produces no current profit figure; diagnostic
 manual medians cannot bypass the market valuation contract.
+
+Sell-now versus continue-crafting economics also uses `market_valuation` status
+as authoritative. Only `ESTIMATED_MARKET_VALUE` can become a point sell-now
+baseline. `SUPPORTED_RANGE_ONLY` can display a range such as `45-450 Divine`,
+but it cannot be converted into a midpoint, upper anchor, median, or expected
+sale value for Advisor comparison.
 
 Craft action applicability must preserve unknowns. If a precondition such as open affix capacity is not verified, the result is `UNKNOWN`, not a guessed legal or illegal state. Required materials reference EconomyAsset IDs while action IDs remain separate mechanic identities.
 

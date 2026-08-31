@@ -59,6 +59,7 @@ PASTE QUIVER
 - Rare-item valuation should be listing-derived unless actual sale evidence exists. A generated comparable search plus manual listing observations is acceptable for MVP when automatic Trade integration is not defensibly supported.
 - Task 10B uses `ManualTradeProvider` for comparable evidence capture; this is not automated Trade access.
 - Task 10C can aggregate manual comparable evidence into a `LISTING_DERIVED` valuation estimate when readiness policy is satisfied. This remains listing evidence, not realized sale value or a SELL NOW recommendation.
+- Issue 71 aligns sell-now versus continue-crafting economics with the Comparable Valuation Model inference state. `BROAD_BRACKET_ONLY`/`SUPPORTED_RANGE_ONLY` evidence may show a supported market range, but it must not produce a point sell-now baseline or a STOP/CONTINUE recommendation. Historical investment ledger entries remain cost-basis context and are not double-counted as future craft cost.
 - Task 11A can report `SCENARIO_ONLY`, `INSUFFICIENT_DATA`, `NOT_APPLICABLE`, or `EV_READY`; it must not calculate EV or recommend an action.
 - Task 11B calculates EV only for complete synthetic/verified-ready inputs and keeps real actions EV-unavailable when probabilities remain unknown.
 - Task 12A compares SELL NOW and craft candidates only through the Advisor candidate layer. Scenario-only actions remain visible but non-rankable, and `NO_RECOMMENDATION` is allowed.
