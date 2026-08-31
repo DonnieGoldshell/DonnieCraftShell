@@ -177,7 +177,15 @@ class CraftInvestmentCalculator:
             else:
                 craft_total += entry.normalized_value.amount
         known = EconomicValue(base_total + craft_total, EXALTED_ECONOMIC_UNIT)
-        complete = not incomplete
+        has_base_acquisition = any(
+            entry.kind == CraftInvestmentEntryKind.BASE_ACQUISITION
+            for entry in ledger.entries
+        )
+        if not has_base_acquisition:
+            warnings.append(
+                "Cost basis is incomplete because no explicit base-acquisition entry was recorded."
+            )
+        complete = not incomplete and has_base_acquisition
         return CraftInvestmentCostBasis(
             ledger_id=ledger.ledger_id,
             status=CraftInvestmentCostBasisStatus.COMPLETE if complete else CraftInvestmentCostBasisStatus.INCOMPLETE,

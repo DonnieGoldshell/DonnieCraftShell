@@ -1453,6 +1453,91 @@ describe("AdvisorWorkbench", () => {
     expect(investmentBody.market_valuation.legacy_statistical_median.amount).toBe("450");
   });
 
+  it("does not show a fabricated profit position when no base cost entry exists", async () => {
+    const estimatedMarketPreview = manualPreviewResponse({
+      market_valuation: {
+        status: "ESTIMATED_MARKET_VALUE",
+        source_inference_status: "INFERRED_MARKET_BAND",
+        estimated_value: { amount: "450", unit: "EXALTED_ECONOMIC_UNIT" },
+        supported_low: { amount: "400", unit: "EXALTED_ECONOMIC_UNIT" },
+        supported_high: { amount: "500", unit: "EXALTED_ECONOMIC_UNIT" },
+        display_estimated_value: "450 Divine",
+        display_supported_range: "400-500 Divine",
+        confidence: {
+          level: "LOW",
+          reasons: ["Synthetic test inferred market band."]
+        },
+        legacy_statistical_median: { amount: "450", unit: "EXALTED_ECONOMIC_UNIT" },
+        warnings: []
+      }
+    });
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => estimatedMarketPreview
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () =>
+          craftInvestmentPreviewResponse({
+            entry_count: 0,
+            base_entry_count: 0,
+            cost_basis: {
+              ledger_id: "current",
+              status: "INCOMPLETE",
+              total_invested: null,
+              known_invested: { amount: "0", unit: "EXALTED_ECONOMIC_UNIT" },
+              base_acquisition_total: { amount: "0", unit: "EXALTED_ECONOMIC_UNIT" },
+              crafting_spend_total: { amount: "0", unit: "EXALTED_ECONOMIC_UNIT" },
+              included_entry_ids: [],
+              incomplete_entry_ids: [],
+              warnings: ["Cost basis is incomplete because no explicit base-acquisition entry was recorded."]
+            },
+            current_profit_position: {
+              status: "INCOMPLETE_COST_BASIS",
+              ledger_id: "current",
+              market_valuation_status: "ESTIMATED_MARKET_VALUE",
+              total_invested: null,
+              known_invested: { amount: "0", unit: "EXALTED_ECONOMIC_UNIT" },
+              market_estimated_value: null,
+              supported_market_low: null,
+              supported_market_high: null,
+              unrealized_profit: null,
+              unrealized_roi: null,
+              supported_profit_low: null,
+              supported_profit_high: null,
+              confidence_level: "LOW",
+              label: "unrealized/listing-evidence-based",
+              warnings: ["Cost basis is incomplete because no explicit base-acquisition entry was recorded."]
+            },
+            warnings: ["Cost basis is incomplete because no explicit base-acquisition entry was recorded."]
+          })
+      });
+    vi.stubGlobal("fetch", fetchMock);
+    const user = userEvent.setup();
+
+    render(<AdvisorWorkbench />);
+    await openAdvancedTools(user);
+    await user.type(screen.getByLabelText(/listing amount/i), "450");
+    await user.click(screen.getByRole("button", { name: /add observation/i }));
+    await user.click(screen.getByRole("button", { name: /preview valuation evidence/i }));
+
+    const ledger = await screen.findByLabelText(/craft investment ledger/i);
+    await user.click(within(ledger).getByRole("button", { name: /preview current profit position/i }));
+
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
+    expect(within(ledger).getByText("Incomplete Cost Basis")).toBeInTheDocument();
+    expect(within(ledger).getAllByText("Unavailable").length).toBeGreaterThanOrEqual(2);
+    expect(within(ledger).queryByText("450 Ex")).not.toBeInTheDocument();
+    expect(
+      within(ledger).getByText(/no explicit base-acquisition entry was recorded/i)
+    ).toBeInTheDocument();
+    const investmentBody = JSON.parse(fetchMock.mock.calls[1][1].body as string);
+    expect(investmentBody.entries).toEqual([]);
+    expect(investmentBody.market_valuation.status).toBe("ESTIMATED_MARKET_VALUE");
+  });
+
   it("loads and saves persisted current-item valuation evidence without auto-submitting it", async () => {
     const fetchMock = vi
       .fn()

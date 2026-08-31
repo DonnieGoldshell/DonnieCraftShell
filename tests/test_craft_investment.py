@@ -42,6 +42,59 @@ def _entry(
 
 
 class CraftInvestmentTests(unittest.TestCase):
+    def test_empty_ledger_is_incomplete_and_cannot_produce_profit(self) -> None:
+        calculator = CraftInvestmentCalculator()
+        basis = calculator.cost_basis(CraftInvestmentLedger(ledger_id="ledger-1", subject_id="current"))
+
+        self.assertEqual(basis.status.value, "INCOMPLETE")
+        self.assertIsNone(basis.total_invested)
+        self.assertEqual(basis.known_invested.amount, Decimal("0"))
+        self.assertIn("no explicit base-acquisition entry", " ".join(basis.warnings))
+
+        position = calculator.current_profit_position(
+            basis,
+            CurrentMarketValuation(
+                status="ESTIMATED_MARKET_VALUE",
+                estimated_value=EconomicValue(Decimal("450")),
+            ),
+        )
+
+        self.assertEqual(position.status, CurrentProfitPositionStatus.INCOMPLETE_COST_BASIS)
+        self.assertIsNone(position.unrealized_profit)
+        self.assertIsNone(position.supported_profit_low)
+        self.assertIsNone(position.supported_profit_high)
+
+    def test_crafting_spend_without_base_entry_is_incomplete(self) -> None:
+        ledger = CraftInvestmentLedger(
+            ledger_id="ledger-1",
+            subject_id="current",
+            entries=(
+                _entry("exalt", CraftInvestmentEntryKind.CRAFTING_SPEND, "1", "10"),
+            ),
+        )
+
+        basis = CraftInvestmentCalculator().cost_basis(ledger)
+
+        self.assertEqual(basis.status.value, "INCOMPLETE")
+        self.assertIsNone(basis.total_invested)
+        self.assertEqual(basis.known_invested.amount, Decimal("10"))
+        self.assertEqual(basis.crafting_spend_total.amount, Decimal("10"))
+
+    def test_explicit_zero_base_entry_can_complete_free_acquisition_cost_basis(self) -> None:
+        ledger = CraftInvestmentLedger(
+            ledger_id="ledger-1",
+            subject_id="current",
+            entries=(
+                _entry("free-base", CraftInvestmentEntryKind.BASE_ACQUISITION, "0", "0"),
+            ),
+        )
+
+        basis = CraftInvestmentCalculator().cost_basis(ledger)
+
+        self.assertEqual(basis.status.value, "COMPLETE")
+        self.assertEqual(basis.total_invested, EconomicValue(Decimal("0")))
+        self.assertEqual(basis.base_acquisition_total, EconomicValue(Decimal("0")))
+
     def test_base_and_realized_spend_sum_deterministically(self) -> None:
         ledger = CraftInvestmentLedger(
             ledger_id="ledger-1",
@@ -244,6 +297,30 @@ class CraftInvestmentApiTests(unittest.TestCase):
         self.assertIsNone(position["unrealized_profit"])
         self.assertEqual(position["supported_profit_low"]["amount"], "-55")
         self.assertEqual(position["supported_profit_high"]["amount"], "350")
+
+    def test_preview_api_empty_ledger_does_not_emit_fabricated_profit(self) -> None:
+        response = self.client.post(
+            "/api/v1/advisor/craft-investment/preview",
+            json={
+                "ledger_id": "ledger-1",
+                "subject_id": "current",
+                "entries": [],
+                "market_valuation": {
+                    "status": "ESTIMATED_MARKET_VALUE",
+                    "estimated_value": {"amount": "450", "unit": "EXALTED_ECONOMIC_UNIT"},
+                    "legacy_statistical_median": {"amount": "450", "unit": "EXALTED_ECONOMIC_UNIT"},
+                },
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertEqual(payload["cost_basis"]["status"], "INCOMPLETE")
+        position = payload["current_profit_position"]
+        self.assertEqual(position["status"], "INCOMPLETE_COST_BASIS")
+        self.assertIsNone(position["unrealized_profit"])
+        self.assertIsNone(position["supported_profit_low"])
+        self.assertIsNone(position["supported_profit_high"])
 
     def test_openapi_exposes_craft_investment_contracts(self) -> None:
         openapi = self.client.get("/openapi.json").json()

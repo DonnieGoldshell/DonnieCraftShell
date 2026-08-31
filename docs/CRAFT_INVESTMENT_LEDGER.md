@@ -29,6 +29,13 @@ optional economy snapshot reference, timestamp, notes, provenance, and warnings.
 Missing or unconvertible entries make the cost basis `INCOMPLETE`. They are not
 treated as zero.
 
+A current-item ledger also requires an explicit `BASE_ACQUISITION` entry before
+the cost basis can be `COMPLETE`. An empty ledger, or a ledger containing only
+crafting-spend entries, is incomplete even if all present entries are
+normalized. If the operator truly acquired the item for free, they can record an
+explicit base-acquisition entry with amount `0` and normalized value `0`; that
+intentional zero is complete.
+
 ## Current Profit Position
 
 `CurrentProfitPosition` compares the complete cost basis to the explicit
