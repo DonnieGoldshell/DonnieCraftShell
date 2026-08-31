@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
@@ -9,6 +9,7 @@ import {
   DIVINE_ASSET_ID,
   EXALTED_ASSET_ID,
   type AdvisorAnalyzeResponse,
+  type CraftInvestmentPreviewResponse,
   type ManualValuationPreviewResponse
 } from "@/api/advisor";
 import { AdvisorWorkbench } from "./AdvisorWorkbench";
@@ -571,6 +572,49 @@ function manualPreviewResponse(
       warnings: ["Manual evidence median is retained as diagnostics only."]
     },
     warnings: ["Manual API observation; listing price is not a realized sale."],
+    ...overrides
+  };
+}
+
+function craftInvestmentPreviewResponse(
+  overrides: Partial<CraftInvestmentPreviewResponse> = {}
+): CraftInvestmentPreviewResponse {
+  return {
+    ledger_id: "current",
+    subject_id: "current",
+    ledger_version: "dc-craft-investment-ledger-v1",
+    entry_count: 1,
+    base_entry_count: 1,
+    crafting_spend_entry_count: 0,
+    cost_basis: {
+      ledger_id: "current",
+      status: "COMPLETE",
+      total_invested: { amount: "100", unit: "EXALTED_ECONOMIC_UNIT" },
+      known_invested: { amount: "100", unit: "EXALTED_ECONOMIC_UNIT" },
+      base_acquisition_total: { amount: "100", unit: "EXALTED_ECONOMIC_UNIT" },
+      crafting_spend_total: { amount: "0", unit: "EXALTED_ECONOMIC_UNIT" },
+      included_entry_ids: ["base"],
+      incomplete_entry_ids: [],
+      warnings: []
+    },
+    current_profit_position: {
+      status: "SUPPORTED_PROFIT_RANGE_ONLY",
+      ledger_id: "current",
+      market_valuation_status: "SUPPORTED_RANGE_ONLY",
+      total_invested: { amount: "100", unit: "EXALTED_ECONOMIC_UNIT" },
+      known_invested: { amount: "100", unit: "EXALTED_ECONOMIC_UNIT" },
+      market_estimated_value: null,
+      supported_market_low: { amount: "45", unit: "EXALTED_ECONOMIC_UNIT" },
+      supported_market_high: { amount: "450", unit: "EXALTED_ECONOMIC_UNIT" },
+      unrealized_profit: null,
+      unrealized_roi: null,
+      supported_profit_low: { amount: "-55", unit: "EXALTED_ECONOMIC_UNIT" },
+      supported_profit_high: { amount: "350", unit: "EXALTED_ECONOMIC_UNIT" },
+      confidence_level: "LOW",
+      label: "unrealized/listing-evidence-based",
+      warnings: ["Supported range is not a point profit estimate."]
+    },
+    warnings: ["Supported range is not a point profit estimate."],
     ...overrides
   };
 }
@@ -1351,6 +1395,147 @@ describe("AdvisorWorkbench", () => {
       })
     ]);
     expect(JSON.stringify(analyzeBody)).not.toContain("remove-me");
+  });
+
+  it("shows craft investment supported range without a point profit for broad-bracket market valuation", async () => {
+    const broadBracketPreview = manualPreviewResponse({
+      market_valuation: {
+        status: "SUPPORTED_RANGE_ONLY",
+        source_inference_status: "BROAD_BRACKET_ONLY",
+        estimated_value: null,
+        supported_low: { amount: "45", unit: "EXALTED_ECONOMIC_UNIT" },
+        supported_high: { amount: "450", unit: "EXALTED_ECONOMIC_UNIT" },
+        display_estimated_value: "Insufficient precision",
+        display_supported_range: "45-450 Divine",
+        confidence: {
+          level: "LOW",
+          reasons: ["Synthetic Gloom/Bramble/Skull pilot evidence supports a broad bracket only."]
+        },
+        legacy_statistical_median: { amount: "450", unit: "EXALTED_ECONOMIC_UNIT" },
+        warnings: ["Manual evidence median is retained as diagnostics only."]
+      }
+    });
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => broadBracketPreview
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => craftInvestmentPreviewResponse()
+      });
+    vi.stubGlobal("fetch", fetchMock);
+    const user = userEvent.setup();
+
+    render(<AdvisorWorkbench />);
+    await openAdvancedTools(user);
+    await user.type(screen.getByLabelText(/listing amount/i), "450");
+    await user.click(screen.getByRole("button", { name: /add observation/i }));
+    await user.click(screen.getByRole("button", { name: /preview valuation evidence/i }));
+
+    expect(await screen.findByLabelText(/craft investment ledger/i)).toBeInTheDocument();
+    expect(screen.getByText("Insufficient precision")).toBeInTheDocument();
+    expect(screen.getByText("45-450 Divine")).toBeInTheDocument();
+    const ledger = screen.getByLabelText(/craft investment ledger/i);
+    await user.type(within(ledger).getByLabelText(/^amount$/i), "100");
+    await user.selectOptions(within(ledger).getByLabelText(/^currency$/i), EXALTED_ASSET_ID);
+    await user.type(within(ledger).getByLabelText(/normalized ex/i), "100");
+    await user.click(within(ledger).getByRole("button", { name: /add cost entry/i }));
+    await user.click(within(ledger).getByRole("button", { name: /preview current profit position/i }));
+
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
+    expect(within(ledger).getByText("Supported Profit Range Only")).toBeInTheDocument();
+    expect(within(ledger).getByText("Unavailable")).toBeInTheDocument();
+    expect(within(ledger).getByText("-55 Ex - 350 Ex")).toBeInTheDocument();
+    const investmentBody = JSON.parse(fetchMock.mock.calls[1][1].body as string);
+    expect(investmentBody.market_valuation.status).toBe("SUPPORTED_RANGE_ONLY");
+    expect(investmentBody.market_valuation.legacy_statistical_median.amount).toBe("450");
+  });
+
+  it("does not show a fabricated profit position when no base cost entry exists", async () => {
+    const estimatedMarketPreview = manualPreviewResponse({
+      market_valuation: {
+        status: "ESTIMATED_MARKET_VALUE",
+        source_inference_status: "INFERRED_MARKET_BAND",
+        estimated_value: { amount: "450", unit: "EXALTED_ECONOMIC_UNIT" },
+        supported_low: { amount: "400", unit: "EXALTED_ECONOMIC_UNIT" },
+        supported_high: { amount: "500", unit: "EXALTED_ECONOMIC_UNIT" },
+        display_estimated_value: "450 Divine",
+        display_supported_range: "400-500 Divine",
+        confidence: {
+          level: "LOW",
+          reasons: ["Synthetic test inferred market band."]
+        },
+        legacy_statistical_median: { amount: "450", unit: "EXALTED_ECONOMIC_UNIT" },
+        warnings: []
+      }
+    });
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => estimatedMarketPreview
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () =>
+          craftInvestmentPreviewResponse({
+            entry_count: 0,
+            base_entry_count: 0,
+            cost_basis: {
+              ledger_id: "current",
+              status: "INCOMPLETE",
+              total_invested: null,
+              known_invested: { amount: "0", unit: "EXALTED_ECONOMIC_UNIT" },
+              base_acquisition_total: { amount: "0", unit: "EXALTED_ECONOMIC_UNIT" },
+              crafting_spend_total: { amount: "0", unit: "EXALTED_ECONOMIC_UNIT" },
+              included_entry_ids: [],
+              incomplete_entry_ids: [],
+              warnings: ["Cost basis is incomplete because no explicit base-acquisition entry was recorded."]
+            },
+            current_profit_position: {
+              status: "INCOMPLETE_COST_BASIS",
+              ledger_id: "current",
+              market_valuation_status: "ESTIMATED_MARKET_VALUE",
+              total_invested: null,
+              known_invested: { amount: "0", unit: "EXALTED_ECONOMIC_UNIT" },
+              market_estimated_value: null,
+              supported_market_low: null,
+              supported_market_high: null,
+              unrealized_profit: null,
+              unrealized_roi: null,
+              supported_profit_low: null,
+              supported_profit_high: null,
+              confidence_level: "LOW",
+              label: "unrealized/listing-evidence-based",
+              warnings: ["Cost basis is incomplete because no explicit base-acquisition entry was recorded."]
+            },
+            warnings: ["Cost basis is incomplete because no explicit base-acquisition entry was recorded."]
+          })
+      });
+    vi.stubGlobal("fetch", fetchMock);
+    const user = userEvent.setup();
+
+    render(<AdvisorWorkbench />);
+    await openAdvancedTools(user);
+    await user.type(screen.getByLabelText(/listing amount/i), "450");
+    await user.click(screen.getByRole("button", { name: /add observation/i }));
+    await user.click(screen.getByRole("button", { name: /preview valuation evidence/i }));
+
+    const ledger = await screen.findByLabelText(/craft investment ledger/i);
+    await user.click(within(ledger).getByRole("button", { name: /preview current profit position/i }));
+
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
+    expect(within(ledger).getByText("Incomplete Cost Basis")).toBeInTheDocument();
+    expect(within(ledger).getAllByText("Unavailable").length).toBeGreaterThanOrEqual(2);
+    expect(within(ledger).queryByText("450 Ex")).not.toBeInTheDocument();
+    expect(
+      within(ledger).getByText(/no explicit base-acquisition entry was recorded/i)
+    ).toBeInTheDocument();
+    const investmentBody = JSON.parse(fetchMock.mock.calls[1][1].body as string);
+    expect(investmentBody.entries).toEqual([]);
+    expect(investmentBody.market_valuation.status).toBe("ESTIMATED_MARKET_VALUE");
   });
 
   it("loads and saves persisted current-item valuation evidence without auto-submitting it", async () => {

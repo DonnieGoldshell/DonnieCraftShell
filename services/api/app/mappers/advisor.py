@@ -23,6 +23,14 @@ from packages.shared.donniecraftshell_contracts.domain import (
 )
 from packages.shared.donniecraftshell_contracts.economy import EXALTED_ECONOMIC_UNIT
 from packages.shared.donniecraftshell_contracts.economy_repository import EconomyRepository
+from packages.shared.donniecraftshell_contracts.craft_investment import (
+    CRAFT_INVESTMENT_LEDGER_VERSION,
+    CraftInvestmentCalculator,
+    CraftInvestmentEntry,
+    CraftInvestmentEntryKind,
+    CraftInvestmentLedger,
+    CurrentMarketValuation,
+)
 from packages.shared.donniecraftshell_contracts.game_data import ItemEnrichment, ResolutionStatus
 from packages.shared.donniecraftshell_contracts.parser import parse_clipboard_item
 from packages.shared.donniecraftshell_contracts.valuation import (
@@ -60,6 +68,11 @@ from services.api.app.schemas.advisor import (
     ComparableValuationAnchorDto,
     ComparableValuationEstimateDto,
     ComparableValuationUsefulnessDto,
+    CraftInvestmentCostBasisDto,
+    CraftInvestmentPreviewRequestDto,
+    CraftInvestmentPreviewResponseDto,
+    CraftInvestmentWorkspaceRecordDto,
+    CurrentProfitPositionDto,
     EnrichmentSummaryDto,
     EvidenceReadinessItemDto,
     EvidenceReadinessTargetDto,
@@ -239,6 +252,62 @@ def manual_valuation_workspace_record_to_storage(record) -> dict:
     return payload
 
 
+def craft_investment_preview_to_dto(request: CraftInvestmentPreviewRequestDto) -> CraftInvestmentPreviewResponseDto:
+    ledger = CraftInvestmentLedger(
+        ledger_id=request.ledger_id,
+        subject_id=request.subject_id,
+        entries=tuple(
+            _craft_investment_entry_from_dto(record, index, request.ledger_id, request.subject_id)
+            for index, record in enumerate(request.entries)
+        ),
+    )
+    calculator = CraftInvestmentCalculator()
+    cost_basis = calculator.cost_basis(ledger)
+    market = _market_valuation_from_dto(request.market_valuation)
+    position = calculator.current_profit_position(cost_basis, market)
+    return CraftInvestmentPreviewResponseDto(
+        ledger_id=ledger.ledger_id,
+        subject_id=ledger.subject_id,
+        ledger_version=CRAFT_INVESTMENT_LEDGER_VERSION,
+        entry_count=len(ledger.entries),
+        base_entry_count=len(ledger.base_entries),
+        crafting_spend_entry_count=len(ledger.crafting_spend_entries),
+        cost_basis=CraftInvestmentCostBasisDto(
+            ledger_id=cost_basis.ledger_id,
+            status=cost_basis.status.value,
+            total_invested=economic_value_to_dto(cost_basis.total_invested),
+            known_invested=economic_value_to_dto(cost_basis.known_invested),
+            base_acquisition_total=economic_value_to_dto(cost_basis.base_acquisition_total),
+            crafting_spend_total=economic_value_to_dto(cost_basis.crafting_spend_total),
+            included_entry_ids=list(cost_basis.included_entry_ids),
+            incomplete_entry_ids=list(cost_basis.incomplete_entry_ids),
+            warnings=list(cost_basis.warnings),
+        ),
+        current_profit_position=CurrentProfitPositionDto(
+            status=position.status.value,
+            ledger_id=position.ledger_id,
+            market_valuation_status=position.market_valuation_status,
+            total_invested=economic_value_to_dto(position.total_invested),
+            known_invested=economic_value_to_dto(position.known_invested),
+            market_estimated_value=economic_value_to_dto(position.market_estimated_value),
+            supported_market_low=economic_value_to_dto(position.supported_market_low),
+            supported_market_high=economic_value_to_dto(position.supported_market_high),
+            unrealized_profit=economic_value_to_dto(position.unrealized_profit),
+            unrealized_roi=str(position.unrealized_roi) if position.unrealized_roi is not None else None,
+            supported_profit_low=economic_value_to_dto(position.supported_profit_low),
+            supported_profit_high=economic_value_to_dto(position.supported_profit_high),
+            confidence_level=position.confidence_level,
+            label=position.label,
+            warnings=list(position.warnings),
+        ),
+        warnings=list((*cost_basis.warnings, *position.warnings)),
+    )
+
+
+def craft_investment_workspace_record_to_storage(record: CraftInvestmentWorkspaceRecordDto) -> dict:
+    return record.model_dump(mode="json", exclude_none=True)
+
+
 def _valuation_from_evidence(
     evidence: ManualValuationEvidenceDto | None,
     subject_id: str,
@@ -250,6 +319,62 @@ def _valuation_from_evidence(
         return None
     evidence_set = _manual_evidence_set(evidence, subject_id, league, economy_repository, as_of)
     return ValuationAggregator().aggregate(evidence_set)
+
+
+def _craft_investment_entry_from_dto(
+    record: CraftInvestmentWorkspaceRecordDto,
+    index: int = 0,
+    ledger_id: str | None = None,
+    subject_id: str | None = None,
+) -> CraftInvestmentEntry:
+    return CraftInvestmentEntry(
+        entry_id=record.entry_id or f"preview-craft-investment-entry:{index}",
+        ledger_id=ledger_id or record.ledger_id,
+        subject_id=subject_id or record.subject_id,
+        kind=CraftInvestmentEntryKind(record.kind),
+        description=record.description,
+        amount=Decimal(record.amount),
+        currency_asset_id=record.currency_asset_id,
+        normalized_value=(
+            EconomicValue(Decimal(record.normalized_value.amount), record.normalized_value.unit)
+            if record.normalized_value is not None
+            else None
+        ),
+        economy_snapshot_id=record.economy_snapshot_id,
+        action_id=record.action_id,
+        incurred_at=record.incurred_at,
+        source_reference=record.source_reference,
+        notes=record.notes,
+        warnings=tuple(record.warnings),
+    )
+
+
+def _market_valuation_from_dto(dto: MarketValuationPresentationDto) -> CurrentMarketValuation:
+    return CurrentMarketValuation(
+        status=dto.status,
+        estimated_value=(
+            EconomicValue(Decimal(dto.estimated_value.amount), dto.estimated_value.unit)
+            if dto.estimated_value is not None
+            else None
+        ),
+        supported_low=(
+            EconomicValue(Decimal(dto.supported_low.amount), dto.supported_low.unit)
+            if dto.supported_low is not None
+            else None
+        ),
+        supported_high=(
+            EconomicValue(Decimal(dto.supported_high.amount), dto.supported_high.unit)
+            if dto.supported_high is not None
+            else None
+        ),
+        legacy_statistical_median=(
+            EconomicValue(Decimal(dto.legacy_statistical_median.amount), dto.legacy_statistical_median.unit)
+            if dto.legacy_statistical_median is not None
+            else None
+        ),
+        confidence_level=dto.confidence.level if dto.confidence is not None else None,
+        warnings=tuple(dto.warnings),
+    )
 
 
 def _manual_evidence_set(

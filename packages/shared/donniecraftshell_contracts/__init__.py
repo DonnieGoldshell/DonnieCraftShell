@@ -1,6 +1,7 @@
 """Shared domain and API contracts for DonnieCraftShell."""
 
 from .api import *
+from .craft_investment import *
 from .curated_observation_import import *
 from .domain import *
 from .empirical_observation_import import *

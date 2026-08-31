@@ -391,6 +391,120 @@ class EconomyQuoteWorkspaceDeleteResponseDto(ApiModel):
     warnings: list[str] = []
 
 
+class CraftInvestmentWorkspaceRecordDto(ApiModel):
+    entry_id: str | None = None
+    ledger_id: str = "current"
+    subject_id: str = "current"
+    kind: str
+    description: str = ""
+    amount: str = Field(description="Original Decimal cost amount encoded as string.")
+    currency_asset_id: str
+    normalized_value: EconomicValueDto | None = None
+    economy_snapshot_id: str | None = None
+    action_id: str | None = None
+    incurred_at: datetime | None = None
+    source_reference: str | None = None
+    notes: str | None = None
+    created_at: datetime | None = None
+    updated_at: datetime | None = None
+    warnings: list[str] = []
+
+    @field_validator("amount")
+    @classmethod
+    def investment_amount_is_decimal(cls, value: str) -> str:
+        amount = Decimal(value)
+        if amount < 0:
+            raise ValueError("amount cannot be negative")
+        return value
+
+
+class CraftInvestmentWorkspacePersistenceStatusDto(ApiModel):
+    storage_version: str
+    storage_mode: str
+    persistence_enabled: bool
+    loaded_entry_count: int
+    skipped_entry_count: int = 0
+    warnings: list[str] = []
+
+
+class CraftInvestmentWorkspaceSaveRequestDto(ApiModel):
+    record: CraftInvestmentWorkspaceRecordDto
+
+
+class CraftInvestmentWorkspaceSaveResponseDto(ApiModel):
+    workspace_version: str
+    status: str
+    entry_id: str | None = None
+    record: CraftInvestmentWorkspaceRecordDto | None = None
+    persistence: CraftInvestmentWorkspacePersistenceStatusDto
+    warnings: list[str] = []
+
+
+class CraftInvestmentWorkspaceListResponseDto(ApiModel):
+    workspace_version: str
+    records: list[CraftInvestmentWorkspaceRecordDto]
+    persistence: CraftInvestmentWorkspacePersistenceStatusDto
+    warnings: list[str] = []
+
+
+class CraftInvestmentWorkspaceDeleteResponseDto(ApiModel):
+    workspace_version: str
+    status: str
+    entry_id: str | None = None
+    deleted_count: int = 0
+    persistence: CraftInvestmentWorkspacePersistenceStatusDto
+    warnings: list[str] = []
+
+
+class CraftInvestmentCostBasisDto(ApiModel):
+    ledger_id: str
+    status: str
+    total_invested: EconomicValueDto | None = None
+    known_invested: EconomicValueDto
+    base_acquisition_total: EconomicValueDto
+    crafting_spend_total: EconomicValueDto
+    included_entry_ids: list[str] = []
+    incomplete_entry_ids: list[str] = []
+    warnings: list[str] = []
+
+
+class CurrentProfitPositionDto(ApiModel):
+    status: str
+    ledger_id: str
+    market_valuation_status: str
+    total_invested: EconomicValueDto | None = None
+    known_invested: EconomicValueDto | None = None
+    market_estimated_value: EconomicValueDto | None = None
+    supported_market_low: EconomicValueDto | None = None
+    supported_market_high: EconomicValueDto | None = None
+    unrealized_profit: EconomicValueDto | None = None
+    unrealized_roi: str | None = None
+    supported_profit_low: EconomicValueDto | None = None
+    supported_profit_high: EconomicValueDto | None = None
+    confidence_level: str | None = None
+    label: str
+    warnings: list[str] = []
+
+
+class CraftInvestmentPreviewRequestDto(ApiModel):
+    ledger_id: str = "current"
+    subject_id: str = "current"
+    entries: list[CraftInvestmentWorkspaceRecordDto] = []
+    market_valuation: MarketValuationPresentationDto
+
+
+class CraftInvestmentPreviewResponseDto(ApiModel):
+    ledger_id: str
+    subject_id: str
+    ledger_version: str
+    entry_count: int
+    base_entry_count: int
+    crafting_spend_entry_count: int
+    cost_basis: CraftInvestmentCostBasisDto
+    current_profit_position: CurrentProfitPositionDto
+    warnings: list[str] = []
+
+
 class AdvisorAnalyzeRequestDto(ApiModel):
     clipboard_text: str
     league: str

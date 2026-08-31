@@ -1372,6 +1372,485 @@
         "title": "ComparableValuationUsefulnessDto",
         "type": "object"
       },
+      "CraftInvestmentCostBasisDto": {
+        "properties": {
+          "base_acquisition_total": {
+            "$ref": "#/components/schemas/EconomicValueDto"
+          },
+          "crafting_spend_total": {
+            "$ref": "#/components/schemas/EconomicValueDto"
+          },
+          "included_entry_ids": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Included Entry Ids",
+            "type": "array"
+          },
+          "incomplete_entry_ids": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Incomplete Entry Ids",
+            "type": "array"
+          },
+          "known_invested": {
+            "$ref": "#/components/schemas/EconomicValueDto"
+          },
+          "ledger_id": {
+            "title": "Ledger Id",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "total_invested": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/EconomicValueDto"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "warnings": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Warnings",
+            "type": "array"
+          }
+        },
+        "required": [
+          "ledger_id",
+          "status",
+          "known_invested",
+          "base_acquisition_total",
+          "crafting_spend_total"
+        ],
+        "title": "CraftInvestmentCostBasisDto",
+        "type": "object"
+      },
+      "CraftInvestmentPreviewRequestDto": {
+        "properties": {
+          "entries": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/CraftInvestmentWorkspaceRecordDto"
+            },
+            "title": "Entries",
+            "type": "array"
+          },
+          "ledger_id": {
+            "default": "current",
+            "title": "Ledger Id",
+            "type": "string"
+          },
+          "market_valuation": {
+            "$ref": "#/components/schemas/MarketValuationPresentationDto"
+          },
+          "subject_id": {
+            "default": "current",
+            "title": "Subject Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "market_valuation"
+        ],
+        "title": "CraftInvestmentPreviewRequestDto",
+        "type": "object"
+      },
+      "CraftInvestmentPreviewResponseDto": {
+        "properties": {
+          "base_entry_count": {
+            "title": "Base Entry Count",
+            "type": "integer"
+          },
+          "cost_basis": {
+            "$ref": "#/components/schemas/CraftInvestmentCostBasisDto"
+          },
+          "crafting_spend_entry_count": {
+            "title": "Crafting Spend Entry Count",
+            "type": "integer"
+          },
+          "current_profit_position": {
+            "$ref": "#/components/schemas/CurrentProfitPositionDto"
+          },
+          "entry_count": {
+            "title": "Entry Count",
+            "type": "integer"
+          },
+          "ledger_id": {
+            "title": "Ledger Id",
+            "type": "string"
+          },
+          "ledger_version": {
+            "title": "Ledger Version",
+            "type": "string"
+          },
+          "subject_id": {
+            "title": "Subject Id",
+            "type": "string"
+          },
+          "warnings": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Warnings",
+            "type": "array"
+          }
+        },
+        "required": [
+          "ledger_id",
+          "subject_id",
+          "ledger_version",
+          "entry_count",
+          "base_entry_count",
+          "crafting_spend_entry_count",
+          "cost_basis",
+          "current_profit_position"
+        ],
+        "title": "CraftInvestmentPreviewResponseDto",
+        "type": "object"
+      },
+      "CraftInvestmentWorkspaceDeleteResponseDto": {
+        "properties": {
+          "deleted_count": {
+            "default": 0,
+            "title": "Deleted Count",
+            "type": "integer"
+          },
+          "entry_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Entry Id"
+          },
+          "persistence": {
+            "$ref": "#/components/schemas/CraftInvestmentWorkspacePersistenceStatusDto"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "warnings": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Warnings",
+            "type": "array"
+          },
+          "workspace_version": {
+            "title": "Workspace Version",
+            "type": "string"
+          }
+        },
+        "required": [
+          "workspace_version",
+          "status",
+          "persistence"
+        ],
+        "title": "CraftInvestmentWorkspaceDeleteResponseDto",
+        "type": "object"
+      },
+      "CraftInvestmentWorkspaceListResponseDto": {
+        "properties": {
+          "persistence": {
+            "$ref": "#/components/schemas/CraftInvestmentWorkspacePersistenceStatusDto"
+          },
+          "records": {
+            "items": {
+              "$ref": "#/components/schemas/CraftInvestmentWorkspaceRecordDto"
+            },
+            "title": "Records",
+            "type": "array"
+          },
+          "warnings": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Warnings",
+            "type": "array"
+          },
+          "workspace_version": {
+            "title": "Workspace Version",
+            "type": "string"
+          }
+        },
+        "required": [
+          "workspace_version",
+          "records",
+          "persistence"
+        ],
+        "title": "CraftInvestmentWorkspaceListResponseDto",
+        "type": "object"
+      },
+      "CraftInvestmentWorkspacePersistenceStatusDto": {
+        "properties": {
+          "loaded_entry_count": {
+            "title": "Loaded Entry Count",
+            "type": "integer"
+          },
+          "persistence_enabled": {
+            "title": "Persistence Enabled",
+            "type": "boolean"
+          },
+          "skipped_entry_count": {
+            "default": 0,
+            "title": "Skipped Entry Count",
+            "type": "integer"
+          },
+          "storage_mode": {
+            "title": "Storage Mode",
+            "type": "string"
+          },
+          "storage_version": {
+            "title": "Storage Version",
+            "type": "string"
+          },
+          "warnings": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Warnings",
+            "type": "array"
+          }
+        },
+        "required": [
+          "storage_version",
+          "storage_mode",
+          "persistence_enabled",
+          "loaded_entry_count"
+        ],
+        "title": "CraftInvestmentWorkspacePersistenceStatusDto",
+        "type": "object"
+      },
+      "CraftInvestmentWorkspaceRecordDto": {
+        "properties": {
+          "action_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Action Id"
+          },
+          "amount": {
+            "description": "Original Decimal cost amount encoded as string.",
+            "title": "Amount",
+            "type": "string"
+          },
+          "created_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Created At"
+          },
+          "currency_asset_id": {
+            "title": "Currency Asset Id",
+            "type": "string"
+          },
+          "description": {
+            "default": "",
+            "title": "Description",
+            "type": "string"
+          },
+          "economy_snapshot_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Economy Snapshot Id"
+          },
+          "entry_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Entry Id"
+          },
+          "incurred_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Incurred At"
+          },
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          },
+          "ledger_id": {
+            "default": "current",
+            "title": "Ledger Id",
+            "type": "string"
+          },
+          "normalized_value": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/EconomicValueDto"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notes"
+          },
+          "source_reference": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Reference"
+          },
+          "subject_id": {
+            "default": "current",
+            "title": "Subject Id",
+            "type": "string"
+          },
+          "updated_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Updated At"
+          },
+          "warnings": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Warnings",
+            "type": "array"
+          }
+        },
+        "required": [
+          "kind",
+          "amount",
+          "currency_asset_id"
+        ],
+        "title": "CraftInvestmentWorkspaceRecordDto",
+        "type": "object"
+      },
+      "CraftInvestmentWorkspaceSaveRequestDto": {
+        "properties": {
+          "record": {
+            "$ref": "#/components/schemas/CraftInvestmentWorkspaceRecordDto"
+          }
+        },
+        "required": [
+          "record"
+        ],
+        "title": "CraftInvestmentWorkspaceSaveRequestDto",
+        "type": "object"
+      },
+      "CraftInvestmentWorkspaceSaveResponseDto": {
+        "properties": {
+          "entry_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Entry Id"
+          },
+          "persistence": {
+            "$ref": "#/components/schemas/CraftInvestmentWorkspacePersistenceStatusDto"
+          },
+          "record": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CraftInvestmentWorkspaceRecordDto"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "warnings": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Warnings",
+            "type": "array"
+          },
+          "workspace_version": {
+            "title": "Workspace Version",
+            "type": "string"
+          }
+        },
+        "required": [
+          "workspace_version",
+          "status",
+          "persistence"
+        ],
+        "title": "CraftInvestmentWorkspaceSaveResponseDto",
+        "type": "object"
+      },
       "CraftObservationExportRequestDto": {
         "properties": {
           "observations": {
@@ -1726,6 +2205,144 @@
           "reason"
         ],
         "title": "CuratedObservationRejectedRecordDto",
+        "type": "object"
+      },
+      "CurrentProfitPositionDto": {
+        "properties": {
+          "confidence_level": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Confidence Level"
+          },
+          "known_invested": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/EconomicValueDto"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "ledger_id": {
+            "title": "Ledger Id",
+            "type": "string"
+          },
+          "market_estimated_value": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/EconomicValueDto"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "market_valuation_status": {
+            "title": "Market Valuation Status",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "supported_market_high": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/EconomicValueDto"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "supported_market_low": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/EconomicValueDto"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "supported_profit_high": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/EconomicValueDto"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "supported_profit_low": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/EconomicValueDto"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "total_invested": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/EconomicValueDto"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "unrealized_profit": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/EconomicValueDto"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "unrealized_roi": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Unrealized Roi"
+          },
+          "warnings": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Warnings",
+            "type": "array"
+          }
+        },
+        "required": [
+          "status",
+          "ledger_id",
+          "market_valuation_status",
+          "label"
+        ],
+        "title": "CurrentProfitPositionDto",
         "type": "object"
       },
       "EconomicValueDto": {
@@ -5422,6 +6039,285 @@
           }
         },
         "summary": "Analyze Advisor",
+        "tags": [
+          "advisor"
+        ]
+      }
+    },
+    "/api/v1/advisor/craft-investment/preview": {
+      "post": {
+        "operationId": "preview_craft_investment_api_v1_advisor_craft_investment_preview_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CraftInvestmentPreviewRequestDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CraftInvestmentPreviewResponseDto"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Preview Craft Investment",
+        "tags": [
+          "advisor"
+        ]
+      }
+    },
+    "/api/v1/advisor/craft-investment/workspace/entries": {
+      "get": {
+        "operationId": "list_craft_investment_entries_api_v1_advisor_craft_investment_workspace_entries_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "ledger_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Ledger Id"
+            }
+          },
+          {
+            "in": "query",
+            "name": "subject_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Subject Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CraftInvestmentWorkspaceListResponseDto"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Craft Investment Entries",
+        "tags": [
+          "advisor"
+        ]
+      },
+      "post": {
+        "operationId": "save_craft_investment_entry_api_v1_advisor_craft_investment_workspace_entries_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CraftInvestmentWorkspaceSaveRequestDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CraftInvestmentWorkspaceSaveResponseDto"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Save Craft Investment Entry",
+        "tags": [
+          "advisor"
+        ]
+      }
+    },
+    "/api/v1/advisor/craft-investment/workspace/entries/{entry_id}": {
+      "delete": {
+        "operationId": "delete_craft_investment_entry_api_v1_advisor_craft_investment_workspace_entries__entry_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "entry_id",
+            "required": true,
+            "schema": {
+              "title": "Entry Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CraftInvestmentWorkspaceDeleteResponseDto"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Delete Craft Investment Entry",
+        "tags": [
+          "advisor"
+        ]
+      },
+      "put": {
+        "operationId": "update_craft_investment_entry_api_v1_advisor_craft_investment_workspace_entries__entry_id__put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "entry_id",
+            "required": true,
+            "schema": {
+              "title": "Entry Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CraftInvestmentWorkspaceSaveRequestDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CraftInvestmentWorkspaceSaveResponseDto"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Update Craft Investment Entry",
+        "tags": [
+          "advisor"
+        ]
+      }
+    },
+    "/api/v1/advisor/craft-investment/workspace/ledger": {
+      "delete": {
+        "operationId": "clear_craft_investment_ledger_api_v1_advisor_craft_investment_workspace_ledger_delete",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "ledger_id",
+            "required": true,
+            "schema": {
+              "title": "Ledger Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CraftInvestmentWorkspaceDeleteResponseDto"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Clear Craft Investment Ledger",
         "tags": [
           "advisor"
         ]

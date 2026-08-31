@@ -3,10 +3,16 @@ import {
   DIVINE_ASSET_ID,
   EXALTED_ASSET_ID,
   type ActionAnalysis,
+  type CraftInvestmentPreviewResponse,
+  type CraftInvestmentWorkspaceRecord,
   clearManualValuationWorkspaceSubject,
+  clearCraftInvestmentWorkspaceLedger,
   deleteManualValuationWorkspaceEvidence,
+  listCraftInvestmentWorkspaceEntries,
   listManualValuationWorkspaceEvidence,
+  previewCraftInvestment,
   previewManualValuation,
+  saveCraftInvestmentWorkspaceEntry,
   saveManualValuationWorkspaceEvidence,
   type ManualListingObservation,
   type ManualValuationPreviewResponse,
@@ -441,9 +447,256 @@ export const ManualValuationPanel = forwardRef<HTMLElement, Props>(function Manu
         />
       ))}
       {preview && <ValuationPreview preview={preview} />}
+      {preview?.subject_type === "CURRENT_ITEM" && preview.market_valuation && (
+        <CraftInvestmentLedgerPanel marketPreview={preview} />
+      )}
     </section>
   );
 });
+
+const emptyInvestmentEntry = {
+  kind: "BASE_ACQUISITION",
+  description: "",
+  amount: "",
+  currency_asset_id: DIVINE_ASSET_ID,
+  normalized_value: "",
+  economy_snapshot_id: "",
+  incurred_at: "",
+  notes: ""
+};
+
+function CraftInvestmentLedgerPanel({ marketPreview }: { marketPreview: ManualValuationPreviewResponse }) {
+  const [draft, setDraft] = useState(emptyInvestmentEntry);
+  const [entries, setEntries] = useState<CraftInvestmentWorkspaceRecord[]>([]);
+  const [preview, setPreview] = useState<CraftInvestmentPreviewResponse | null>(null);
+  const [status, setStatus] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  function addDraft() {
+    setError(null);
+    setPreview(null);
+    if (!draft.amount.trim() || !draft.normalized_value.trim()) {
+      setError("Amount and normalized Exalted value are required for complete cost basis.");
+      return;
+    }
+    const record: CraftInvestmentWorkspaceRecord = {
+      ledger_id: "current",
+      subject_id: "current",
+      kind: draft.kind,
+      description: draft.description.trim() || (draft.kind === "BASE_ACQUISITION" ? "Base acquisition" : "Craft spend"),
+      amount: draft.amount.trim(),
+      currency_asset_id: draft.currency_asset_id,
+      normalized_value: { amount: draft.normalized_value.trim(), unit: "EXALTED_ECONOMIC_UNIT" },
+      economy_snapshot_id: optionalText(draft.economy_snapshot_id),
+      incurred_at: optionalText(draft.incurred_at),
+      notes: optionalText(draft.notes),
+      warnings: []
+    };
+    setEntries((current) => [...current, record]);
+    setDraft({ ...emptyInvestmentEntry, kind: draft.kind, currency_asset_id: draft.currency_asset_id });
+  }
+
+  async function previewInvestment() {
+    setError(null);
+    setStatus(null);
+    setBusy(true);
+    try {
+      const result = await previewCraftInvestment({
+        ledger_id: "current",
+        subject_id: "current",
+        entries,
+        market_valuation: marketPreview.market_valuation!
+      });
+      setPreview(result);
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Unable to preview craft investment.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function loadEntries() {
+    setError(null);
+    setStatus(null);
+    setBusy(true);
+    try {
+      const result = await listCraftInvestmentWorkspaceEntries("current", "current");
+      setEntries(result.records);
+      setStatus(`Loaded ${result.records.length} investment entr${result.records.length === 1 ? "y" : "ies"}.`);
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Unable to load craft investment entries.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function saveEntries() {
+    setError(null);
+    setStatus(null);
+    if (!entries.length) {
+      setError("Add at least one investment entry before saving.");
+      return;
+    }
+    setBusy(true);
+    try {
+      const saved = await Promise.all(entries.map((record) => saveCraftInvestmentWorkspaceEntry({ record })));
+      const records = saved.map((result) => result.record).filter(Boolean) as CraftInvestmentWorkspaceRecord[];
+      setEntries(records);
+      setStatus(`Saved ${records.length} investment entr${records.length === 1 ? "y" : "ies"} locally.`);
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Unable to save craft investment entries.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function clearLedger() {
+    setError(null);
+    setStatus(null);
+    setBusy(true);
+    try {
+      const result = await clearCraftInvestmentWorkspaceLedger("current");
+      setEntries([]);
+      setPreview(null);
+      setStatus(`Cleared ${result.deleted_count} investment entr${result.deleted_count === 1 ? "y" : "ies"}.`);
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Unable to clear craft investment ledger.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  const position = preview?.current_profit_position;
+
+  return (
+    <div className="valuation-preview" aria-label="Craft investment ledger">
+      <div className="section-heading compact-heading">
+        <h3>Craft Investment Ledger</h3>
+        <span className="status-chip">{position ? titleCase(position.status) : "Not Previewed"}</span>
+      </div>
+      <p className="muted compact">
+        Enter realized base and craft spend only. This does not infer costs from item modifiers or prospective actions.
+      </p>
+      <div className="evidence-row">
+        <label>
+          Cost type
+          <select value={draft.kind} onChange={(event) => setDraft({ ...draft, kind: event.target.value })}>
+            <option value="BASE_ACQUISITION">Base cost</option>
+            <option value="CRAFTING_SPEND">Craft spend</option>
+          </select>
+        </label>
+        <label>
+          Amount
+          <input
+            inputMode="decimal"
+            value={draft.amount}
+            onChange={(event) => setDraft({ ...draft, amount: event.target.value })}
+            placeholder="12"
+          />
+        </label>
+        <label>
+          Currency
+          <select
+            value={draft.currency_asset_id}
+            onChange={(event) => setDraft({ ...draft, currency_asset_id: event.target.value })}
+          >
+            {CURRENCY_OPTIONS.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label>
+          Normalized Ex
+          <input
+            inputMode="decimal"
+            value={draft.normalized_value}
+            onChange={(event) => setDraft({ ...draft, normalized_value: event.target.value })}
+            placeholder="4058.4"
+          />
+        </label>
+      </div>
+      <label className="wide-field">
+        Description
+        <input
+          value={draft.description}
+          onChange={(event) => setDraft({ ...draft, description: event.target.value })}
+          placeholder="base purchase or realized craft spend"
+        />
+      </label>
+      <div className="button-row">
+        <button className="secondary-button" type="button" onClick={addDraft}>
+          Add Cost Entry
+        </button>
+        <button className="secondary-button" type="button" onClick={previewInvestment} disabled={busy}>
+          Preview Current Profit Position
+        </button>
+        <button className="secondary-button" type="button" onClick={loadEntries} disabled={busy}>
+          Load Ledger
+        </button>
+        <button className="secondary-button" type="button" onClick={saveEntries} disabled={busy}>
+          Save Ledger
+        </button>
+        <button className="secondary-button" type="button" onClick={clearLedger} disabled={busy}>
+          Clear Ledger
+        </button>
+      </div>
+      {error && <p className="error-message compact">{error}</p>}
+      {status && <p className="muted compact">{status}</p>}
+      <dl className="metric-grid">
+        <div>
+          <dt>Base cost</dt>
+          <dd>{preview ? formatEconomicValue(preview.cost_basis.base_acquisition_total) : "Not previewed"}</dd>
+        </div>
+        <div>
+          <dt>Craft spend to date</dt>
+          <dd>{preview ? formatEconomicValue(preview.cost_basis.crafting_spend_total) : "Not previewed"}</dd>
+        </div>
+        <div>
+          <dt>Total invested</dt>
+          <dd>{preview?.cost_basis.total_invested ? formatEconomicValue(preview.cost_basis.total_invested) : "Unavailable"}</dd>
+        </div>
+        <div>
+          <dt>Market valuation status</dt>
+          <dd>{position ? titleCase(position.market_valuation_status) : titleCase(marketPreview.market_valuation?.status ?? "UNKNOWN")}</dd>
+        </div>
+        <div>
+          <dt>Unrealized profit estimate</dt>
+          <dd>{position?.unrealized_profit ? formatEconomicValue(position.unrealized_profit) : "Unavailable"}</dd>
+        </div>
+        <div>
+          <dt>Supported profit range</dt>
+          <dd>
+            {position?.supported_profit_low && position.supported_profit_high
+              ? `${formatEconomicValue(position.supported_profit_low)} - ${formatEconomicValue(position.supported_profit_high)}`
+              : "Unavailable"}
+          </dd>
+        </div>
+      </dl>
+      {entries.length ? (
+        <ul className="evidence-list">
+          {entries.map((entry, index) => (
+            <li key={`${entry.entry_id ?? "draft"}-${index}`}>
+              <strong>{entry.kind === "BASE_ACQUISITION" ? "Base cost" : "Craft spend"}</strong>: {entry.amount}{" "}
+              {currencyLabel(entry.currency_asset_id)}; normalized{" "}
+              {entry.normalized_value ? formatEconomicValue(entry.normalized_value) : "Unavailable"}.
+              <small>{entry.description}</small>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="muted compact">No realized investment entries entered.</p>
+      )}
+      {position?.warnings.map((warning) => (
+        <p className="warning-message compact" key={warning}>
+          {warning}
+        </p>
+      ))}
+    </div>
+  );
+}
 
 function EvidenceList({
   title,
