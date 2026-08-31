@@ -11,9 +11,11 @@ from typing import Mapping
 from .advisor_decision import AdvisorCraftInput, AdvisorDecision, AdvisorDecisionEngine
 from .advisor_risk import AdvisorRiskContext, AdvisorRiskPolicyEngine, RiskAdjustedAdvisorDecision
 from .affix_capacity import AffixStateResolver, AffixStateResolution
+from .craft_investment import CurrentMarketValuation
 from .craft_action_candidates import CraftActionCandidate, get_action_candidates
 from .craft_outcomes import CraftOutcomeEngine, CraftOutcomeSet
 from .crafting_actions import CraftActionEngine, CraftApplicabilityStatus
+from .decision_economics import StopContinueDecisionEconomics, StopContinueDecisionEconomicsEngine
 from .domain import DataProvenance, GameContext, ParsedItem, Rarity
 from .economy_repository import EconomyRepository
 from .expected_value import ExpectedValueEngine, ExpectedValueResult
@@ -105,6 +107,7 @@ class AdvisorAnalysisRequest:
     affix_capacity_dataset_version: str
     empirical_probability_dataset_version: str | None = None
     current_valuation: ValuationResult | None = None
+    current_market_valuation: CurrentMarketValuation | None = None
     outcome_valuations_by_outcome_id: Mapping[str, ValuationResult] | None = None
     risk_context: AdvisorRiskContext | None = None
     as_of: datetime | None = None
@@ -141,8 +144,10 @@ class AdvisorAnalysisResult:
     item_enrichment: ItemEnrichment | None = None
     affix_state_resolution: AffixStateResolution | None = None
     action_results: tuple[ActionAnalysisResult, ...] = ()
+    current_market_valuation: CurrentMarketValuation | None = None
     raw_advisor_decision: AdvisorDecision | None = None
     risk_adjusted_decision: RiskAdjustedAdvisorDecision | None = None
+    stop_continue_decision: StopContinueDecisionEconomics | None = None
     evidence_readiness: AdvisorEvidenceReadiness | None = None
     missing_requirements: tuple[MissingAnalysisRequirement, ...] = ()
     warnings: tuple[str, ...] = ()
@@ -168,6 +173,7 @@ class CraftAdvisorOrchestrator:
         expected_value_engine: ExpectedValueEngine | None = None,
         advisor_decision_engine: AdvisorDecisionEngine | None = None,
         risk_policy_engine: AdvisorRiskPolicyEngine | None = None,
+        stop_continue_engine: StopContinueDecisionEconomicsEngine | None = None,
         parser=parse_clipboard_item,
     ):
         self.game_data_repository = game_data_repository
@@ -180,6 +186,7 @@ class CraftAdvisorOrchestrator:
         self.expected_value_engine = expected_value_engine or ExpectedValueEngine()
         self.advisor_decision_engine = advisor_decision_engine or AdvisorDecisionEngine()
         self.risk_policy_engine = risk_policy_engine or AdvisorRiskPolicyEngine()
+        self.stop_continue_engine = stop_continue_engine or StopContinueDecisionEconomicsEngine()
         self.parser = parser or parse_clipboard_item
 
     def with_economy_repository(self, economy_repository: EconomyRepository) -> "CraftAdvisorOrchestrator":
@@ -195,6 +202,7 @@ class CraftAdvisorOrchestrator:
             expected_value_engine=self.expected_value_engine,
             advisor_decision_engine=self.advisor_decision_engine,
             risk_policy_engine=self.risk_policy_engine,
+            stop_continue_engine=self.stop_continue_engine,
             parser=self.parser,
         )
 
@@ -258,6 +266,11 @@ class CraftAdvisorOrchestrator:
             if request.risk_context is not None
             else None
         )
+        stop_continue_decision = self.stop_continue_engine.evaluate(
+            request.current_market_valuation,
+            raw_decision,
+            generated_at=as_of,
+        )
         missing = _top_level_missing_requirements(request, action_results)
         status = _overall_status(action_results, raw_decision, request.current_valuation)
         evidence_readiness = _evidence_readiness(request, action_results, missing)
@@ -269,8 +282,10 @@ class CraftAdvisorOrchestrator:
             item_enrichment=enrichment,
             affix_state_resolution=affix_state,
             action_results=action_results,
+            current_market_valuation=request.current_market_valuation,
             raw_advisor_decision=raw_decision,
             risk_adjusted_decision=risk_decision,
+            stop_continue_decision=stop_continue_decision,
             evidence_readiness=evidence_readiness,
             missing_requirements=missing,
             warnings=_warnings(parse_result, enrichment, action_results, raw_decision),

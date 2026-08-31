@@ -177,6 +177,18 @@ evidence returns no fabricated profit. Local workspace endpoints persist ledger
 entries under `.dcs/` and do not submit, infer, or recommend actions by
 themselves.
 
+Issue 71 extends `POST /api/v1/advisor/analyze` with `current_market_valuation`
+and `stop_continue_decision`. The response uses the same `market_valuation`
+authority as manual preview: `SUPPORTED_RANGE_ONLY` may serialize supported
+low/high values and player-readable display ranges, but `sell_now_value` remains
+`null` and the stop/continue decision remains `NO_RECOMMENDATION` until
+`ESTIMATED_MARKET_VALUE` exists. The transport may expose the legacy statistical
+median for diagnostics, but clients must not display it as the headline market
+value or use it as a sell-now baseline. The domain result can carry cost-basis
+context, but the current analyze request does not reconstruct ledger entries;
+ledger preview/workspace endpoints remain the source for operator-entered
+historical investment evidence.
+
 Task 15B extends the same endpoint with optional empirical probability dataset selection and serialized probability evidence details. Default production assembly skips synthetic empirical fixtures and keeps real actions `UNKNOWN` without compatible evidence.
 
 Task 15C adds an offline operator workflow rather than a public HTTP endpoint:

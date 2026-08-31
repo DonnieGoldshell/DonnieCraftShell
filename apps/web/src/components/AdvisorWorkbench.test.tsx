@@ -733,6 +733,65 @@ describe("AdvisorWorkbench", () => {
     expect(screen.getByRole("button", { name: /add observation/i })).toBeVisible();
   });
 
+  it("renders range-only stop/continue economics without a point recommendation", async () => {
+    const response: AdvisorAnalyzeResponse = {
+      ...quiverResponse,
+      current_market_valuation: {
+        status: "SUPPORTED_RANGE_ONLY",
+        source_inference_status: "BROAD_BRACKET_ONLY",
+        estimated_value: null,
+        supported_low: { amount: "15219.0", unit: "EXALTED_ECONOMIC_UNIT" },
+        supported_high: { amount: "152190.0", unit: "EXALTED_ECONOMIC_UNIT" },
+        display_estimated_value: "Insufficient precision",
+        display_supported_range: "45-450 Divine",
+        confidence: { level: "LOW", reasons: ["Broad bracket only."] },
+        legacy_statistical_median: { amount: "152190.0", unit: "EXALTED_ECONOMIC_UNIT" },
+        warnings: ["Manual evidence median is diagnostics only."]
+      },
+      stop_continue_decision: {
+        decision_type: "NO_RECOMMENDATION",
+        readiness: "NO_POINT_SELL_BASELINE",
+        selected_candidate_id: null,
+        selected_action_id: null,
+        current_market_valuation_status: "SUPPORTED_RANGE_ONLY",
+        sell_now_value: null,
+        best_continue_candidate_id: null,
+        best_continue_action_id: null,
+        expected_post_craft_value: null,
+        expected_incremental_craft_cost: null,
+        expected_net_after_craft: null,
+        gain_loss_vs_sell_now: null,
+        cost_basis_status: "INCOMPLETE",
+        total_invested: null,
+        comparison_ready: false,
+        decision_margin_source: "AdvisorDecisionEngine",
+        reasons: [],
+        blockers: ["Authoritative current point market valuation is required for sell-now versus continue-crafting comparison."],
+        warnings: ["Legacy/manual median is diagnostics only and was not used as a sell-now baseline."],
+        algorithm_version: "dc-stop-continue-v1"
+      }
+    };
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => response
+      })
+    );
+    const user = userEvent.setup();
+
+    render(<AdvisorWorkbench />);
+    await user.type(screen.getByLabelText(/clipboard item text/i), "Item Class: Quivers\nRarity: Rare");
+    await user.click(screen.getByRole("button", { name: /analyze quiver/i }));
+
+    expect(await screen.findByText("Sell Now vs Continue")).toBeInTheDocument();
+    expect(screen.getByText("Insufficient precision")).toBeInTheDocument();
+    expect(screen.getByText("45-450 Divine")).toBeInTheDocument();
+    expect(screen.getByText("NO_POINT_SELL_BASELINE")).toBeInTheDocument();
+    expect(screen.getByText(/authoritative current point market valuation is required/i)).toBeInTheDocument();
+    expect(screen.queryByText("152190.0 Ex")).not.toBeInTheDocument();
+  });
+
   it("renders backend decision-ready state without stale evidence collection CTAs", async () => {
     vi.stubGlobal(
       "fetch",

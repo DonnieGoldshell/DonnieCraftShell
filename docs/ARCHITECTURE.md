@@ -183,6 +183,8 @@ Task 13A adds [ADVISOR_ORCHESTRATION.md](ADVISOR_ORCHESTRATION.md). `CraftAdviso
 
 Task 13B adds [ADVISOR_API.md](ADVISOR_API.md) and [API_DEVELOPMENT.md](API_DEVELOPMENT.md). FastAPI route handlers use Pydantic DTOs and explicit mappers; they do not reimplement Advisor business logic. OpenAPI is the transport source of truth for future generated TypeScript contracts.
 
+Issue 71 adds [STOP_CONTINUE_DECISION_ECONOMICS.md](STOP_CONTINUE_DECISION_ECONOMICS.md). This layer sits after market inference, EV, and raw Advisor decisions. It presents sell-now versus continue-crafting economics only when the current market valuation has an authoritative point estimate and the continue side has an EV-ready candidate. Broad bracket evidence remains a range-only presentation and cannot be converted into a point comparison.
+
 Community game-data sources such as PoE2DB must be imported through source adapters into raw snapshots and normalized records. Runtime analysis should use normalized data or database records, not live scraping.
 
 Task 5B implements this boundary with local JSON fixtures:

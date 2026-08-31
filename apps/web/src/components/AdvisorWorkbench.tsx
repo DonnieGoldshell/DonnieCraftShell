@@ -185,7 +185,12 @@ export function AdvisorWorkbench() {
                 onOpenEvidenceTools={openEvidenceTools}
               />
               <ItemSummary item={analysis.item} affixState={analysis.affix_state} />
-              <DecisionPanel decision={analysis.decision} riskDecision={analysis.risk_adjusted_decision} />
+              <DecisionPanel
+                decision={analysis.decision}
+                riskDecision={analysis.risk_adjusted_decision}
+                currentMarketValuation={analysis.current_market_valuation}
+                stopContinueDecision={analysis.stop_continue_decision}
+              />
               <ActionTable actions={analysis.actions} />
               <MissingRequirements requirements={analysis.missing_requirements} warnings={analysis.warnings} />
               <AdvancedTools

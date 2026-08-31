@@ -23,6 +23,8 @@ Scenario analysis may be shown before Expected Value is available, but descripti
 
 Expected Gain vs Sell Now must be presented as a calculation from listing-derived estimates, not guaranteed realized profit.
 
+Broad market brackets are not point market values. A supported range such as `45-450 Divine` may help the player understand evidence bounds, but it must not be converted into a midpoint, median, upper anchor, or sell-now baseline for STOP/CONTINUE decisions.
+
 The Advisor may return `NO_RECOMMENDATION` when evidence is incomplete. It must not force SELL or CRAFT when current valuation, probabilities, or EV evidence are insufficient.
 
 Risk policy must remain separate from raw economic ranking. It may veto or downgrade a craft for bankroll exposure, but must not alter Expected Value.

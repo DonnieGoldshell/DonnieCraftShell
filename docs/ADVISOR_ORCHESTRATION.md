@@ -180,4 +180,6 @@ actions keep their UNKNOWN probability models.
 
 Risk adjustment is optional. When a request supplies `AdvisorRiskContext`, the orchestrator runs the risk policy engine after the raw Advisor decision. Raw economic decision and risk-adjusted decision remain separate.
 
+Issue 71 adds stop/continue decision economics to the orchestration result. The orchestrator passes through the current `market_valuation` authority and existing Advisor/EV results; it does not calculate EV, choose a midpoint for range-only evidence, or reinterpret historical investment spend as prospective craft cost.
+
 Risk policy does not mutate EV.

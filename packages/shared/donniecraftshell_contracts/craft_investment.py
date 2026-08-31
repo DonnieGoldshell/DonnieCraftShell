@@ -135,6 +135,9 @@ class CurrentMarketValuation:
     estimated_value: EconomicValue | None = None
     supported_low: EconomicValue | None = None
     supported_high: EconomicValue | None = None
+    source_inference_status: str | None = None
+    display_estimated_value: str | None = None
+    display_supported_range: str | None = None
     legacy_statistical_median: EconomicValue | None = None
     confidence_level: str | None = None
     warnings: tuple[str, ...] = ()
