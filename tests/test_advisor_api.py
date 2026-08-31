@@ -1386,6 +1386,33 @@ class AdvisorApiTests(unittest.TestCase):
         self.assertTrue(annulment["expected_value"]["available"])
         self.assertEqual(annulment["expected_value"]["net_expected_value"]["amount"], "120.0000000000000000000000000")
 
+    def test_stop_continue_decision_follows_risk_adjusted_veto(self):
+        self._install_synthetic_dependencies()
+        initial = self.client.post("/api/v1/advisor/analyze", json=base_request()).json()
+        annulment = self._action(initial, "dc:poe2:craft-action:orb-of-annulment")
+        request = base_request()
+        request["current_valuation_evidence"] = self._inferred_market_evidence("100", "105", "110")
+        request["outcome_valuation_evidence"] = [
+            {"outcome_id": outcome_id, "evidence": self._valuation_evidence("130")}
+            for outcome_id in annulment["outcome_ids"]
+        ]
+        request["bankroll"] = {"amount": "20", "unit": "EXALTED_ECONOMIC_UNIT"}
+        request["risk_profile"] = "CONSERVATIVE"
+
+        response = self.client.post("/api/v1/advisor/analyze", json=request)
+
+        self.assertEqual(response.status_code, 200)
+        body = response.json()
+        self.assertEqual(body["decision"]["decision_type"], "CRAFT")
+        self.assertEqual(body["risk_adjusted_decision"]["decision_type"], "SELL_NOW")
+        self.assertEqual(body["stop_continue_decision"]["decision_type"], "SELL_NOW")
+        self.assertIsNone(body["stop_continue_decision"]["selected_action_id"])
+        self.assertEqual(
+            body["stop_continue_decision"]["best_continue_action_id"],
+            "dc:poe2:craft-action:orb-of-annulment",
+        )
+        self.assertTrue(any("risk policy rejects" in reason for reason in body["stop_continue_decision"]["reasons"]))
+
     def test_synthetic_empirical_probability_flows_through_api_response(self):
         self._install_synthetic_empirical_dependencies()
         initial = self.client.post("/api/v1/advisor/analyze", json=base_request()).json()

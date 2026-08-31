@@ -10,6 +10,7 @@ from packages.shared.donniecraftshell_contracts.advisor_decision import (
     AdvisorDecision,
     AdvisorDecisionType,
 )
+from packages.shared.donniecraftshell_contracts.advisor_risk import RiskAdjustedAdvisorDecision
 from packages.shared.donniecraftshell_contracts.craft_investment import (
     CraftInvestmentCostBasis,
     CraftInvestmentCostBasisStatus,
@@ -205,6 +206,67 @@ class StopContinueDecisionEconomicsTests(unittest.TestCase):
         self.assertEqual(result.decision_type, AdvisorDecisionType.SELL_NOW)
         self.assertEqual(result.gain_loss_vs_sell_now.amount, Decimal("0.5"))
         self.assertEqual(result.decision_margin_source, "AdvisorDecisionEngine")
+
+    def test_risk_adjusted_veto_prevents_stop_continue_craft_headline(self):
+        candidate = self._craft_candidate("craft-a", gross="140", cost="20", net="120", gain="20")
+        raw_decision = self._raw_decision(
+            AdvisorDecisionType.CRAFT,
+            candidate,
+            selected_candidate_id=candidate.candidate_id,
+        )
+        risk_decision = RiskAdjustedAdvisorDecision(
+            raw_decision=raw_decision,
+            risk_adjusted_decision_type=AdvisorDecisionType.SELL_NOW,
+            raw_winner_candidate_id=candidate.candidate_id,
+            selected_candidate_id="advisor-candidate:sell-now",
+            risk_policy_changed_outcome=True,
+            risk_adjusted_candidates=(),
+            decision_reasons=("Synthetic risk veto.",),
+        )
+
+        result = StopContinueDecisionEconomicsEngine().evaluate(
+            self._point_market("100"),
+            raw_decision,
+            risk_adjusted_decision=risk_decision,
+            generated_at=AS_OF,
+        )
+
+        self.assertEqual(result.decision_type, AdvisorDecisionType.SELL_NOW)
+        self.assertIsNone(result.selected_action_id)
+        self.assertEqual(result.best_continue_action_id, "craft-a")
+        self.assertTrue(any("risk policy rejects" in reason for reason in result.reasons))
+
+    def test_risk_adjusted_second_best_craft_becomes_stop_continue_craft(self):
+        craft_a = self._craft_candidate("craft-a", gross="160", cost="20", net="140", gain="40")
+        craft_b = self._craft_candidate("craft-b", gross="135", cost="15", net="120", gain="20")
+        raw_decision = self._raw_decision(
+            AdvisorDecisionType.CRAFT,
+            craft_a,
+            craft_b,
+            selected_candidate_id=craft_a.candidate_id,
+        )
+        risk_decision = RiskAdjustedAdvisorDecision(
+            raw_decision=raw_decision,
+            risk_adjusted_decision_type=AdvisorDecisionType.CRAFT,
+            raw_winner_candidate_id=craft_a.candidate_id,
+            selected_candidate_id=craft_b.candidate_id,
+            risk_policy_changed_outcome=True,
+            risk_adjusted_candidates=(),
+            decision_reasons=("Synthetic second-best craft survives risk policy.",),
+        )
+
+        result = StopContinueDecisionEconomicsEngine().evaluate(
+            self._point_market("100"),
+            raw_decision,
+            risk_adjusted_decision=risk_decision,
+            generated_at=AS_OF,
+        )
+
+        self.assertEqual(result.decision_type, AdvisorDecisionType.CRAFT)
+        self.assertEqual(result.selected_action_id, "craft-b")
+        self.assertEqual(result.best_continue_action_id, "craft-a")
+        self.assertEqual(result.expected_net_after_craft.amount, Decimal("120"))
+        self.assertEqual(result.gain_loss_vs_sell_now.amount, Decimal("20"))
 
     def test_algorithm_version_is_retained(self):
         result = StopContinueDecisionEconomicsEngine().evaluate(

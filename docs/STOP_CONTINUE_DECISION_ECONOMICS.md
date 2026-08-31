@@ -48,6 +48,12 @@ Historical craft investment spend is cost-basis context. It is not added again a
 
 The decision-margin source remains `AdvisorDecisionEngine`; this layer does not reapply margin or risk policy.
 
+When a risk context is supplied, the layer follows the existing
+`RiskAdjustedAdvisorDecision` for the player-facing STOP/CONTINUE result. A raw
+`CRAFT` winner that is vetoed or downgraded by risk policy must not still appear
+as the STOP/CONTINUE recommendation. Raw EV values remain unchanged and visible
+as evidence; risk policy only affects the selected player-facing decision.
+
 ## UI Semantics
 
 For `SUPPORTED_RANGE_ONLY`, the player-facing UI should show:
@@ -57,3 +63,9 @@ For `SUPPORTED_RANGE_ONLY`, the player-facing UI should show:
 - confidence from the market inference model.
 
 It must not show the legacy median as "Estimated Value".
+
+The compact UI label for the selected next action must reflect the actual
+recommendation: `SELL_NOW` displays "Sell Now", `CRAFT` displays the selected
+craft action, and `NO_RECOMMENDATION` displays "No recommendation". The best
+EV-ready continuation may remain in WHY/diagnostics, especially when SELL NOW
+wins.

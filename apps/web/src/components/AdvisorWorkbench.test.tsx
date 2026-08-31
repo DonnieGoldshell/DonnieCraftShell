@@ -13,6 +13,7 @@ import {
   type ManualValuationPreviewResponse
 } from "@/api/advisor";
 import { AdvisorWorkbench } from "./AdvisorWorkbench";
+import { DecisionPanel } from "./DecisionPanel";
 
 const originalScrollIntoView = Element.prototype.scrollIntoView;
 const originalFocus = HTMLElement.prototype.focus;
@@ -453,6 +454,52 @@ const decisionReadyQuiverResponse: AdvisorAnalyzeResponse = {
   warnings: ["Synthetic test-only decision-ready response."]
 };
 
+function pointMarketValuation(
+  amount: string
+): NonNullable<AdvisorAnalyzeResponse["current_market_valuation"]> {
+  return {
+    status: "ESTIMATED_MARKET_VALUE",
+    source_inference_status: "INFERRED_MARKET_BAND",
+    estimated_value: { amount, unit: "EXALTED_ECONOMIC_UNIT" },
+    supported_low: { amount, unit: "EXALTED_ECONOMIC_UNIT" },
+    supported_high: { amount, unit: "EXALTED_ECONOMIC_UNIT" },
+    display_estimated_value: `${amount} Ex`,
+    display_supported_range: `${amount}-${amount} Ex`,
+    confidence: { level: "MEDIUM", reasons: ["Synthetic frontend test-only inferred band."] },
+    legacy_statistical_median: null,
+    warnings: []
+  };
+}
+
+function stopContinueDecision(
+  decisionType: "SELL_NOW" | "CRAFT" | "NO_RECOMMENDATION",
+  overrides: Partial<NonNullable<AdvisorAnalyzeResponse["stop_continue_decision"]>> = {}
+): NonNullable<AdvisorAnalyzeResponse["stop_continue_decision"]> {
+  return {
+    decision_type: decisionType,
+    readiness: decisionType === "NO_RECOMMENDATION" ? "NO_RECOMMENDATION" : "READY",
+    selected_candidate_id: null,
+    selected_action_id: null,
+    current_market_valuation_status: "ESTIMATED_MARKET_VALUE",
+    sell_now_value: { amount: "100", unit: "EXALTED_ECONOMIC_UNIT" },
+    best_continue_candidate_id: "advisor-candidate:craft:dc:poe2:craft-action:orb-of-annulment",
+    best_continue_action_id: "dc:poe2:craft-action:orb-of-annulment",
+    expected_post_craft_value: { amount: "130", unit: "EXALTED_ECONOMIC_UNIT" },
+    expected_incremental_craft_cost: { amount: "7.5", unit: "EXALTED_ECONOMIC_UNIT" },
+    expected_net_after_craft: { amount: "122.5", unit: "EXALTED_ECONOMIC_UNIT" },
+    gain_loss_vs_sell_now: { amount: "22.5", unit: "EXALTED_ECONOMIC_UNIT" },
+    cost_basis_status: null,
+    total_invested: null,
+    comparison_ready: decisionType !== "NO_RECOMMENDATION",
+    decision_margin_source: "AdvisorDecisionEngine",
+    reasons: ["Synthetic frontend test-only stop/continue decision."],
+    blockers: [],
+    warnings: [],
+    algorithm_version: "dc-stop-continue-v1",
+    ...overrides
+  };
+}
+
 const multiProbabilityTargetResponse: AdvisorAnalyzeResponse = {
   ...quiverResponse,
   actions: [
@@ -790,6 +837,60 @@ describe("AdvisorWorkbench", () => {
     expect(screen.getByText("NO_POINT_SELL_BASELINE")).toBeInTheDocument();
     expect(screen.getByText(/authoritative current point market valuation is required/i)).toBeInTheDocument();
     expect(screen.queryByText("152190.0 Ex")).not.toBeInTheDocument();
+  });
+
+  it("renders SELL_NOW as the selected stop/continue action label", () => {
+    render(
+      <DecisionPanel
+        decision={null}
+        riskDecision={null}
+        currentMarketValuation={pointMarketValuation("100")}
+        stopContinueDecision={stopContinueDecision("SELL_NOW", {
+          selected_candidate_id: "advisor-candidate:sell-now",
+          selected_action_id: null,
+          best_continue_action_id: "dc:poe2:craft-action:orb-of-annulment"
+        })}
+      />
+    );
+
+    expect(screen.getByText("Recommended next action").nextElementSibling).toHaveTextContent("Sell Now");
+    expect(screen.getByText(/best ev-ready continuation/i)).toHaveTextContent("dc:poe2:craft-action:orb-of-annulment");
+  });
+
+  it("renders CRAFT as the selected stop/continue craft action label", () => {
+    render(
+      <DecisionPanel
+        decision={null}
+        riskDecision={null}
+        currentMarketValuation={pointMarketValuation("100")}
+        stopContinueDecision={stopContinueDecision("CRAFT", {
+          selected_candidate_id: "advisor-candidate:craft:dc:poe2:craft-action:orb-of-annulment",
+          selected_action_id: "dc:poe2:craft-action:orb-of-annulment",
+          best_continue_action_id: "dc:poe2:craft-action:orb-of-annulment"
+        })}
+      />
+    );
+
+    expect(screen.getByText("Recommended next action").nextElementSibling).toHaveTextContent(
+      "dc:poe2:craft-action:orb-of-annulment"
+    );
+  });
+
+  it("renders NO_RECOMMENDATION without implying a stop/continue action", () => {
+    render(
+      <DecisionPanel
+        decision={null}
+        riskDecision={null}
+        currentMarketValuation={null}
+        stopContinueDecision={stopContinueDecision("NO_RECOMMENDATION", {
+          selected_candidate_id: null,
+          selected_action_id: null,
+          best_continue_action_id: null
+        })}
+      />
+    );
+
+    expect(screen.getByText("Recommended next action").nextElementSibling).toHaveTextContent("No recommendation");
   });
 
   it("renders backend decision-ready state without stale evidence collection CTAs", async () => {

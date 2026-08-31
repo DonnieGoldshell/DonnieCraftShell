@@ -12,6 +12,7 @@ from datetime import datetime, timezone
 from enum import Enum
 
 from .advisor_decision import AdvisorCandidate, AdvisorCandidateStatus, AdvisorDecision, AdvisorDecisionType
+from .advisor_risk import RiskAdjustedAdvisorDecision
 from .craft_investment import (
     CraftInvestmentCostBasis,
     CraftInvestmentCostBasisStatus,
@@ -70,6 +71,7 @@ class StopContinueDecisionEconomicsEngine:
         advisor_decision: AdvisorDecision | None,
         cost_basis: CraftInvestmentCostBasis | None = None,
         current_profit_position: CurrentProfitPosition | None = None,
+        risk_adjusted_decision: RiskAdjustedAdvisorDecision | None = None,
         generated_at: datetime | None = None,
     ) -> StopContinueDecisionEconomics:
         generated_at = generated_at or datetime.now(timezone.utc)
@@ -141,7 +143,8 @@ class StopContinueDecisionEconomicsEngine:
                 generated_at=generated_at,
             )
 
-        ev = best_continue.expected_value_result
+        selected_continue = _risk_selected_craft_candidate(advisor_decision, risk_adjusted_decision) or best_continue
+        ev = selected_continue.expected_value_result
         assert ev is not None
         if ev.craft_cost is None or ev.gross_expected_outcome_value is None or ev.net_expected_value is None:
             return StopContinueDecisionEconomics(
@@ -171,21 +174,46 @@ class StopContinueDecisionEconomicsEngine:
             if value is not None:
                 _require_normalized(value, field_name)
 
-        if advisor_decision.decision_type == AdvisorDecisionType.CRAFT:
-            selected_candidate_id = advisor_decision.selected_candidate_id
-            selected_action_id = best_continue.action_id if selected_candidate_id == best_continue.candidate_id else None
+        effective_decision_type = (
+            risk_adjusted_decision.risk_adjusted_decision_type
+            if risk_adjusted_decision is not None
+            else advisor_decision.decision_type
+        )
+        effective_selected_candidate_id = (
+            risk_adjusted_decision.selected_candidate_id
+            if risk_adjusted_decision is not None
+            else advisor_decision.selected_candidate_id
+        )
+
+        if effective_decision_type == AdvisorDecisionType.CRAFT:
+            selected_candidate_id = effective_selected_candidate_id
+            selected_action_id = (
+                selected_continue.action_id
+                if selected_candidate_id == selected_continue.candidate_id
+                else None
+            )
             reasons = (
                 "Best supported continuation beats the authoritative sell-now baseline after prospective craft cost.",
                 "Historical ledger spend was not added to the prospective incremental craft cost.",
             )
+            if risk_adjusted_decision is not None:
+                reasons = (
+                    "Existing risk policy permits the selected continuation without mutating raw EV values.",
+                    *reasons,
+                )
             decision_type = AdvisorDecisionType.CRAFT
-        elif advisor_decision.decision_type == AdvisorDecisionType.SELL_NOW:
-            selected_candidate_id = advisor_decision.selected_candidate_id
+        elif effective_decision_type == AdvisorDecisionType.SELL_NOW:
+            selected_candidate_id = effective_selected_candidate_id
             selected_action_id = None
             reasons = (
                 "Authoritative sell-now value dominates the best EV-ready continuation under the configured Advisor policy.",
                 "Historical ledger spend was not added to the prospective incremental craft cost.",
             )
+            if risk_adjusted_decision is not None and advisor_decision.decision_type == AdvisorDecisionType.CRAFT:
+                reasons = (
+                    "Existing risk policy rejects the raw craft winner; player-facing stop/continue economics follows the risk-adjusted decision.",
+                    *reasons,
+                )
             decision_type = AdvisorDecisionType.SELL_NOW
         else:
             selected_candidate_id = None
@@ -193,6 +221,11 @@ class StopContinueDecisionEconomicsEngine:
             reasons = (
                 "Advisor policy did not produce a rankable SELL_NOW or CRAFT decision despite compatible comparison evidence.",
             )
+            if risk_adjusted_decision is not None:
+                reasons = (
+                    "Existing risk policy does not permit a player-facing craft recommendation.",
+                    *reasons,
+                )
             decision_type = AdvisorDecisionType.NO_RECOMMENDATION
 
         return StopContinueDecisionEconomics(
@@ -231,6 +264,22 @@ def _best_ev_ready_candidate(decision: AdvisorDecision) -> AdvisorCandidate | No
     if not candidates:
         return None
     return max(candidates, key=lambda item: item.expected_value_result.net_expected_value.amount)  # type: ignore[union-attr]
+
+
+def _risk_selected_craft_candidate(
+    decision: AdvisorDecision,
+    risk_adjusted_decision: RiskAdjustedAdvisorDecision | None,
+) -> AdvisorCandidate | None:
+    if (
+        risk_adjusted_decision is None
+        or risk_adjusted_decision.risk_adjusted_decision_type != AdvisorDecisionType.CRAFT
+        or risk_adjusted_decision.selected_candidate_id is None
+    ):
+        return None
+    for candidate in decision.craft_candidates:
+        if candidate.candidate_id == risk_adjusted_decision.selected_candidate_id:
+            return candidate
+    return None
 
 
 def _require_normalized(value: EconomicValue, field_name: str) -> None:

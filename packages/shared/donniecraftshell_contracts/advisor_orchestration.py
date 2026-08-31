@@ -269,6 +269,7 @@ class CraftAdvisorOrchestrator:
         stop_continue_decision = self.stop_continue_engine.evaluate(
             request.current_market_valuation,
             raw_decision,
+            risk_adjusted_decision=risk_decision,
             generated_at=as_of,
         )
         missing = _top_level_missing_requirements(request, action_results)

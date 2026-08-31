@@ -52,8 +52,8 @@ export function DecisionPanel({ decision, riskDecision, currentMarketValuation, 
               <dd>{formatValue(stopContinueDecision.total_invested) ?? stopContinueDecision.cost_basis_status ?? "Unknown"}</dd>
             </div>
             <div>
-              <dt>Best next action</dt>
-              <dd>{stopContinueDecision.best_continue_action_id ?? stopContinueDecision.selected_action_id ?? "Unavailable"}</dd>
+              <dt>Recommended next action</dt>
+              <dd>{selectedRecommendationLabel(stopContinueDecision)}</dd>
             </div>
             <div>
               <dt>Expected incremental cost</dt>
@@ -74,6 +74,9 @@ export function DecisionPanel({ decision, riskDecision, currentMarketValuation, 
           </dl>
           <details className="why-disclosure">
             <summary>WHY</summary>
+            {stopContinueDecision.best_continue_action_id ? (
+              <p className="muted">Best EV-ready continuation: {stopContinueDecision.best_continue_action_id}</p>
+            ) : null}
             <ReasonList reasons={[...stopContinueDecision.reasons, ...stopContinueDecision.blockers]} />
             <ReasonList reasons={stopContinueDecision.warnings} />
           </details>
@@ -117,6 +120,18 @@ function displayMarketBlocker(decision: NonNullable<AdvisorAnalyzeResponse["stop
     return "Insufficient evidence";
   }
   return "Unavailable";
+}
+
+function selectedRecommendationLabel(
+  decision: NonNullable<AdvisorAnalyzeResponse["stop_continue_decision"]>,
+): string {
+  if (decision.decision_type === "SELL_NOW") {
+    return "Sell Now";
+  }
+  if (decision.decision_type === "CRAFT") {
+    return decision.selected_action_id ?? "Selected craft unavailable";
+  }
+  return "No recommendation";
 }
 
 function ReasonList({ reasons }: { reasons: string[] }) {
