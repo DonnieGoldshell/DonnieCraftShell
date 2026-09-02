@@ -839,6 +839,103 @@ describe("AdvisorWorkbench", () => {
     expect(screen.queryByText("152190.0 Ex")).not.toBeInTheDocument();
   });
 
+  it("applies prepared current valuation evidence on explicit rerun without promoting a broad bracket", async () => {
+    const rangeOnlyResponse: AdvisorAnalyzeResponse = {
+      ...quiverResponse,
+      current_market_valuation: {
+        status: "SUPPORTED_RANGE_ONLY",
+        source_inference_status: "BROAD_BRACKET_ONLY",
+        estimated_value: null,
+        supported_low: { amount: "15219.0", unit: "EXALTED_ECONOMIC_UNIT" },
+        supported_high: { amount: "152190.0", unit: "EXALTED_ECONOMIC_UNIT" },
+        display_estimated_value: "Insufficient precision",
+        display_supported_range: "45-450 Divine",
+        confidence: { level: "LOW", reasons: ["Broad bracket only."] },
+        legacy_statistical_median: { amount: "152190.0", unit: "EXALTED_ECONOMIC_UNIT" },
+        warnings: ["Manual evidence median is diagnostics only."]
+      },
+      stop_continue_decision: {
+        decision_type: "NO_RECOMMENDATION",
+        readiness: "NO_POINT_SELL_BASELINE",
+        selected_candidate_id: null,
+        selected_action_id: null,
+        current_market_valuation_status: "SUPPORTED_RANGE_ONLY",
+        sell_now_value: null,
+        best_continue_candidate_id: null,
+        best_continue_action_id: null,
+        expected_post_craft_value: null,
+        expected_incremental_craft_cost: null,
+        expected_net_after_craft: null,
+        gain_loss_vs_sell_now: null,
+        cost_basis_status: null,
+        total_invested: null,
+        comparison_ready: false,
+        decision_margin_source: "AdvisorDecisionEngine",
+        reasons: [],
+        blockers: ["Authoritative current point market valuation is required for sell-now versus continue-crafting comparison."],
+        warnings: ["Legacy/manual median is diagnostics only and was not used as a sell-now baseline."],
+        algorithm_version: "dc-stop-continue-v1"
+      },
+      evidence_readiness: {
+        ...quiverResponse.evidence_readiness!,
+        items: quiverResponse.evidence_readiness!.items.map((item) =>
+          item.category === "CURRENT_ITEM_VALUATION"
+            ? {
+                ...item,
+                status: "READY",
+                summary: "Prepared current valuation evidence was applied to this analysis.",
+                targets: []
+              }
+            : item
+        )
+      }
+    };
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce({ ok: true, json: async () => quiverResponse })
+      .mockResolvedValueOnce({ ok: true, json: async () => rangeOnlyResponse });
+    vi.stubGlobal("fetch", fetchMock);
+    const user = userEvent.setup();
+
+    render(<AdvisorWorkbench />);
+    await user.type(screen.getByLabelText(/clipboard item text/i), "Item Class: Quivers\nRarity: Rare");
+    await user.click(screen.getByRole("button", { name: /analyze quiver/i }));
+    await screen.findByText("Primed Quiver");
+
+    await openAdvancedTools(user);
+    for (const [amount, listingId, text] of [
+      ["450", "gloom-barb-450-divine", "Item Class: Quivers\nRarity: Rare\nGloom Barb\nVisceral Quiver"],
+      ["450", "bramble-barb-450-divine", "Item Class: Quivers\nRarity: Rare\nBramble Barb\nVisceral Quiver"],
+      ["45", "skull-quill-45-divine", "Item Class: Quivers\nRarity: Rare\nSkull Quill\nPrimed Quiver"]
+    ] as const) {
+      fireEvent.change(screen.getByLabelText(/listing amount/i), { target: { value: amount } });
+      fireEvent.change(screen.getByLabelText(/listing id/i), { target: { value: listingId } });
+      fireEvent.change(screen.getByLabelText(/comparable advanced copy/i), { target: { value: text } });
+      await user.click(screen.getByRole("button", { name: /add observation/i }));
+    }
+
+    expect(screen.getByText(/3 prepared for next rerun; 0 saved locally/i)).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: /re-run analysis/i }));
+    await screen.findByText("Sell Now vs Continue");
+
+    const rerunRequest = JSON.parse(fetchMock.mock.calls[1][1].body as string);
+    expect(rerunRequest.current_valuation_evidence.observations).toHaveLength(3);
+    expect(rerunRequest.current_valuation_evidence.observations[0]).toEqual(
+      expect.objectContaining({
+        amount: "450",
+        currency_asset_id: DIVINE_ASSET_ID,
+        external_listing_id: "gloom-barb-450-divine",
+        comparable_clipboard_text: expect.stringContaining("Gloom Barb")
+      })
+    );
+    expect(screen.getByText(/3 applied to current analysis; 0 saved locally/i)).toBeInTheDocument();
+    expect(screen.getByText("Insufficient precision")).toBeInTheDocument();
+    expect(screen.getByText("45-450 Divine")).toBeInTheDocument();
+    expect(screen.getByText("NO_POINT_SELL_BASELINE")).toBeInTheDocument();
+    expect(screen.queryByText("152190.0 Ex")).not.toBeInTheDocument();
+  });
+
   it("renders SELL_NOW as the selected stop/continue action label", () => {
     render(
       <DecisionPanel
@@ -1545,7 +1642,7 @@ describe("AdvisorWorkbench", () => {
     await user.type(screen.getByLabelText(/clipboard item text/i), "Item Class: Quivers\nRarity: Rare");
     await user.click(screen.getByRole("button", { name: /analyze quiver/i }));
     await screen.findByText("Primed Quiver");
-    expect(screen.getByText(/1 prepared for next rerun; 0 saved locally/i)).toBeInTheDocument();
+    expect(screen.getByText(/1 applied to current analysis; 0 saved locally/i)).toBeInTheDocument();
     expect(screen.getByText(/saved workspace evidence and selected dataset ids do not affect advisor output/i)).toBeInTheDocument();
     const analyzeBody = JSON.parse(fetchMock.mock.calls[1][1].body as string);
     expect(analyzeBody.current_valuation_evidence.observations).toEqual([
@@ -1782,7 +1879,7 @@ describe("AdvisorWorkbench", () => {
     await user.type(screen.getByLabelText(/clipboard item text/i), "Item Class: Quivers\nRarity: Rare");
     await user.click(screen.getByRole("button", { name: /analyze quiver/i }));
     await screen.findByText("Primed Quiver");
-    expect(screen.getByText(/1 prepared for next rerun; 1 saved locally/i)).toBeInTheDocument();
+    expect(screen.getByText(/1 applied to current analysis; 1 saved locally/i)).toBeInTheDocument();
     expect(screen.getByText(/saved workspace evidence and selected dataset ids do not affect advisor output/i)).toBeInTheDocument();
     const analyzeBody = JSON.parse(fetchMock.mock.calls[1][1].body as string);
     expect(analyzeBody.current_valuation_evidence.observations).toEqual([
