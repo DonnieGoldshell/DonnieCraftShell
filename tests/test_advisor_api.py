@@ -808,9 +808,8 @@ class AdvisorApiTests(unittest.TestCase):
         self.assertEqual(headline["display_supported_range"], "45-450 Divine")
         self.assertEqual(headline["legacy_statistical_median"]["amount"], "152190.0")
 
-    def test_advisor_analyze_broad_market_evidence_does_not_create_stop_continue_recommendation(self):
-        request = base_request()
-        request["current_valuation_evidence"] = {
+    def test_advisor_analyze_applies_prepared_broad_market_evidence_without_sell_baseline(self):
+        evidence = {
             "strategy": "STRICT",
             "observations": [
                 {
@@ -839,21 +838,53 @@ class AdvisorApiTests(unittest.TestCase):
                 },
             ],
         }
+        preview = self.client.post(
+            "/api/v1/advisor/manual-valuation/preview",
+            json={
+                "subject_id": "current",
+                "subject_type": "CURRENT_ITEM",
+                "subject_clipboard_text": fixture("quiver_6_crafted_desecrated_advanced.txt"),
+                "league": LEAGUE,
+                "as_of": AS_OF,
+                "evidence": evidence,
+            },
+        )
+        request = base_request()
+        request["current_valuation_evidence"] = evidence
 
         response = self.client.post("/api/v1/advisor/analyze", json=request)
 
+        self.assertEqual(preview.status_code, 200)
+        preview_body = preview.json()
+        self.assertEqual(preview_body["market_valuation"]["status"], "SUPPORTED_RANGE_ONLY")
+        self.assertIsNone(preview_body["market_valuation"]["estimated_value"])
+        self.assertEqual(preview_body["market_valuation"]["display_supported_range"], "45-450 Divine")
+        self.assertEqual(preview_body["market_valuation"]["legacy_statistical_median"]["amount"], "152190.0")
+
         self.assertEqual(response.status_code, 200)
         body = response.json()
-        self.assertEqual(body["current_market_valuation"]["status"], "SUPPORTED_RANGE_ONLY")
-        self.assertIsNone(body["current_market_valuation"]["estimated_value"])
-        self.assertEqual(body["current_market_valuation"]["supported_low"]["amount"], "15219.0")
-        self.assertEqual(body["current_market_valuation"]["supported_high"]["amount"], "152190.0")
-        self.assertEqual(body["current_market_valuation"]["display_supported_range"], "45-450 Divine")
+        current_market = body["current_market_valuation"]
+        self.assertEqual(current_market["status"], "SUPPORTED_RANGE_ONLY")
+        self.assertEqual(current_market["source_inference_status"], "BROAD_BRACKET_ONLY")
+        self.assertIsNone(current_market["estimated_value"])
+        self.assertEqual(current_market["supported_low"]["amount"], "15219.0")
+        self.assertEqual(current_market["supported_high"]["amount"], "152190.0")
+        self.assertEqual(current_market["display_estimated_value"], "Insufficient precision")
+        self.assertEqual(current_market["display_supported_range"], "45-450 Divine")
+        self.assertEqual(current_market["legacy_statistical_median"]["amount"], "152190.0")
         self.assertEqual(body["decision"]["decision_type"], "NO_RECOMMENDATION")
-        self.assertEqual(body["stop_continue_decision"]["decision_type"], "NO_RECOMMENDATION")
-        self.assertEqual(body["stop_continue_decision"]["readiness"], "NO_POINT_SELL_BASELINE")
-        self.assertIsNone(body["stop_continue_decision"]["sell_now_value"])
-        self.assertTrue(any("point market valuation" in item for item in body["stop_continue_decision"]["blockers"]))
+        stop_continue = body["stop_continue_decision"]
+        self.assertEqual(stop_continue["decision_type"], "NO_RECOMMENDATION")
+        self.assertEqual(stop_continue["readiness"], "NO_POINT_SELL_BASELINE")
+        self.assertEqual(stop_continue["current_market_valuation_status"], "SUPPORTED_RANGE_ONLY")
+        self.assertIsNone(stop_continue["sell_now_value"])
+        self.assertIsNone(stop_continue["gain_loss_vs_sell_now"])
+        self.assertIsNone(stop_continue["expected_net_after_craft"])
+        self.assertTrue(any("point market valuation" in item for item in stop_continue["blockers"]))
+        self.assertTrue(any("median is diagnostics only" in item for item in stop_continue["warnings"]))
+        self.assertNotEqual(stop_continue["sell_now_value"], current_market["legacy_statistical_median"])
+        midpoint = (Decimal(current_market["supported_low"]["amount"]) + Decimal(current_market["supported_high"]["amount"])) / Decimal("2")
+        self.assertNotEqual(stop_continue["sell_now_value"], str(midpoint))
 
     def test_manual_valuation_preview_insufficient_evidence_has_no_headline_estimate(self):
         response = self.client.post(
