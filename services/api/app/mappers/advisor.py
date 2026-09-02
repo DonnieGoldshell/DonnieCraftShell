@@ -438,6 +438,7 @@ def _market_valuation_from_dto(dto: MarketValuationPresentationDto) -> CurrentMa
             else None
         ),
         confidence_level=dto.confidence.level if dto.confidence is not None else None,
+        confidence_reasons=tuple(dto.confidence.reasons) if dto.confidence is not None else (),
         warnings=tuple(dto.warnings),
     )
 
@@ -1150,7 +1151,7 @@ def _market_valuation_to_dto(result: AdvisorAnalysisResult) -> MarketValuationPr
         confidence=(
             ValuationConfidenceDto(
                 level=valuation.confidence_level,
-                reasons=[],
+                reasons=list(valuation.confidence_reasons),
             )
             if valuation.confidence_level
             else None

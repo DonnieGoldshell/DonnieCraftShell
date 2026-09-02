@@ -520,6 +520,25 @@ def _current_valuation_readiness(
             evidence_tool="manual-current-valuation",
             diagnostics=diagnostics,
         )
+    if request.current_market_valuation is not None:
+        if request.current_market_valuation.status == "ESTIMATED_MARKET_VALUE":
+            return EvidenceReadinessItem(
+                category=EvidenceReadinessCategory.CURRENT_ITEM_VALUATION,
+                label="Current item valuation",
+                status=EvidenceReadinessStatus.READY,
+                summary="Current item valuation evidence supports a point sell-now baseline.",
+                evidence_tool="manual-current-valuation",
+                diagnostics=diagnostics,
+            )
+        if request.current_market_valuation.status == "SUPPORTED_RANGE_ONLY":
+            return EvidenceReadinessItem(
+                category=EvidenceReadinessCategory.CURRENT_ITEM_VALUATION,
+                label="Current item valuation",
+                status=EvidenceReadinessStatus.PARTIAL,
+                summary="Current item valuation evidence supports a market range only; a point sell-now baseline is still unavailable.",
+                evidence_tool="manual-current-valuation",
+                diagnostics=diagnostics,
+            )
     status = (
         EvidenceReadinessStatus.READY
         if request.current_valuation.readiness.value == "READY"

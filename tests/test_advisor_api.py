@@ -817,15 +817,7 @@ class AdvisorApiTests(unittest.TestCase):
                     "currency_asset_id": "dc:poe2:economy-asset:currency:divine-orb",
                     "external_listing_id": "gloom-barb-450-divine",
                     "observed_at": AS_OF,
-                    "item_summary": "synthetic test-only structured comparable upper anchor",
-                    "comparable_clipboard_text": fixture("gloom_barb_visceral_quiver_comparable_advanced.txt"),
-                },
-                {
-                    "amount": "450",
-                    "currency_asset_id": "dc:poe2:economy-asset:currency:divine-orb",
-                    "external_listing_id": "bramble-barb-450-divine",
-                    "observed_at": AS_OF,
-                    "item_summary": "synthetic test-only second upper anchor using same parsed fixture shape",
+                    "item_summary": "real pilot Gloom Barb full Advanced Copy comparable",
                     "comparable_clipboard_text": fixture("gloom_barb_visceral_quiver_comparable_advanced.txt"),
                 },
                 {
@@ -833,7 +825,7 @@ class AdvisorApiTests(unittest.TestCase):
                     "currency_asset_id": "dc:poe2:economy-asset:currency:divine-orb",
                     "external_listing_id": "skull-quill-45-divine",
                     "observed_at": AS_OF,
-                    "item_summary": "synthetic test-only structured comparable lower anchor",
+                    "item_summary": "real pilot Skull Quill full Advanced Copy comparable",
                     "comparable_clipboard_text": fixture("skull_quill_primed_quiver_comparable_advanced.txt"),
                 },
             ],
@@ -859,7 +851,7 @@ class AdvisorApiTests(unittest.TestCase):
         self.assertEqual(preview_body["market_valuation"]["status"], "SUPPORTED_RANGE_ONLY")
         self.assertIsNone(preview_body["market_valuation"]["estimated_value"])
         self.assertEqual(preview_body["market_valuation"]["display_supported_range"], "45-450 Divine")
-        self.assertEqual(preview_body["market_valuation"]["legacy_statistical_median"]["amount"], "152190.0")
+        self.assertEqual(preview_body["market_valuation"]["legacy_statistical_median"]["amount"], "83704.5")
 
         self.assertEqual(response.status_code, 200)
         body = response.json()
@@ -871,7 +863,8 @@ class AdvisorApiTests(unittest.TestCase):
         self.assertEqual(current_market["supported_high"]["amount"], "152190.0")
         self.assertEqual(current_market["display_estimated_value"], "Insufficient precision")
         self.assertEqual(current_market["display_supported_range"], "45-450 Divine")
-        self.assertEqual(current_market["legacy_statistical_median"]["amount"], "152190.0")
+        self.assertEqual(current_market["legacy_statistical_median"]["amount"], "83704.5")
+        self.assertEqual(current_market["confidence"], preview_body["market_valuation"]["confidence"])
         self.assertEqual(body["decision"]["decision_type"], "NO_RECOMMENDATION")
         stop_continue = body["stop_continue_decision"]
         self.assertEqual(stop_continue["decision_type"], "NO_RECOMMENDATION")
@@ -885,6 +878,11 @@ class AdvisorApiTests(unittest.TestCase):
         self.assertNotEqual(stop_continue["sell_now_value"], current_market["legacy_statistical_median"])
         midpoint = (Decimal(current_market["supported_low"]["amount"]) + Decimal(current_market["supported_high"]["amount"])) / Decimal("2")
         self.assertNotEqual(stop_continue["sell_now_value"], str(midpoint))
+        readiness = {item["category"]: item for item in body["evidence_readiness"]["items"]}
+        current_readiness = readiness["CURRENT_ITEM_VALUATION"]
+        self.assertEqual(current_readiness["status"], "PARTIAL")
+        self.assertIn("market range only", current_readiness["summary"])
+        self.assertEqual(current_readiness["targets"], [])
 
     def test_manual_valuation_preview_insufficient_evidence_has_no_headline_estimate(self):
         response = self.client.post(

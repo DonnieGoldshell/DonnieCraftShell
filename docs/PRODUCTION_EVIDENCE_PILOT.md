@@ -77,6 +77,10 @@ After a successful explicit rerun that submits current-item manual observations,
 the panel may report those request-scoped rows as applied to the current
 analysis. This does not mean the rows were persisted, and it does not convert a
 broad-bracket-only valuation into a point SELL NOW baseline.
+When the Comparable Valuation Model returns `SUPPORTED_RANGE_ONLY`, Evidence
+Readiness should treat the current valuation as partial market evidence rather
+than missing evidence. Stop/continue economics still fail closed until an
+authoritative point market valuation exists.
 
 ## Risk And Bankroll
 
