@@ -73,6 +73,10 @@ Saved local evidence is not the same as selected or submitted evidence.
 - Saved evidence changes no current analysis result until the operator clicks `Re-run Analysis`.
 
 The pilot panel reports saved local manual valuation counts separately from observations prepared for the next rerun.
+After a successful explicit rerun that submits current-item manual observations,
+the panel may report those request-scoped rows as applied to the current
+analysis. This does not mean the rows were persisted, and it does not convert a
+broad-bracket-only valuation into a point SELL NOW baseline.
 
 ## Risk And Bankroll
 

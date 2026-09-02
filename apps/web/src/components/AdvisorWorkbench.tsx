@@ -56,6 +56,7 @@ export function AdvisorWorkbench() {
   const [analysis, setAnalysis] = useState<AdvisorAnalyzeResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [appliedCurrentEvidenceFingerprint, setAppliedCurrentEvidenceFingerprint] = useState<string | null>(null);
   const [advancedToolsOpen, setAdvancedToolsOpen] = useState(false);
   const [evidenceTarget, setEvidenceTarget] = useState<EvidenceReadinessSelection | null>(null);
   const [pendingAdvancedNavigation, setPendingAdvancedNavigation] =
@@ -70,12 +71,17 @@ export function AdvisorWorkbench() {
   const clearPendingAdvancedNavigation = useCallback(() => {
     setPendingAdvancedNavigation(null);
   }, []);
+  const currentEvidenceFingerprint = useMemo(
+    () => evidenceFingerprint(currentObservations),
+    [currentObservations]
+  );
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError(null);
     setLoading(true);
     try {
+      const currentValuationEvidence = buildManualEvidence(currentObservations);
       const request = {
         ...createDefaultAdvisorRequest(clipboardText),
         league,
@@ -85,11 +91,12 @@ export function AdvisorWorkbench() {
         empirical_probability_dataset_version: empiricalDataset.trim() || null,
         bankroll: bankroll.trim() ? { amount: bankroll.trim(), unit: "EXALTED_ECONOMIC_UNIT" } : null,
         risk_profile: riskProfile || null,
-        current_valuation_evidence: buildManualEvidence(currentObservations),
+        current_valuation_evidence: currentValuationEvidence,
         outcome_valuation_evidence: buildOutcomeEvidence(outcomeObservations)
       };
       const result = await analyzeAdvisor(request);
       setAnalysis(result);
+      setAppliedCurrentEvidenceFingerprint(currentValuationEvidence ? currentEvidenceFingerprint : null);
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Unable to analyze item.");
     } finally {
@@ -174,6 +181,9 @@ export function AdvisorWorkbench() {
               <ProductionEvidencePilotPanel
                 analysis={analysis}
                 currentObservations={currentObservations}
+                currentEvidenceApplied={
+                  currentObservations.length > 0 && appliedCurrentEvidenceFingerprint === currentEvidenceFingerprint
+                }
                 outcomeObservations={outcomeObservations}
                 selectedEmpiricalDatasetVersion={empiricalDataset}
                 bankroll={bankroll}
@@ -250,6 +260,7 @@ export function AdvisorWorkbench() {
 function ProductionEvidencePilotPanel({
   analysis,
   currentObservations,
+  currentEvidenceApplied,
   outcomeObservations,
   selectedEmpiricalDatasetVersion,
   bankroll,
@@ -258,6 +269,7 @@ function ProductionEvidencePilotPanel({
 }: {
   analysis: AdvisorAnalyzeResponse;
   currentObservations: EditableManualListingObservation[];
+  currentEvidenceApplied: boolean;
   outcomeObservations: Record<string, EditableManualListingObservation[]>;
   selectedEmpiricalDatasetVersion: string;
   bankroll: string;
@@ -279,6 +291,9 @@ function ProductionEvidencePilotPanel({
     ? outcomeTarget.outcome_ids.filter((outcomeId) => (outcomeObservations[outcomeId] ?? []).length > 0).length
     : 0;
   const summary = pilotSummary(analysis);
+  const currentEvidenceDetail = currentEvidenceApplied
+    ? `${currentObservations.length} applied to current analysis; ${currentSavedCount} saved locally.`
+    : `${currentObservations.length} prepared for next rerun; ${currentSavedCount} saved locally.`;
 
   return (
     <section className="panel pilot-panel" aria-label="Production evidence pilot">
@@ -298,7 +313,7 @@ function ProductionEvidencePilotPanel({
         <PilotStep
           title="Current item valuation"
           status={statusForCategory(readinessItems, "CURRENT_ITEM_VALUATION")}
-          detail={`${currentObservations.length} prepared for next rerun; ${currentSavedCount} saved locally.`}
+          detail={currentEvidenceDetail}
           actionLabel={currentItemTarget ? "Open current valuation workflow" : undefined}
           onAction={currentItemTarget ? () => onOpenEvidenceTools({ target: currentItemTarget }) : undefined}
         />
@@ -642,6 +657,10 @@ function buildManualEvidence(observations: EditableManualListingObservation[]): 
     observations: observations.map(withoutWorkspaceFields),
     notes: "User-entered manual comparable listing evidence. Listing-derived estimate is not a realized sale price."
   };
+}
+
+function evidenceFingerprint(observations: EditableManualListingObservation[]): string {
+  return JSON.stringify(observations.map(withoutWorkspaceFields));
 }
 
 function buildOutcomeEvidence(
