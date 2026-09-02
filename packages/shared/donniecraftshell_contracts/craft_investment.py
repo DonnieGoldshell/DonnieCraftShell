@@ -140,6 +140,7 @@ class CurrentMarketValuation:
     display_supported_range: str | None = None
     legacy_statistical_median: EconomicValue | None = None
     confidence_level: str | None = None
+    confidence_reasons: tuple[str, ...] = ()
     warnings: tuple[str, ...] = ()
 
 
