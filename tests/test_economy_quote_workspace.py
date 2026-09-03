@@ -8,7 +8,10 @@ from packages.shared.donniecraftshell_contracts.economy import (
     EXALTED_ASSET_ID,
     ORB_OF_ANNULMENT_ASSET_ID,
     PERFECT_EXALTED_ASSET_ID,
+    EconomyQuote,
+    EconomySnapshot,
     FreshnessState,
+    normalized_exalted_value,
 )
 from packages.shared.donniecraftshell_contracts.economy_quote_workspace import (
     ECONOMY_QUOTE_WORKSPACE_STORAGE_VERSION,
@@ -40,6 +43,31 @@ def quote_record(**overrides):
         "notes": "Synthetic test operator quote.",
         **overrides,
     }
+
+
+def live_snapshot(amount: str, retrieved_at: datetime) -> EconomySnapshot:
+    return EconomySnapshot(
+        snapshot_id=f"economy-snapshot:live-test:{amount}",
+        provider="poe.show",
+        game="Path of Exile 2",
+        league=LEAGUE,
+        retrieved_at=retrieved_at,
+        freshness=FreshnessState.FRESH,
+        quotes=(
+            EconomyQuote(
+                asset_id=ORB_OF_ANNULMENT_ASSET_ID,
+                league=LEAGUE,
+                normalized_value=normalized_exalted_value(amount),
+                source_native_value=Decimal(amount),
+                native_reference_asset_id=EXALTED_ASSET_ID,
+                source="poe.show",
+                snapshot_id=f"economy-snapshot:live-test:{amount}",
+                retrieved_at=retrieved_at,
+                freshness=FreshnessState.FRESH,
+            ),
+        ),
+        exchange_rates=(),
+    )
 
 
 class EconomyQuoteWorkspaceTests(unittest.TestCase):
@@ -168,6 +196,34 @@ class EconomyQuoteWorkspaceTests(unittest.TestCase):
         )
 
         self.assertEqual(quote.freshness, FreshnessState.STALE)
+
+    def test_fresh_manual_override_wins_same_timestamp_live_quote(self):
+        workspace = EconomyQuoteWorkspaceRepository()
+        workspace.save_record(quote_record(observed_at=AS_OF.isoformat()))
+        base = EconomyRepository((live_snapshot("6.25", AS_OF),))
+
+        quote = workspace.economy_repository(base, LEAGUE, AS_OF).get_current_quote(
+            LEAGUE,
+            ORB_OF_ANNULMENT_ASSET_ID,
+            AS_OF,
+        )
+
+        self.assertEqual(quote.source, "LOCAL_OPERATOR_ECONOMY_QUOTE")
+        self.assertEqual(quote.normalized_value.amount, Decimal("7.5"))
+
+    def test_stale_manual_placeholder_does_not_override_fresh_live_quote(self):
+        workspace = EconomyQuoteWorkspaceRepository()
+        workspace.save_record(quote_record(observed_at=(AS_OF - timedelta(hours=8)).isoformat()))
+        base = EconomyRepository((live_snapshot("6.25", AS_OF),))
+
+        quote = workspace.economy_repository(base, LEAGUE, AS_OF).get_current_quote(
+            LEAGUE,
+            ORB_OF_ANNULMENT_ASSET_ID,
+            AS_OF,
+        )
+
+        self.assertEqual(quote.source, "poe.show")
+        self.assertEqual(quote.normalized_value.amount, Decimal("6.25"))
 
     def test_invalid_quote_rejected(self):
         workspace = EconomyQuoteWorkspaceRepository()

@@ -18,6 +18,7 @@ from packages.shared.donniecraftshell_contracts.economy_quote_workspace import (
     EconomyQuoteWorkspaceRepository,
     EconomyQuoteWorkspaceSaveStatus,
 )
+from packages.shared.donniecraftshell_contracts.live_economy import PoeShowLiveEconomyProvider
 from packages.shared.donniecraftshell_contracts.manual_valuation_workspace import (
     MANUAL_VALUATION_WORKSPACE_VERSION,
     ManualValuationWorkspaceRepository,
@@ -29,6 +30,7 @@ from services.api.app.dependencies.advisor import (
     get_craft_investment_workspace,
     get_economy_repository,
     get_economy_quote_workspace,
+    get_live_economy_provider,
     get_manual_valuation_workspace,
 )
 from services.api.app.mappers.advisor import (
@@ -76,6 +78,7 @@ def analyze_advisor(
     orchestrator: CraftAdvisorOrchestrator = Depends(get_advisor_orchestrator),
     economy_repository: EconomyRepository = Depends(get_economy_repository),
     economy_quote_workspace: EconomyQuoteWorkspaceRepository = Depends(get_economy_quote_workspace),
+    live_economy_provider: PoeShowLiveEconomyProvider = Depends(get_live_economy_provider),
 ) -> AdvisorAnalyzeResponseDto:
     if not request.clipboard_text.strip():
         raise HTTPException(
@@ -90,14 +93,21 @@ def analyze_advisor(
     try:
         as_of = request.as_of or datetime.now(timezone.utc)
         scoped_request = request.model_copy(update={"as_of": as_of})
-        effective_economy_repository = economy_quote_workspace.economy_repository(
+        live_result = live_economy_provider.economy_repository(
             economy_repository,
+            request.league,
+            as_of,
+        )
+        effective_economy_repository = economy_quote_workspace.economy_repository(
+            live_result.repository,
             request.league,
             as_of,
         )
         domain_request = advisor_request_to_domain(scoped_request, effective_economy_repository)
         result = orchestrator.with_economy_repository(effective_economy_repository).analyze(domain_request)
-        return advisor_result_to_dto(result)
+        dto = advisor_result_to_dto(result)
+        dto.warnings.extend(live_result.warnings)
+        return dto
     except HTTPException:
         raise
     except ValueError as exc:

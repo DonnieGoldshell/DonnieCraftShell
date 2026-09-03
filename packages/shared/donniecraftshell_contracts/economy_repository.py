@@ -42,7 +42,7 @@ class EconomyRepository:
         ]
         if not candidates:
             return None
-        return max(candidates, key=lambda quote: quote.retrieved_at or as_of)
+        return max(candidates, key=lambda quote: (quote.retrieved_at or as_of, _source_precedence(quote.source)))
 
     def get_exchange_rate(
         self,
@@ -64,7 +64,7 @@ class EconomyRepository:
         ]
         if not candidates:
             return None
-        return max(candidates, key=lambda rate: rate.retrieved_at or as_of)
+        return max(candidates, key=lambda rate: (rate.retrieved_at or as_of, _source_precedence(rate.source)))
 
     def get_current_quotes(
         self,
@@ -97,7 +97,10 @@ class EconomyRepository:
         latest_by_asset: dict[str, EconomyQuote] = {}
         for quote in candidates:
             current = latest_by_asset.get(quote.asset_id)
-            if current is None or (quote.retrieved_at or as_of) > (current.retrieved_at or as_of):
+            if current is None or (quote.retrieved_at or as_of, _source_precedence(quote.source)) > (
+                current.retrieved_at or as_of,
+                _source_precedence(current.source),
+            ):
                 latest_by_asset[quote.asset_id] = quote
         return tuple(latest_by_asset.values())
 
@@ -121,3 +124,9 @@ class EconomyRepository:
     @staticmethod
     def unavailable_quote_state() -> FreshnessState:
         return FreshnessState.UNAVAILABLE
+
+
+def _source_precedence(source: str) -> int:
+    if source == "LOCAL_OPERATOR_ECONOMY_QUOTE":
+        return 100
+    return 0
