@@ -9,7 +9,7 @@ import urllib.error
 import urllib.parse
 import urllib.request
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 from pathlib import Path
 from typing import Any, Protocol
@@ -27,6 +27,7 @@ DEFAULT_LIVE_ECONOMY_CATEGORIES = (
     EconomyCategory.RITUAL.value,
     EconomyCategory.ESSENCES.value,
 )
+DEFAULT_LIVE_ECONOMY_REFRESH_INTERVAL = timedelta(hours=1)
 
 
 @dataclass(frozen=True)
@@ -65,11 +66,14 @@ class LiveEconomyProviderConfig:
     base_url: str = DEFAULT_POE_SHOW_BASE_URL
     user_agent: str = DEFAULT_LIVE_ECONOMY_USER_AGENT
     timeout_seconds: Decimal = Decimal("5")
+    refresh_interval: timedelta = DEFAULT_LIVE_ECONOMY_REFRESH_INTERVAL
     categories: tuple[str, ...] = DEFAULT_LIVE_ECONOMY_CATEGORIES
 
     def __post_init__(self) -> None:
         if self.timeout_seconds <= Decimal("0"):
             raise ValueError("live economy timeout must be positive")
+        if self.refresh_interval <= timedelta(0):
+            raise ValueError("live economy refresh interval must be positive")
         if not self.user_agent.strip():
             raise ValueError("live economy User-Agent is required")
         if not self.categories:
@@ -133,6 +137,8 @@ class PoeShowLiveEconomyProvider:
         url = _overview_url(self.config.base_url, league, category)
         cache_path = self._cache_path(league, category)
         cached = _read_cache(cache_path)
+        if cached and _cache_age(cached, as_of) <= self.config.refresh_interval:
+            return _normalize_cached(cached, as_of, cache_hit=True)
         headers = {
             "Accept": "application/json",
             "User-Agent": self.config.user_agent,
@@ -250,6 +256,26 @@ def _normalize_cached(cached: dict[str, Any], as_of: datetime, cache_hit: bool =
     normalized = normalize_poe_show_economy_payload(cached, as_of)
     warnings = (f"Using cached live economy snapshot {normalized.snapshot_id} with freshness {normalized.freshness.value}.", *normalized.warnings)
     return _CategorySnapshotResult(normalized, warnings, cache_hit_count=1 if cache_hit else 0)
+
+
+def _cache_age(cached: dict[str, Any], as_of: datetime) -> timedelta:
+    retrieved_at = _cache_retrieved_at(cached)
+    reference = as_of if as_of.tzinfo is not None else as_of.replace(tzinfo=timezone.utc)
+    age = reference.astimezone(timezone.utc) - retrieved_at
+    return max(age, timedelta(0))
+
+
+def _cache_retrieved_at(cached: dict[str, Any]) -> datetime:
+    value = cached.get("retrieved_at")
+    if not isinstance(value, str):
+        return datetime.min.replace(tzinfo=timezone.utc)
+    try:
+        parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except ValueError:
+        return datetime.min.replace(tzinfo=timezone.utc)
+    if parsed.tzinfo is None:
+        parsed = parsed.replace(tzinfo=timezone.utc)
+    return parsed.astimezone(timezone.utc)
 
 
 def _header(headers: dict[str, str], name: str) -> str | None:

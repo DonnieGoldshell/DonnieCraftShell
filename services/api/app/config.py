@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import os
 from dataclasses import dataclass
+from datetime import timedelta
 from decimal import Decimal
 from pathlib import Path
 
@@ -26,6 +27,7 @@ class ApiSettings:
     live_economy_base_url: str
     live_economy_user_agent: str
     live_economy_timeout_seconds: Decimal
+    live_economy_refresh_interval: timedelta
     live_economy_categories: tuple[str, ...]
     analytical_mechanic_registry_paths: tuple[Path, ...]
     empirical_probability_dataset_paths: tuple[Path, ...]
@@ -118,6 +120,7 @@ def get_settings() -> ApiSettings:
             "DonnieCraftShell/0.1 (+https://github.com/DonnieGoldshell/DonnieCraftShell)",
         ),
         live_economy_timeout_seconds=Decimal(os.getenv("DCS_LIVE_ECONOMY_TIMEOUT_SECONDS", "5")),
+        live_economy_refresh_interval=timedelta(seconds=float(Decimal(os.getenv("DCS_LIVE_ECONOMY_REFRESH_INTERVAL_SECONDS", "3600")))),
         live_economy_categories=live_economy_categories,
         analytical_mechanic_registry_paths=analytical_paths,
         empirical_probability_dataset_paths=empirical_paths,

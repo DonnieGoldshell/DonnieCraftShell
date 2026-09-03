@@ -64,6 +64,7 @@ def get_live_economy_provider() -> PoeShowLiveEconomyProvider:
             base_url=settings.live_economy_base_url,
             user_agent=settings.live_economy_user_agent,
             timeout_seconds=settings.live_economy_timeout_seconds,
+            refresh_interval=settings.live_economy_refresh_interval,
             categories=settings.live_economy_categories,
         ),
     )

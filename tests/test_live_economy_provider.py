@@ -110,7 +110,25 @@ class LiveEconomyProviderTests(unittest.TestCase):
         self.assertIn("Unmapped poe.show asset skipped: future-unknown-currency", result.warnings)
         self.assertIsNone(result.repository.get_current_quote(LEAGUE, "future-unknown-currency", AS_OF))
 
-    def test_etag_cache_reuses_cached_snapshot_without_refetching_body(self):
+    def test_cache_within_refresh_interval_reuses_cached_snapshot_without_transport_request(self):
+        transport = FakeTransport((_response(currency_payload(), etag="currency-v1"),))
+
+        cache_dir = self._cache_dir()
+        provider = _provider(cache_dir, transport)
+        first = provider.economy_repository(EconomyRepository(()), LEAGUE, AS_OF)
+        second = provider.economy_repository(EconomyRepository(()), LEAGUE, AS_OF + timedelta(minutes=30))
+
+        quote = second.repository.get_current_quote(LEAGUE, ORB_OF_ANNULMENT_ASSET_ID, AS_OF + timedelta(minutes=30))
+
+        self.assertEqual(first.fetched_count, 1)
+        self.assertEqual(first.cache_hit_count, 0)
+        self.assertEqual(second.fetched_count, 0)
+        self.assertEqual(second.cache_hit_count, 1)
+        self.assertEqual(len(transport.requests), 1)
+        self.assertEqual(len(list(Path(cache_dir).glob("poe-show-*.json"))), 1)
+        self.assertEqual(quote.normalized_value.amount, Decimal("2040"))
+
+    def test_etag_cache_reuses_cached_snapshot_after_refresh_interval(self):
         transport = FakeTransport((
             _response(currency_payload(), etag="currency-v1"),
             HttpResponse(status_code=304, headers={}),
@@ -118,12 +136,13 @@ class LiveEconomyProviderTests(unittest.TestCase):
 
         provider = _provider(self._cache_dir(), transport)
         first = provider.economy_repository(EconomyRepository(()), LEAGUE, AS_OF)
-        second = provider.economy_repository(EconomyRepository(()), LEAGUE, AS_OF + timedelta(minutes=30))
+        second = provider.economy_repository(EconomyRepository(()), LEAGUE, AS_OF + timedelta(hours=2))
 
-        quote = second.repository.get_current_quote(LEAGUE, ORB_OF_ANNULMENT_ASSET_ID, AS_OF + timedelta(minutes=30))
+        quote = second.repository.get_current_quote(LEAGUE, ORB_OF_ANNULMENT_ASSET_ID, AS_OF + timedelta(hours=2))
 
         self.assertEqual(first.fetched_count, 1)
         self.assertEqual(second.cache_hit_count, 1)
+        self.assertEqual(len(transport.requests), 2)
         self.assertEqual(transport.requests[1][1]["If-None-Match"], "currency-v1")
         self.assertEqual(quote.normalized_value.amount, Decimal("2040"))
 
@@ -162,6 +181,7 @@ def _provider(tmp: str, transport: FakeTransport) -> PoeShowLiveEconomyProvider:
             base_url="https://poe.show/poe2/api/economy",
             user_agent="DonnieCraftShell test",
             timeout_seconds=Decimal("2"),
+            refresh_interval=timedelta(hours=1),
             categories=(EconomyCategory.CURRENCY.value,),
         ),
         transport,

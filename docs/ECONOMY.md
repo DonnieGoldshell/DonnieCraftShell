@@ -85,6 +85,18 @@ ETag/source URI/retrieval metadata, normalizes the payload through the same
 `EconomySnapshot` contracts, and composes those snapshots into the
 request-scoped `EconomyRepository`. The frontend never calls poe.show directly.
 
+Live ingestion has two separate time policies:
+
+- Refresh interval: configured backend cache cadence. The MVP default is 1 hour,
+  aligned with poe.show's roughly hourly source refresh. A cached response still
+  inside this interval is normalized directly without a network request. Once
+  due, the provider uses conditional ETag requests and reuses cached payloads on
+  `304 Not Modified`.
+- Freshness: domain evidence quality on the resulting `EconomyQuote` /
+  `EconomySnapshot`. A cached snapshot can be due for refresh yet still produce
+  explicit `FRESH`, `AGING`, or `STALE` evidence according to DonnieCraftShell's
+  economy freshness policy.
+
 Live economy quote precedence is:
 
 1. Fresh/current explicit local operator quote evidence for the exact league and

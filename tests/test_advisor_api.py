@@ -403,6 +403,71 @@ class AdvisorApiTests(unittest.TestCase):
         self.assertTrue(missing_probability)
         self.assertTrue(any("Ready - live economy snapshot" in warning for warning in response["warnings"]))
 
+    def test_advisor_live_economy_reuses_cache_within_refresh_interval(self):
+        from packages.shared.donniecraftshell_contracts.live_economy import (
+            HttpResponse,
+            LiveEconomyProviderConfig,
+            PoeShowLiveEconomyProvider,
+        )
+        from services.api.app.dependencies.advisor import get_live_economy_provider
+
+        class CountingTransport:
+            def __init__(self):
+                self.requests = []
+
+            def get(self, url, headers, timeout_seconds):
+                self.requests.append((url, dict(headers), timeout_seconds))
+                return HttpResponse(
+                    status_code=200,
+                    headers={"etag": "api-currency-v1"},
+                    body=json.dumps(
+                        {
+                            "core": {
+                                "primary": "divine",
+                                "secondary": "exalted",
+                                "rates": {"exalted": "340"},
+                            },
+                            "lines": [
+                                {"id": "divine", "primaryValue": "1", "volumePrimaryValue": "1000"},
+                                {"id": "orb-of-annulment", "primaryValue": "6", "volumePrimaryValue": "33"},
+                            ],
+                        }
+                    ),
+                )
+
+        cache_dir = ROOT / ".tmp-tests" / "live-economy-api" / f"{os.getpid()}-{self._testMethodName}"
+        cache_dir.mkdir(parents=True, exist_ok=True)
+        for child in cache_dir.glob("*"):
+            if child.is_file():
+                child.unlink()
+        transport = CountingTransport()
+        provider = PoeShowLiveEconomyProvider(
+            cache_dir,
+            LiveEconomyProviderConfig(
+                enabled=True,
+                base_url="https://poe.show/poe2/api/economy",
+                user_agent="DonnieCraftShell API test",
+                categories=("Currency",),
+                refresh_interval=timedelta(hours=1),
+            ),
+            transport,
+        )
+        self.app.dependency_overrides[get_live_economy_provider] = lambda: provider
+
+        first = self.client.post("/api/v1/advisor/analyze", json=base_request())
+        second = self.client.post("/api/v1/advisor/analyze", json=base_request())
+
+        first_annulment = self._action(first.json(), "dc:poe2:craft-action:orb-of-annulment")
+        second_annulment = self._action(second.json(), "dc:poe2:craft-action:orb-of-annulment")
+
+        self.assertEqual(first.status_code, 200)
+        self.assertEqual(second.status_code, 200)
+        self.assertEqual(len(transport.requests), 1)
+        self.assertTrue(first_annulment["material_cost"]["complete"])
+        self.assertTrue(second_annulment["material_cost"]["complete"])
+        self.assertEqual(second_annulment["material_cost"]["lines"][0]["source"], "poe.show")
+        self.assertTrue(any("Using cached live economy snapshot" in warning for warning in second.json()["warnings"]))
+
     def test_valid_quiver_6_partial_response(self):
         response = self.client.post("/api/v1/advisor/analyze", json=base_request())
 

@@ -39,3 +39,8 @@ The API uses local/offline configured datasets by default. Optional live poe.sho
 economy ingestion is backend-only, league-scoped, cached under `.dcs/`, and
 enabled explicitly with `DCS_LIVE_ECONOMY_ENABLED=true`; the API still does not
 perform runtime PoE2DB or Trade requests.
+
+Live economy cache refresh is controlled by
+`DCS_LIVE_ECONOMY_REFRESH_INTERVAL_SECONDS` and defaults to `3600`. Cached
+poe.show responses inside that interval are reused without a network request;
+after the interval the provider uses conditional ETag requests where available.
