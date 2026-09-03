@@ -320,7 +320,7 @@ function ProductionEvidencePilotPanel({
         <PilotStep
           title="Crafting material quote"
           status={statusForCategory(readinessItems, "ECONOMY_CRAFTING_COST")}
-          detail="Local quote workspace evidence applies only after an explicit Advisor rerun."
+          detail={economyDetail(analysis, economyTarget)}
           actionLabel={economyTarget ? "Open local quote workspace" : undefined}
           onAction={economyTarget ? () => onOpenEvidenceTools({ target: economyTarget }) : undefined}
         />
@@ -416,6 +416,34 @@ function statusForCategory(
   category: string
 ): string {
   return items.find((item) => item.category === category)?.status ?? "UNKNOWN";
+}
+
+function economyDetail(
+  analysis: AdvisorAnalyzeResponse,
+  economyTarget: EvidenceReadinessSelection["target"] | null
+): string {
+  const resolvedLines = analysis.actions.flatMap((action) =>
+    action.material_cost.lines.filter((line) => line.source && line.freshness)
+  );
+  const liveLines = resolvedLines.filter((line) => line.source === "poe.show");
+  if (liveLines.length > 0 && !economyTarget) {
+    const assetCount = new Set(liveLines.map((line) => line.asset_id)).size;
+    return `Ready - live economy snapshot from poe.show for ${analysis.context.league}; ${assetCount} required asset${
+      assetCount === 1 ? "" : "s"
+    } resolved; freshness ${worstFreshness(liveLines.map((line) => String(line.freshness ?? "UNAVAILABLE")))}.`;
+  }
+  if (liveLines.length > 0 && economyTarget) {
+    const resolvedCount = new Set(liveLines.map((line) => line.asset_id)).size;
+    return `Partial - live economy snapshot resolved ${resolvedCount} asset${
+      resolvedCount === 1 ? "" : "s"
+    }, but manual quote evidence is still needed for ${economyTarget.asset_id ?? economyTarget.target_id}.`;
+  }
+  return "Local quote workspace evidence applies only after an explicit Advisor rerun.";
+}
+
+function worstFreshness(values: string[]): string {
+  const order = ["FRESH", "AGING", "STALE", "UNAVAILABLE"];
+  return values.reduce((worst, value) => (order.indexOf(value) > order.indexOf(worst) ? value : worst), "FRESH");
 }
 
 function pilotSummary(analysis: AdvisorAnalyzeResponse): { title: string; description: string } {

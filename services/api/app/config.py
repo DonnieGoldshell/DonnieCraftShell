@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import os
 from dataclasses import dataclass
+from decimal import Decimal
 from pathlib import Path
 
 
@@ -20,6 +21,12 @@ class ApiSettings:
     default_affix_capacity_dataset_id: str
     default_affix_capacity_path: Path
     economy_snapshot_paths: tuple[Path, ...]
+    live_economy_enabled: bool
+    live_economy_cache_path: Path
+    live_economy_base_url: str
+    live_economy_user_agent: str
+    live_economy_timeout_seconds: Decimal
+    live_economy_categories: tuple[str, ...]
     analytical_mechanic_registry_paths: tuple[Path, ...]
     empirical_probability_dataset_paths: tuple[Path, ...]
     empirical_registry_storage_path: Path | None
@@ -89,6 +96,11 @@ def get_settings() -> ApiSettings:
         if craft_investment_path_value.lower() in {"", "disabled", "memory", ":memory:"}
         else Path(craft_investment_path_value)
     )
+    live_economy_categories = tuple(
+        category.strip()
+        for category in os.getenv("DCS_LIVE_ECONOMY_CATEGORIES", "Currency,Ritual,Essences").split(",")
+        if category.strip()
+    )
     return ApiSettings(
         environment=os.getenv("DCS_ENVIRONMENT", "local-offline"),
         default_game_data_dataset_id=game_data_id,
@@ -98,6 +110,15 @@ def get_settings() -> ApiSettings:
         default_affix_capacity_dataset_id=affix_id,
         default_affix_capacity_path=ROOT / "data" / "normalized" / "crafting" / affix_id / "capacity.json",
         economy_snapshot_paths=economy_paths,
+        live_economy_enabled=_env_bool("DCS_LIVE_ECONOMY_ENABLED", False),
+        live_economy_cache_path=Path(os.getenv("DCS_LIVE_ECONOMY_CACHE_PATH", str(ROOT / ".dcs" / "economy_cache"))),
+        live_economy_base_url=os.getenv("DCS_LIVE_ECONOMY_BASE_URL", "https://poe.show/poe2/api/economy"),
+        live_economy_user_agent=os.getenv(
+            "DCS_LIVE_ECONOMY_USER_AGENT",
+            "DonnieCraftShell/0.1 (+https://github.com/DonnieGoldshell/DonnieCraftShell)",
+        ),
+        live_economy_timeout_seconds=Decimal(os.getenv("DCS_LIVE_ECONOMY_TIMEOUT_SECONDS", "5")),
+        live_economy_categories=live_economy_categories,
         analytical_mechanic_registry_paths=analytical_paths,
         empirical_probability_dataset_paths=empirical_paths,
         empirical_registry_storage_path=empirical_registry_storage_path,
@@ -116,3 +137,10 @@ def get_settings() -> ApiSettings:
             if origin.strip()
         ),
     )
+
+
+def _env_bool(name: str, default: bool) -> bool:
+    value = os.getenv(name)
+    if value is None:
+        return default
+    return value.strip().lower() in {"1", "true", "yes", "on"}

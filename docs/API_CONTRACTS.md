@@ -177,6 +177,16 @@ evidence returns no fabricated profit. Local workspace endpoints persist ledger
 entries under `.dcs/` and do not submit, infer, or recommend actions by
 themselves.
 
+Issue 77 allows `POST /api/v1/advisor/analyze` to use a configured backend-only
+live economy provider before manual-quote overlay. The transport contract does
+not expose poe.show payload fields directly: action material-cost rows continue
+to serialize normalized `EconomyQuote` evidence, including source, snapshot ID,
+freshness, and warnings. Live provider warnings appear in the top-level analysis
+warnings. A partial or stale live economy state is still HTTP success; missing
+quotes remain structured `ECONOMY_QUOTE_REQUIRED` requirements rather than zero
+prices or HTTP errors. The endpoint must not fetch PoE2DB, Trade, or frontend
+network data.
+
 Issue 71 extends `POST /api/v1/advisor/analyze` with `current_market_valuation`
 and `stop_continue_decision`. The response uses the same `market_valuation`
 authority as manual preview: `SUPPORTED_RANGE_ONLY` may serialize supported

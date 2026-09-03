@@ -51,6 +51,13 @@ def normalize_poe_show_economy_snapshot(
     as_of: datetime | None = None,
 ) -> EconomySnapshot:
     raw = load_raw_poe_show_currency_snapshot(path)
+    return normalize_poe_show_economy_payload(raw, as_of)
+
+
+def normalize_poe_show_economy_payload(
+    raw: dict[str, Any],
+    as_of: datetime | None = None,
+) -> EconomySnapshot:
     league = raw.get("league")
     if not league:
         raise ValueError("poe.show economy snapshot requires league")

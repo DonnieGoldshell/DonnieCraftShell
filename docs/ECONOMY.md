@@ -77,6 +77,26 @@ Task 7C connects crafting actions to economy costs through `CraftActionCostServi
 
 Task 22A adds a local operator quote workspace for missing crafting-material prices. These records are exact league/asset evidence in Exalted economic units and are composed into a request-scoped local `EconomySnapshot` only when Advisor analysis is re-run. Local quotes preserve provenance and freshness, but they do not scrape providers, infer related asset prices, cross-use leagues, or alter committed normalized economy fixtures. See [LOCAL_ECONOMY_QUOTES.md](LOCAL_ECONOMY_QUOTES.md).
 
+Issue 77 adds optional backend-only live poe.show economy ingestion for
+league-scoped Advisor analysis. When enabled by API configuration, the backend
+fetches bounded poe.show PoE2 `Currency`, `Ritual`, and `Essences` overview
+responses, preserves the raw provider response in a local `.dcs/` cache with
+ETag/source URI/retrieval metadata, normalizes the payload through the same
+`EconomySnapshot` contracts, and composes those snapshots into the
+request-scoped `EconomyRepository`. The frontend never calls poe.show directly.
+
+Live economy quote precedence is:
+
+1. Fresh/current explicit local operator quote evidence for the exact league and
+   asset.
+2. Automatic live poe.show quote for the exact requested league.
+3. No quote; cost remains incomplete.
+
+Old local placeholder quotes do not silently override newer live quotes. Provider
+failures may use a valid cached snapshot with explicit freshness/warnings; they
+must not fabricate prices. All conversion continues to come from the current
+provider snapshot rate data, not constants.
+
 Applicability and price completeness are independent:
 
 - `APPLICABLE` action + complete cost: action can be performed and all required material quotes are available.

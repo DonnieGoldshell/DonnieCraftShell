@@ -780,6 +780,53 @@ describe("AdvisorWorkbench", () => {
     expect(screen.getByRole("button", { name: /add observation/i })).toBeVisible();
   });
 
+  it("shows live economy snapshot readiness when provider quotes clear cost blockers", async () => {
+    const liveResponse = JSON.parse(JSON.stringify(quiverResponse)) as AdvisorAnalyzeResponse;
+    const annulment = liveResponse.actions.find(
+      (action) => action.action_id === "dc:poe2:craft-action:orb-of-annulment"
+    )!;
+    annulment.material_cost = {
+      complete: true,
+      freshness: "FRESH",
+      lines: [
+        {
+          asset_id: "dc:poe2:economy-asset:currency:orb-of-annulment",
+          quantity: "1",
+          unit_price: { amount: "6.25", unit: "EXALTED_ECONOMIC_UNIT" },
+          subtotal: { amount: "6.25", unit: "EXALTED_ECONOMIC_UNIT" },
+          quote_snapshot_id: "economy-snapshot:live-poe-show:test",
+          source: "poe.show",
+          freshness: "FRESH",
+          warnings: []
+        }
+      ],
+      total: { amount: "6.25", unit: "EXALTED_ECONOMIC_UNIT" },
+      warnings: []
+    };
+    liveResponse.evidence_readiness!.items = liveResponse.evidence_readiness!.items.map((item) =>
+      item.category === "ECONOMY_CRAFTING_COST"
+        ? { ...item, status: "READY", summary: "Required crafting material prices are available.", targets: [] }
+        : item
+    );
+
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => liveResponse
+      })
+    );
+    const user = userEvent.setup();
+
+    render(<AdvisorWorkbench />);
+    await user.type(screen.getByLabelText(/clipboard item text/i), "Item Class: Quivers\nRarity: Rare");
+    await user.click(screen.getByRole("button", { name: /analyze quiver/i }));
+
+    expect(await screen.findByText(/ready - live economy snapshot from poe.show/i)).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /open local quote workspace/i })).not.toBeInTheDocument();
+    expect(screen.getByText("6.25 Ex")).toBeInTheDocument();
+  });
+
   it("renders range-only stop/continue economics without a point recommendation", async () => {
     const response: AdvisorAnalyzeResponse = {
       ...quiverResponse,

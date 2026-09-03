@@ -53,6 +53,7 @@ class AdvisorApiTests(unittest.TestCase):
         app.dependency_overrides.clear()
         advisor_dependencies.get_advisor_orchestrator.cache_clear()
         advisor_dependencies.get_economy_repository.cache_clear()
+        advisor_dependencies.get_live_economy_provider.cache_clear()
         advisor_dependencies.get_probability_provider.cache_clear()
         advisor_dependencies.get_analytical_mechanic_registry.cache_clear()
         advisor_dependencies.get_empirical_probability_registry.cache_clear()
@@ -315,6 +316,92 @@ class AdvisorApiTests(unittest.TestCase):
         annulment = next(action for action in response["actions"] if action["action_id"] == "dc:poe2:craft-action:orb-of-annulment")
 
         self.assertFalse(annulment["material_cost"]["complete"])
+
+    def test_advisor_consumes_live_economy_quote_without_clearing_probability_blocker(self):
+        from packages.shared.donniecraftshell_contracts.domain import DataProvenance, SourceType, VerificationStatus
+        from packages.shared.donniecraftshell_contracts.economy import (
+            EXALTED_ASSET_ID,
+            ORB_OF_ANNULMENT_ASSET_ID,
+            EconomyCategory,
+            EconomyQuote,
+            EconomySnapshot,
+            FreshnessState,
+            normalized_exalted_value,
+        )
+        from packages.shared.donniecraftshell_contracts.economy_repository import EconomyRepository
+        from packages.shared.donniecraftshell_contracts.live_economy import LiveEconomyIngestionResult
+        from services.api.app.dependencies.advisor import get_live_economy_provider
+
+        as_of = datetime.fromisoformat(AS_OF)
+        provenance = (
+            DataProvenance(
+                source_id="poe.show",
+                source_type=SourceType.COMMUNITY,
+                source_uri="https://poe.show/poe2/api/economy/exchange/current/overview?league=Runes+of+Aldur&type=Currency",
+                retrieved_at=as_of,
+                league=LEAGUE,
+                verification_status=VerificationStatus.PROVISIONAL,
+                notes="Synthetic live provider test snapshot.",
+            ),
+        )
+        snapshot = EconomySnapshot(
+            snapshot_id="economy-snapshot:live-test-annulment",
+            provider="poe.show",
+            game="Path of Exile 2",
+            league=LEAGUE,
+            retrieved_at=as_of,
+            freshness=FreshnessState.FRESH,
+            quotes=(
+                EconomyQuote(
+                    asset_id=ORB_OF_ANNULMENT_ASSET_ID,
+                    league=LEAGUE,
+                    normalized_value=normalized_exalted_value("6.25"),
+                    source_native_value=Decimal("6.25"),
+                    native_reference_asset_id=EXALTED_ASSET_ID,
+                    source="poe.show",
+                    snapshot_id="economy-snapshot:live-test-annulment",
+                    category=EconomyCategory.CURRENCY,
+                    retrieved_at=as_of,
+                    freshness=FreshnessState.FRESH,
+                    provenance=provenance,
+                ),
+            ),
+            exchange_rates=(),
+            provenance=provenance,
+        )
+
+        class FakeLiveProvider:
+            def economy_repository(self, base_repository, league, as_of):
+                return LiveEconomyIngestionResult(
+                    repository=EconomyRepository((*base_repository.snapshots(), snapshot)),
+                    snapshots=(snapshot,),
+                    warnings=("Ready - live economy snapshot poe.show for Runes of Aldur.",),
+                    fetched_count=1,
+                )
+
+        self.app.dependency_overrides[get_live_economy_provider] = lambda: FakeLiveProvider()
+
+        response = self.client.post("/api/v1/advisor/analyze", json=base_request()).json()
+        annulment = next(action for action in response["actions"] if action["action_id"] == "dc:poe2:craft-action:orb-of-annulment")
+        missing_economy = [
+            requirement
+            for requirement in response["missing_requirements"]
+            if requirement["type"] == "ECONOMY_QUOTE_REQUIRED"
+            and requirement["action_id"] == "dc:poe2:craft-action:orb-of-annulment"
+        ]
+        missing_probability = [
+            requirement
+            for requirement in response["missing_requirements"]
+            if requirement["type"] == "PROBABILITY_EVIDENCE_REQUIRED"
+            and requirement["action_id"] == "dc:poe2:craft-action:orb-of-annulment"
+        ]
+
+        self.assertTrue(annulment["material_cost"]["complete"])
+        self.assertEqual(annulment["material_cost"]["lines"][0]["source"], "poe.show")
+        self.assertEqual(annulment["material_cost"]["total"]["amount"], "6.25")
+        self.assertEqual(missing_economy, [])
+        self.assertTrue(missing_probability)
+        self.assertTrue(any("Ready - live economy snapshot" in warning for warning in response["warnings"]))
 
     def test_valid_quiver_6_partial_response(self):
         response = self.client.post("/api/v1/advisor/analyze", json=base_request())
@@ -2673,6 +2760,7 @@ class AdvisorApiTests(unittest.TestCase):
     def _clear_dependency_caches(self, advisor_dependencies) -> None:
         advisor_dependencies.get_advisor_orchestrator.cache_clear()
         advisor_dependencies.get_economy_repository.cache_clear()
+        advisor_dependencies.get_live_economy_provider.cache_clear()
         advisor_dependencies.get_probability_provider.cache_clear()
         advisor_dependencies.get_analytical_mechanic_registry.cache_clear()
         advisor_dependencies.get_empirical_probability_registry.cache_clear()

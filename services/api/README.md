@@ -35,4 +35,7 @@ Override with `DCS_CORS_ALLOWED_ORIGINS` as a comma-separated list for other env
 
 OpenAPI is available at `/openapi.json` and `/docs`.
 
-The API uses local/offline configured datasets. It does not perform runtime PoE2DB, poe.show, or Trade requests.
+The API uses local/offline configured datasets by default. Optional live poe.show
+economy ingestion is backend-only, league-scoped, cached under `.dcs/`, and
+enabled explicitly with `DCS_LIVE_ECONOMY_ENABLED=true`; the API still does not
+perform runtime PoE2DB or Trade requests.
