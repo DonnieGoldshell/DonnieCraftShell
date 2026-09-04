@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import Any, Mapping
+
 from .economy import (
     DIVINE_ASSET_ID,
     ESSENCE_OF_HYSTERIA_ASSET_ID,
@@ -31,6 +33,30 @@ from .economy import (
 POE_SHOW_ASSET_ALIASES = {
     "exalted": EXALTED_ASSET_ID,
     "divine": DIVINE_ASSET_ID,
+    "perfect-exalted-orb": PERFECT_EXALTED_ASSET_ID,
+    "greater-exalted-orb": GREATER_EXALTED_ASSET_ID,
+    "orb-of-annulment": ORB_OF_ANNULMENT_ASSET_ID,
+    "omen-of-sinistral-exaltation": OMEN_OF_SINISTRAL_EXALTATION_ASSET_ID,
+    "omen-of-dextral-exaltation": OMEN_OF_DEXTRAL_EXALTATION_ASSET_ID,
+    "omen-of-greater-exaltation": OMEN_OF_GREATER_EXALTATION_ASSET_ID,
+    "omen-of-sinistral-annulment": OMEN_OF_SINISTRAL_ANNULMENT_ASSET_ID,
+    "omen-of-dextral-annulment": OMEN_OF_DEXTRAL_ANNULMENT_ASSET_ID,
+    "omen-of-greater-annulment": OMEN_OF_GREATER_ANNULMENT_ASSET_ID,
+    "omen-of-putrefaction": OMEN_OF_PUTREFACTION_ASSET_ID,
+    "omen-of-catalysing-exaltation": OMEN_OF_CATALYSING_EXALTATION_ASSET_ID,
+    "omen-of-chaotic-monsters": OMEN_OF_CHAOTIC_MONSTERS_ASSET_ID,
+    "omen-of-light": OMEN_OF_LIGHT_ASSET_ID,
+    "perfect-essence-of-battle": PERFECT_ESSENCE_OF_BATTLE_ASSET_ID,
+    "perfect-essence-of-alacrity": PERFECT_ESSENCE_OF_ALACRITY_ASSET_ID,
+    "greater-essence-of-ice": GREATER_ESSENCE_OF_ICE_ASSET_ID,
+    "essence-of-enhancement": ESSENCE_OF_ENHANCEMENT_ASSET_ID,
+    "essence-of-hysteria": ESSENCE_OF_HYSTERIA_ASSET_ID,
+}
+
+
+POE_SHOW_DETAILS_ID_ALIASES = {
+    "exalted-orb": EXALTED_ASSET_ID,
+    "divine-orb": DIVINE_ASSET_ID,
     "perfect-exalted-orb": PERFECT_EXALTED_ASSET_ID,
     "greater-exalted-orb": GREATER_EXALTED_ASSET_ID,
     "orb-of-annulment": ORB_OF_ANNULMENT_ASSET_ID,
@@ -196,5 +222,13 @@ ASSETS_BY_ID = {
 }
 
 
-def asset_id_for_poe_show(source_id: str) -> str | None:
-    return POE_SHOW_ASSET_ALIASES.get(source_id)
+def asset_id_for_poe_show(source_id: str, metadata: Mapping[str, Any] | None = None) -> str | None:
+    direct = POE_SHOW_ASSET_ALIASES.get(source_id)
+    if direct is not None:
+        return direct
+    if metadata is None:
+        return None
+    details_id = metadata.get("detailsId")
+    if isinstance(details_id, str):
+        return POE_SHOW_DETAILS_ID_ALIASES.get(details_id)
+    return None
