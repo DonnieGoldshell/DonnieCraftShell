@@ -281,12 +281,15 @@ def _category(value: str | None) -> EconomyCategory | str:
 
 def _source_items_by_id(response: dict[str, Any]) -> dict[str, dict[str, Any]]:
     items: dict[str, dict[str, Any]] = {}
-    for candidate in ((*response.get("core", {}).get("items", []), *response.get("items", []))):
-        if not isinstance(candidate, dict):
+    for collection in (response.get("core", {}).get("items"), response.get("items")):
+        if not isinstance(collection, list):
             continue
-        source_id = candidate.get("id")
-        if isinstance(source_id, str):
-            items[source_id] = candidate
+        for candidate in collection:
+            if not isinstance(candidate, dict):
+                continue
+            source_id = candidate.get("id")
+            if isinstance(source_id, str):
+                items[source_id] = candidate
     return items
 
 

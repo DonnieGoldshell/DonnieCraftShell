@@ -109,6 +109,14 @@ failures may use a valid cached snapshot with explicit freshness/warnings; they
 must not fabricate prices. All conversion continues to come from the current
 provider snapshot rate data, not constants.
 
+poe.show asset identity is resolved explicitly. The normalizer first maps the
+exchange-overview `lines[].id`; if that provider row ID is not a known
+DonnieCraftShell alias, it may use the matching `core.items[].detailsId` metadata
+as a source-backed fallback. Display names alone are not treated as stable asset
+identity. This preserves the separation between poe.show source IDs and
+DonnieCraftShell canonical economy asset IDs while allowing provider rows such as
+Orb of Annulment to clear crafting-cost blockers when their metadata is present.
+
 Applicability and price completeness are independent:
 
 - `APPLICABLE` action + complete cost: action can be performed and all required material quotes are available.

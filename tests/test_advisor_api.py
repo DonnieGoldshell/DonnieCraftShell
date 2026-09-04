@@ -426,10 +426,19 @@ class AdvisorApiTests(unittest.TestCase):
                                 "primary": "divine",
                                 "secondary": "exalted",
                                 "rates": {"exalted": "340"},
+                                "items": [
+                                    {"id": "divine", "name": "Divine Orb", "category": "Currency", "detailsId": "divine-orb"},
+                                    {
+                                        "id": "provider-specific-annulment-id",
+                                        "name": "Orb of Annulment",
+                                        "category": "Currency",
+                                        "detailsId": "orb-of-annulment",
+                                    },
+                                ],
                             },
                             "lines": [
                                 {"id": "divine", "primaryValue": "1", "volumePrimaryValue": "1000"},
-                                {"id": "orb-of-annulment", "primaryValue": "6", "volumePrimaryValue": "33"},
+                                {"id": "provider-specific-annulment-id", "primaryValue": "6", "volumePrimaryValue": "33"},
                             ],
                         }
                     ),
@@ -466,6 +475,13 @@ class AdvisorApiTests(unittest.TestCase):
         self.assertTrue(first_annulment["material_cost"]["complete"])
         self.assertTrue(second_annulment["material_cost"]["complete"])
         self.assertEqual(second_annulment["material_cost"]["lines"][0]["source"], "poe.show")
+        self.assertFalse(
+            any(
+                requirement["type"] == "ECONOMY_QUOTE_REQUIRED"
+                and requirement["action_id"] == "dc:poe2:craft-action:orb-of-annulment"
+                for requirement in second.json()["missing_requirements"]
+            )
+        )
         self.assertTrue(any("Using cached live economy snapshot" in warning for warning in second.json()["warnings"]))
 
     def test_valid_quiver_6_partial_response(self):
