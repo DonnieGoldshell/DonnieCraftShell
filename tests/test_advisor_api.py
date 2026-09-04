@@ -131,6 +131,8 @@ class AdvisorApiTests(unittest.TestCase):
         self.assertIn("EconomyQuoteWorkspaceRecordDto", schema_names)
         self.assertIn("EconomyQuoteWorkspaceSaveResponseDto", schema_names)
         self.assertIn("EconomyQuoteWorkspaceListResponseDto", schema_names)
+        self.assertIn("EconomyEvidenceSummaryDto", schema_names)
+        self.assertIn("EconomyEvidenceSourceDto", schema_names)
         self.assertIn("ProbabilitySummaryDto", schema_names)
         self.assertIn("CraftObservationRecordRequestDto", schema_names)
         self.assertIn("/api/v1/observations/review", openapi["paths"])
@@ -264,6 +266,10 @@ class AdvisorApiTests(unittest.TestCase):
         self.assertTrue(annulment["material_cost"]["complete"])
         self.assertEqual(annulment["material_cost"]["lines"][0]["source"], "LOCAL_OPERATOR_ECONOMY_QUOTE")
         self.assertEqual(annulment["material_cost"]["total"]["amount"], "7.5")
+        self.assertEqual(rerun["economy_evidence"]["mode"], "MIXED")
+        self.assertTrue(
+            any(source["mode"] == "LOCAL_OVERRIDE" for source in rerun["economy_evidence"]["source_breakdown"])
+        )
         self.assertFalse(any(requirement["action_id"] == "dc:poe2:craft-action:orb-of-annulment" for requirement in missing))
 
     def test_stale_local_economy_quote_is_complete_but_carries_stale_freshness(self):
@@ -399,6 +405,12 @@ class AdvisorApiTests(unittest.TestCase):
         self.assertTrue(annulment["material_cost"]["complete"])
         self.assertEqual(annulment["material_cost"]["lines"][0]["source"], "poe.show")
         self.assertEqual(annulment["material_cost"]["total"]["amount"], "6.25")
+        self.assertEqual(response["economy_evidence"]["mode"], "LIVE_FETCHED")
+        self.assertTrue(response["economy_evidence"]["live_economy_enabled"])
+        self.assertEqual(response["economy_evidence"]["provider"], "poe.show")
+        live_breakdown = next(source for source in response["economy_evidence"]["source_breakdown"] if source["mode"] == "LIVE_FETCHED")
+        self.assertEqual(live_breakdown["resolved_required_asset_count"], 1)
+        self.assertGreaterEqual(response["economy_evidence"]["missing_required_asset_count"], 1)
         self.assertEqual(missing_economy, [])
         self.assertTrue(missing_probability)
         self.assertTrue(any("Ready - live economy snapshot" in warning for warning in response["warnings"]))
@@ -475,6 +487,10 @@ class AdvisorApiTests(unittest.TestCase):
         self.assertTrue(first_annulment["material_cost"]["complete"])
         self.assertTrue(second_annulment["material_cost"]["complete"])
         self.assertEqual(second_annulment["material_cost"]["lines"][0]["source"], "poe.show")
+        self.assertEqual(first.json()["economy_evidence"]["mode"], "LIVE_FETCHED")
+        self.assertEqual(second.json()["economy_evidence"]["mode"], "LIVE_CACHED")
+        self.assertEqual(second.json()["economy_evidence"]["cache_path"], str(cache_dir))
+        self.assertGreater(len(list(cache_dir.glob("poe-show-*.json"))), 0)
         self.assertFalse(
             any(
                 requirement["type"] == "ECONOMY_QUOTE_REQUIRED"
@@ -484,6 +500,76 @@ class AdvisorApiTests(unittest.TestCase):
         )
         self.assertTrue(any("Using cached live economy snapshot" in warning for warning in second.json()["warnings"]))
 
+    def test_advisor_live_economy_error_with_cache_reports_cache_fallback(self):
+        from packages.shared.donniecraftshell_contracts.live_economy import (
+            HttpResponse,
+            LiveEconomyProviderConfig,
+            PoeShowLiveEconomyProvider,
+        )
+        from services.api.app.dependencies.advisor import get_live_economy_provider
+
+        class SeedTransport:
+            def get(self, url, headers, timeout_seconds):
+                return HttpResponse(
+                    status_code=200,
+                    headers={"etag": "api-currency-v1"},
+                    body=json.dumps(
+                        {
+                            "core": {
+                                "primary": "divine",
+                                "secondary": "exalted",
+                                "rates": {"exalted": "340"},
+                            },
+                            "lines": [
+                                {"id": "divine", "primaryValue": "1", "volumePrimaryValue": "1000"},
+                                {"id": "orb-of-annulment", "primaryValue": "6", "volumePrimaryValue": "33"},
+                            ],
+                        }
+                    ),
+                )
+
+        class FailingTransport:
+            def get(self, url, headers, timeout_seconds):
+                raise OSError("synthetic provider outage")
+
+        cache_dir = ROOT / ".tmp-tests" / "live-economy-api" / f"{os.getpid()}-{self._testMethodName}"
+        cache_dir.mkdir(parents=True, exist_ok=True)
+        for child in cache_dir.glob("*"):
+            if child.is_file():
+                child.unlink()
+        config = LiveEconomyProviderConfig(
+            enabled=True,
+            base_url="https://poe.show/poe2/api/economy",
+            user_agent="DonnieCraftShell API test",
+            categories=("Currency",),
+            refresh_interval=timedelta(minutes=30),
+        )
+        self.app.dependency_overrides[get_live_economy_provider] = lambda: PoeShowLiveEconomyProvider(
+            cache_dir,
+            config,
+            SeedTransport(),
+        )
+        first = self.client.post("/api/v1/advisor/analyze", json=base_request())
+        self.app.dependency_overrides[get_live_economy_provider] = lambda: PoeShowLiveEconomyProvider(
+            cache_dir,
+            config,
+            FailingTransport(),
+        )
+        later = dict(base_request())
+        later["as_of"] = (datetime.fromisoformat(AS_OF) + timedelta(hours=1)).isoformat()
+
+        second = self.client.post("/api/v1/advisor/analyze", json=later)
+
+        self.assertEqual(first.status_code, 200)
+        self.assertEqual(second.status_code, 200)
+        self.assertEqual(second.json()["economy_evidence"]["mode"], "LIVE_CACHE_FALLBACK")
+        self.assertTrue(
+            any("fetch failed" in warning for warning in second.json()["economy_evidence"]["warnings"])
+        )
+        self.assertTrue(
+            any(source["mode"] == "LIVE_CACHE_FALLBACK" for source in second.json()["economy_evidence"]["source_breakdown"])
+        )
+
     def test_valid_quiver_6_partial_response(self):
         response = self.client.post("/api/v1/advisor/analyze", json=base_request())
 
@@ -492,6 +578,15 @@ class AdvisorApiTests(unittest.TestCase):
         self.assertEqual(body["status"], "ANALYSIS_PARTIAL")
         self.assertEqual(body["context"]["league"], LEAGUE)
         self.assertEqual(body["context"]["game_data_dataset_version"], GAME_DATASET_ID)
+        self.assertEqual(body["economy_evidence"]["mode"], "OFFLINE_BUNDLED")
+        self.assertFalse(body["economy_evidence"]["live_economy_enabled"])
+        self.assertIsNone(body["economy_evidence"]["provider"])
+        self.assertTrue(
+            any(source["mode"] == "OFFLINE_BUNDLED" for source in body["economy_evidence"]["source_breakdown"])
+        )
+        self.assertFalse(
+            any(source["mode"].startswith("LIVE") for source in body["economy_evidence"]["source_breakdown"])
+        )
         self.assertEqual(body["item"]["base_type"], "Primed Quiver")
         self.assertEqual(body["affix_state"]["observed_prefix_count"], 3)
         self.assertEqual(body["affix_state"]["observed_suffix_count"], 3)

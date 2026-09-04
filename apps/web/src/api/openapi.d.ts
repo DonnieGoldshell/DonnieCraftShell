@@ -556,6 +556,7 @@ export interface components {
             context: components["schemas"]["AdvisorContextDto"];
             current_market_valuation?: components["schemas"]["MarketValuationPresentationDto"] | null;
             decision?: components["schemas"]["AdvisorDecisionDto"] | null;
+            economy_evidence?: components["schemas"]["EconomyEvidenceSummaryDto"] | null;
             enrichment_summary?: components["schemas"]["EnrichmentSummaryDto"] | null;
             evidence_readiness?: components["schemas"]["AdvisorEvidenceReadinessDto"] | null;
             item?: components["schemas"]["ItemSummaryDto"] | null;
@@ -1353,6 +1354,76 @@ export interface components {
              * @default EXALTED_ECONOMIC_UNIT
              */
             unit: string;
+        };
+        /** EconomyEvidenceSourceDto */
+        EconomyEvidenceSourceDto: {
+            /** Cache Path */
+            cache_path?: string | null;
+            /** Freshness */
+            freshness?: string | null;
+            /** League */
+            league: string;
+            /**
+             * Missing Required Asset Count
+             * @default 0
+             */
+            missing_required_asset_count: number;
+            /** Mode */
+            mode: string;
+            /** Provider */
+            provider?: string | null;
+            /**
+             * Resolved Required Asset Count
+             * @default 0
+             */
+            resolved_required_asset_count: number;
+            /** Retrieved At */
+            retrieved_at?: string | null;
+            /**
+             * Snapshot Ids
+             * @default []
+             */
+            snapshot_ids: string[];
+            /**
+             * Warnings
+             * @default []
+             */
+            warnings: string[];
+        };
+        /** EconomyEvidenceSummaryDto */
+        EconomyEvidenceSummaryDto: {
+            /** Cache Path */
+            cache_path?: string | null;
+            /** Freshness */
+            freshness?: string | null;
+            /** League */
+            league: string;
+            /** Live Economy Enabled */
+            live_economy_enabled: boolean;
+            /**
+             * Missing Required Asset Count
+             * @default 0
+             */
+            missing_required_asset_count: number;
+            /** Mode */
+            mode: string;
+            /** Provider */
+            provider?: string | null;
+            /**
+             * Resolved Required Asset Count
+             * @default 0
+             */
+            resolved_required_asset_count: number;
+            /**
+             * Source Breakdown
+             * @default []
+             */
+            source_breakdown: components["schemas"]["EconomyEvidenceSourceDto"][];
+            /**
+             * Warnings
+             * @default []
+             */
+            warnings: string[];
         };
         /** EconomyQuoteWorkspaceDeleteResponseDto */
         EconomyQuoteWorkspaceDeleteResponseDto: {

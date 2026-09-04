@@ -90,12 +90,25 @@ class FirstPlayableTests(unittest.TestCase):
 
         self.assertIn("[int]$ApiPort = 8000", start_script)
         self.assertIn("[int]$WebPort = 3000", start_script)
+        self.assertIn("[switch]$LiveEconomy", start_script)
         self.assertIn("--port\", \"$ApiPort", start_script)
         self.assertIn("--port\", \"$WebPort", start_script)
         self.assertIn("Test-IsExpectedApiProcess -Port $Port", start_script)
         self.assertIn("Test-IsExpectedWebProcess -ProcessId $listener.ProcessId -Port $Port", start_script)
         self.assertIn("Test-ExpectedWebAncestor", start_script)
         self.assertIn("Wait-PortReleased -Port $Port", start_script)
+
+    def test_first_playable_launcher_live_economy_is_explicit_and_observable(self):
+        start_script = START_SCRIPT.read_text(encoding="utf-8")
+
+        self.assertIn("if ($LiveEconomy)", start_script)
+        self.assertIn('$env:DCS_LIVE_ECONOMY_ENABLED = "true"', start_script)
+        self.assertIn('$env:DCS_LIVE_ECONOMY_ENABLED = "false"', start_script)
+        self.assertIn("$env:DCS_LIVE_ECONOMY_CACHE_PATH = $liveEconomyCachePath", start_script)
+        self.assertIn("Live economy: ENABLED", start_script)
+        self.assertIn("Live economy: DISABLED", start_script)
+        self.assertIn("Live economy cache:", start_script)
+        self.assertIn(".dcs\\economy_cache", start_script)
 
     def test_first_playable_launcher_stops_owned_child_process_trees_on_shutdown(self):
         start_script = START_SCRIPT.read_text(encoding="utf-8")

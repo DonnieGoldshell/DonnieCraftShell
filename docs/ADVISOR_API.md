@@ -170,6 +170,8 @@ The response includes:
 - parsed item summary
 - enrichment summary
 - affix state
+- `economy_evidence`, the authoritative economy provenance summary for the
+  analysis
 - action summaries
 - probability summaries for each modeled action
 - current market valuation presentation
@@ -178,6 +180,15 @@ The response includes:
 - optional risk-adjusted decision
 - missing requirements
 - warnings and provenance
+
+`economy_evidence.mode` distinguishes runtime and offline quote origins. Clients
+must use this field rather than checking whether an individual material-cost row
+has `source == "poe.show"`. The bundled August economy fixtures are
+`OFFLINE_BUNDLED` even though their provider source is poe.show. Runtime provider
+fetches are `LIVE_FETCHED`; refresh-interval cache reuse is `LIVE_CACHED`;
+provider-error fallback to an existing cache is `LIVE_CACHE_FALLBACK`; operator
+workspace quotes are `LOCAL_OVERRIDE`. Missing quotes remain explicit missing
+requirements.
 
 Partial analysis is HTTP 200. `NO_RECOMMENDATION` is also HTTP 200.
 

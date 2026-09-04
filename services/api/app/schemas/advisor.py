@@ -737,6 +737,32 @@ class AdvisorEvidenceReadinessDto(ApiModel):
     warnings: list[str] = []
 
 
+class EconomyEvidenceSourceDto(ApiModel):
+    mode: str
+    provider: str | None = None
+    league: str
+    snapshot_ids: list[str] = []
+    resolved_required_asset_count: int = 0
+    missing_required_asset_count: int = 0
+    freshness: str | None = None
+    retrieved_at: datetime | None = None
+    cache_path: str | None = None
+    warnings: list[str] = []
+
+
+class EconomyEvidenceSummaryDto(ApiModel):
+    mode: str
+    live_economy_enabled: bool
+    provider: str | None = None
+    league: str
+    cache_path: str | None = None
+    resolved_required_asset_count: int = 0
+    missing_required_asset_count: int = 0
+    freshness: str | None = None
+    source_breakdown: list[EconomyEvidenceSourceDto] = []
+    warnings: list[str] = []
+
+
 class AdvisorContextDto(ApiModel):
     league: str
     game_data_dataset_version: str
@@ -760,6 +786,7 @@ class AdvisorAnalyzeResponseDto(ApiModel):
     risk_adjusted_decision: RiskAdjustedDecisionDto | None = None
     stop_continue_decision: StopContinueDecisionEconomicsDto | None = None
     evidence_readiness: AdvisorEvidenceReadinessDto | None = None
+    economy_evidence: EconomyEvidenceSummaryDto | None = None
     missing_requirements: list[MissingRequirementDto] = []
     warnings: list[str] = []
     provenance: list[dict] = []
