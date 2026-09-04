@@ -110,6 +110,24 @@ class LiveEconomyProviderTests(unittest.TestCase):
         self.assertIn("Unmapped poe.show asset skipped: future-unknown-currency", result.warnings)
         self.assertIsNone(result.repository.get_current_quote(LEAGUE, "future-unknown-currency", AS_OF))
 
+    def test_live_provider_resolves_annulment_from_core_item_details_id(self):
+        transport = FakeTransport((_response(currency_payload_with_metadata_annulment()),))
+
+        result = _provider(self._cache_dir(), transport).economy_repository(EconomyRepository(()), LEAGUE, AS_OF)
+
+        quote = result.repository.get_current_quote(LEAGUE, ORB_OF_ANNULMENT_ASSET_ID, AS_OF)
+
+        self.assertEqual(result.fetched_count, 1)
+        self.assertIsNotNone(quote)
+        self.assertEqual(quote.normalized_value.amount, Decimal("170.00"))
+        self.assertEqual(quote.source_native_value, Decimal("0.5"))
+        self.assertEqual(quote.volume, Decimal("11"))
+        self.assertEqual(quote.source, "poe.show")
+        self.assertEqual(quote.provenance[0].source_uri, transport.requests[0][0])
+        self.assertEqual(quote.freshness, FreshnessState.FRESH)
+        self.assertIsNone(result.repository.get_current_quote(OTHER_LEAGUE, ORB_OF_ANNULMENT_ASSET_ID, AS_OF))
+        self.assertNotIn("Unmapped poe.show asset skipped: provider-specific-annulment-id", result.warnings)
+
     def test_cache_within_refresh_interval_reuses_cached_snapshot_without_transport_request(self):
         transport = FakeTransport((_response(currency_payload(), etag="currency-v1"),))
 
@@ -206,6 +224,25 @@ def currency_payload() -> dict:
             {"id": "orb-of-annulment", "primaryValue": "6", "volumePrimaryValue": "33"},
         ],
     }
+
+
+def currency_payload_with_metadata_annulment() -> dict:
+    payload = currency_payload()
+    payload["core"]["items"] = [
+        {"id": "divine", "name": "Divine Orb", "category": "Currency", "detailsId": "divine-orb"},
+        {"id": "exalted", "name": "Exalted Orb", "category": "Currency", "detailsId": "exalted-orb"},
+        {
+            "id": "provider-specific-annulment-id",
+            "name": "Orb of Annulment",
+            "category": "Currency",
+            "detailsId": "orb-of-annulment",
+        },
+    ]
+    payload["lines"] = [
+        {"id": "divine", "primaryValue": "1", "volumePrimaryValue": "1000"},
+        {"id": "provider-specific-annulment-id", "primaryValue": "0.5", "volumePrimaryValue": "11"},
+    ]
+    return payload
 
 
 def ritual_payload() -> dict:

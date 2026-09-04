@@ -13,6 +13,7 @@ from packages.shared.donniecraftshell_contracts.economy import (
     EXALTED_ASSET_ID,
     OMEN_OF_CATALYSING_EXALTATION_ASSET_ID,
     OMEN_OF_PUTREFACTION_ASSET_ID,
+    ORB_OF_ANNULMENT_ASSET_ID,
     PERFECT_EXALTED_ASSET_ID,
     PERFECT_ESSENCE_OF_BATTLE_ASSET_ID,
     EconomyCategory,
@@ -114,6 +115,51 @@ class EconomyEngineTests(unittest.TestCase):
     def test_asset_mapping_keeps_provider_ids_separate_from_internal_ids(self):
         self.assertEqual(asset_id_for_poe_show("divine"), DIVINE_ASSET_ID)
         self.assertNotEqual("divine", DIVINE_ASSET_ID)
+
+    def test_poe_show_asset_mapping_can_use_explicit_details_id_metadata(self):
+        self.assertEqual(
+            asset_id_for_poe_show(
+                "provider-specific-annulment-id",
+                {"name": "Orb of Annulment", "detailsId": "orb-of-annulment"},
+            ),
+            ORB_OF_ANNULMENT_ASSET_ID,
+        )
+        self.assertIsNone(asset_id_for_poe_show("provider-specific-annulment-id"))
+        self.assertIsNone(asset_id_for_poe_show("provider-specific-annulment-id", {"name": "Orb of Annulment"}))
+
+    def test_poe_show_normalizer_resolves_annulment_from_core_item_details_id(self):
+        raw = json.loads(RAW_FIXTURE.read_text(encoding="utf-8"))
+        raw["snapshot_id"] = "economy-snapshot:test-annulment-details-id"
+        raw["response"]["core"]["rates"]["exalted"] = "400"
+        raw["response"]["core"]["items"].append(
+            {
+                "id": "provider-specific-annulment-id",
+                "name": "Orb of Annulment",
+                "category": "Currency",
+                "detailsId": "orb-of-annulment",
+            }
+        )
+        raw["response"]["lines"].append(
+            {
+                "id": "provider-specific-annulment-id",
+                "primaryValue": "0.25",
+                "volumePrimaryValue": "12",
+                "maxVolumeCurrency": "divine",
+                "maxVolumeRate": "4",
+            }
+        )
+
+        snapshot = _normalize_temp_raw(raw)
+        quote = _quote(snapshot, ORB_OF_ANNULMENT_ASSET_ID)
+
+        self.assertEqual(quote.normalized_value.amount, Decimal("100.00"))
+        self.assertEqual(quote.source_native_value, Decimal("0.25"))
+        self.assertEqual(quote.native_reference_asset_id, DIVINE_ASSET_ID)
+        self.assertEqual(quote.source, "poe.show")
+        self.assertEqual(quote.category, EconomyCategory.CURRENCY)
+        self.assertEqual(quote.freshness, FreshnessState.FRESH)
+        self.assertEqual(quote.provenance[0].league, LEAGUE)
+        self.assertNotIn("Unmapped poe.show asset skipped: provider-specific-annulment-id", snapshot.warnings)
 
     def test_unknown_source_asset_is_skipped_with_warning(self):
         raw = json.loads(RAW_FIXTURE.read_text(encoding="utf-8"))

@@ -87,10 +87,11 @@ def normalize_poe_show_economy_payload(
     exchange_rates = [primary_to_exalted_rate]
     quotes: list[EconomyQuote] = []
     seen_assets: set[str] = set()
+    source_items = _source_items_by_id(response)
 
     for line in response.get("lines", []):
         source_asset_id = line["id"]
-        asset_id = asset_id_for_poe_show(source_asset_id)
+        asset_id = asset_id_for_poe_show(source_asset_id, source_items.get(str(source_asset_id)))
         if asset_id is None:
             warnings.append(f"Unmapped poe.show asset skipped: {source_asset_id}")
             continue
@@ -276,6 +277,20 @@ def _category(value: str | None) -> EconomyCategory | str:
     if value == "Essences":
         return EconomyCategory.ESSENCES
     return value or EconomyCategory.UNKNOWN
+
+
+def _source_items_by_id(response: dict[str, Any]) -> dict[str, dict[str, Any]]:
+    items: dict[str, dict[str, Any]] = {}
+    for collection in (response.get("core", {}).get("items"), response.get("items")):
+        if not isinstance(collection, list):
+            continue
+        for candidate in collection:
+            if not isinstance(candidate, dict):
+                continue
+            source_id = candidate.get("id")
+            if isinstance(source_id, str):
+                items[source_id] = candidate
+    return items
 
 
 def _provenance_from_json(data: dict[str, Any]) -> DataProvenance:
