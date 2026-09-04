@@ -808,6 +808,31 @@ describe("AdvisorWorkbench", () => {
         ? { ...item, status: "READY", summary: "Required crafting material prices are available.", targets: [] }
         : item
     );
+    liveResponse.economy_evidence = {
+      mode: "LIVE_FETCHED",
+      live_economy_enabled: true,
+      provider: "poe.show",
+      league: DEFAULT_LEAGUE,
+      cache_path: ".dcs/economy_cache",
+      resolved_required_asset_count: 1,
+      missing_required_asset_count: 0,
+      freshness: "FRESH",
+      source_breakdown: [
+        {
+          mode: "LIVE_FETCHED",
+          provider: "poe.show",
+          league: DEFAULT_LEAGUE,
+          snapshot_ids: ["economy-snapshot:live-poe-show:test"],
+          resolved_required_asset_count: 1,
+          missing_required_asset_count: 0,
+          freshness: "FRESH",
+          retrieved_at: "2026-08-11T13:30:00+00:00",
+          cache_path: ".dcs/economy_cache",
+          warnings: []
+        }
+      ],
+      warnings: []
+    };
 
     vi.stubGlobal(
       "fetch",
@@ -825,6 +850,77 @@ describe("AdvisorWorkbench", () => {
     expect(await screen.findByText(/ready - live economy snapshot from poe.show/i)).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /open local quote workspace/i })).not.toBeInTheDocument();
     expect(screen.getByText("6.25 Ex")).toBeInTheDocument();
+  });
+
+  it("does not label bundled poe.show economy evidence as live", async () => {
+    const offlineResponse = JSON.parse(JSON.stringify(quiverResponse)) as AdvisorAnalyzeResponse;
+    const annulment = offlineResponse.actions.find(
+      (action) => action.action_id === "dc:poe2:craft-action:orb-of-annulment"
+    )!;
+    annulment.material_cost = {
+      complete: true,
+      freshness: "FRESH",
+      lines: [
+        {
+          asset_id: "dc:poe2:economy-asset:currency:orb-of-annulment",
+          quantity: "1",
+          unit_price: { amount: "6.25", unit: "EXALTED_ECONOMIC_UNIT" },
+          subtotal: { amount: "6.25", unit: "EXALTED_ECONOMIC_UNIT" },
+          snapshot_id: "economy-snapshot:offline-poe-show:test",
+          source: "poe.show",
+          freshness: "FRESH",
+          warnings: []
+        }
+      ],
+      total: { amount: "6.25", unit: "EXALTED_ECONOMIC_UNIT" },
+      warnings: []
+    };
+    offlineResponse.evidence_readiness!.items = offlineResponse.evidence_readiness!.items.map((item) =>
+      item.category === "ECONOMY_CRAFTING_COST"
+        ? { ...item, status: "READY", summary: "Required crafting material prices are available.", targets: [] }
+        : item
+    );
+    offlineResponse.economy_evidence = {
+      mode: "OFFLINE_BUNDLED",
+      live_economy_enabled: false,
+      provider: null,
+      league: DEFAULT_LEAGUE,
+      cache_path: null,
+      resolved_required_asset_count: 1,
+      missing_required_asset_count: 0,
+      freshness: "FRESH",
+      source_breakdown: [
+        {
+          mode: "OFFLINE_BUNDLED",
+          provider: "poe.show",
+          league: DEFAULT_LEAGUE,
+          snapshot_ids: ["economy-snapshot:offline-poe-show:test"],
+          resolved_required_asset_count: 1,
+          missing_required_asset_count: 0,
+          freshness: "FRESH",
+          retrieved_at: "2026-08-11T13:10:57+00:00",
+          cache_path: null,
+          warnings: ["Bundled offline economy snapshot; not runtime live economy evidence."]
+        }
+      ],
+      warnings: []
+    };
+
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => offlineResponse
+      })
+    );
+    const user = userEvent.setup();
+
+    render(<AdvisorWorkbench />);
+    await user.type(screen.getByLabelText(/clipboard item text/i), "Item Class: Quivers\nRarity: Rare");
+    await user.click(screen.getByRole("button", { name: /analyze quiver/i }));
+
+    expect(await screen.findByText(/ready - bundled\/offline economy evidence/i)).toBeInTheDocument();
+    expect(screen.queryByText(/live economy snapshot from poe.show/i)).not.toBeInTheDocument();
   });
 
   it("renders range-only stop/continue economics without a point recommendation", async () => {

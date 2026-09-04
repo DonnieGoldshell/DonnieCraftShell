@@ -422,28 +422,44 @@ function economyDetail(
   analysis: AdvisorAnalyzeResponse,
   economyTarget: EvidenceReadinessSelection["target"] | null
 ): string {
-  const resolvedLines = analysis.actions.flatMap((action) =>
-    action.material_cost.lines.filter((line) => line.source && line.freshness)
-  );
-  const liveLines = resolvedLines.filter((line) => line.source === "poe.show");
-  if (liveLines.length > 0 && !economyTarget) {
-    const assetCount = new Set(liveLines.map((line) => line.asset_id)).size;
-    return `Ready - live economy snapshot from poe.show for ${analysis.context.league}; ${assetCount} required asset${
-      assetCount === 1 ? "" : "s"
-    } resolved; freshness ${worstFreshness(liveLines.map((line) => String(line.freshness ?? "UNAVAILABLE")))}.`;
-  }
-  if (liveLines.length > 0 && economyTarget) {
-    const resolvedCount = new Set(liveLines.map((line) => line.asset_id)).size;
-    return `Partial - live economy snapshot resolved ${resolvedCount} asset${
-      resolvedCount === 1 ? "" : "s"
-    }, but manual quote evidence is still needed for ${economyTarget.asset_id ?? economyTarget.target_id}.`;
+  const evidence = analysis.economy_evidence;
+  if (evidence) {
+    const missingTarget = economyTarget?.asset_id ?? economyTarget?.target_id;
+    const resolved = evidence.resolved_required_asset_count;
+    const plural = resolved === 1 ? "" : "s";
+    const freshness = evidence.freshness ?? "UNAVAILABLE";
+    if (evidence.mode === "LIVE_FETCHED" || evidence.mode === "LIVE_MIXED") {
+      if (missingTarget) {
+        return `Partial - live economy snapshot from ${evidence.provider ?? "provider"} resolved ${resolved} required asset${plural}, but manual quote evidence is still needed for ${missingTarget}.`;
+      }
+      return `Ready - live economy snapshot from ${evidence.provider ?? "provider"} for ${analysis.context.league}; ${resolved} required asset${plural} resolved; freshness ${freshness}.`;
+    }
+    if (evidence.mode === "LIVE_CACHED" || evidence.mode === "LIVE_CACHE_FALLBACK") {
+      const cacheLabel = evidence.mode === "LIVE_CACHE_FALLBACK" ? "cached live economy snapshot after provider error" : "cached live economy snapshot";
+      if (missingTarget) {
+        return `Partial - ${cacheLabel} from ${evidence.provider ?? "provider"} resolved ${resolved} required asset${plural}, but manual quote evidence is still needed for ${missingTarget}.`;
+      }
+      return `Ready - ${cacheLabel} from ${evidence.provider ?? "provider"} for ${analysis.context.league}; ${resolved} required asset${plural} resolved; freshness ${freshness}.`;
+    }
+    if (evidence.mode === "LOCAL_OVERRIDE" || evidence.mode === "MIXED") {
+      const hasLocalOverride = evidence.source_breakdown.some((source) => source.mode === "LOCAL_OVERRIDE");
+      if (hasLocalOverride && !missingTarget) {
+        return `Ready - local operator quote override evidence is active; ${resolved} required asset${plural} resolved; freshness ${freshness}.`;
+      }
+    }
+    if (evidence.mode === "OFFLINE_BUNDLED" || evidence.source_breakdown.some((source) => source.mode === "OFFLINE_BUNDLED")) {
+      if (missingTarget) {
+        return `Partial - bundled/offline economy evidence resolved ${resolved} required asset${plural}, but manual quote evidence is still needed for ${missingTarget}. Live economy is ${
+          evidence.live_economy_enabled ? "enabled but did not resolve that asset" : "disabled"
+        }.`;
+      }
+      return `Ready - bundled/offline economy evidence for ${analysis.context.league}; ${resolved} required asset${plural} resolved; freshness ${freshness}.`;
+    }
+    if (evidence.mode === "LIVE_UNAVAILABLE") {
+      return `Partial - live economy is enabled but no usable runtime provider snapshot is available; cache path ${evidence.cache_path ?? "not reported"}.`;
+    }
   }
   return "Local quote workspace evidence applies only after an explicit Advisor rerun.";
-}
-
-function worstFreshness(values: string[]): string {
-  const order = ["FRESH", "AGING", "STALE", "UNAVAILABLE"];
-  return values.reduce((worst, value) => (order.indexOf(value) > order.indexOf(worst) ? value : worst), "FRESH");
 }
 
 function pilotSummary(analysis: AdvisorAnalyzeResponse): { title: string; description: string } {

@@ -1,6 +1,7 @@
 param(
     [int]$ApiPort = 8000,
     [int]$WebPort = 3000,
+    [switch]$LiveEconomy,
     [switch]$NoBrowser,
     [switch]$SkipInstallCheck
 )
@@ -263,6 +264,7 @@ function Assert-PortAvailableOrCleanStale {
 $repoRoot = Resolve-Path (Join-Path $PSScriptRoot "..")
 $webRoot = Join-Path $repoRoot "apps\web"
 $logsRoot = Join-Path $repoRoot ".dcs\logs"
+$liveEconomyCachePath = Join-Path $repoRoot ".dcs\economy_cache"
 $apiOutLog = Join-Path $logsRoot "first-playable-api.out.log"
 $apiErrLog = Join-Path $logsRoot "first-playable-api.err.log"
 $webOutLog = Join-Path $logsRoot "first-playable-web.out.log"
@@ -297,14 +299,32 @@ Write-Host "Starting DonnieCraftShell First Playable..." -ForegroundColor Cyan
 Write-Host "  API: $apiUrl"
 Write-Host "  Web: $webUrl"
 Write-Host "  Logs: $logsRoot"
+if ($LiveEconomy) {
+    New-Item -ItemType Directory -Force -Path $liveEconomyCachePath | Out-Null
+    Write-Host "  Live economy: ENABLED (backend poe.show provider)"
+    Write-Host "  Live economy cache: $liveEconomyCachePath"
+}
+else {
+    Write-Host "  Live economy: DISABLED (bundled/offline economy snapshots only)"
+}
 Write-Host ""
 
 $apiProcess = $null
 $webProcess = $null
+$previousLiveEconomyEnabled = $env:DCS_LIVE_ECONOMY_ENABLED
+$previousLiveEconomyCachePath = $env:DCS_LIVE_ECONOMY_CACHE_PATH
 
 try {
     $env:DCS_CORS_ALLOWED_ORIGINS = "$webUrl,http://127.0.0.1:$WebPort"
     $env:NEXT_PUBLIC_API_BASE_URL = $apiUrl
+    if ($LiveEconomy) {
+        $env:DCS_LIVE_ECONOMY_ENABLED = "true"
+        $env:DCS_LIVE_ECONOMY_CACHE_PATH = $liveEconomyCachePath
+    }
+    else {
+        $env:DCS_LIVE_ECONOMY_ENABLED = "false"
+        Remove-Item Env:DCS_LIVE_ECONOMY_CACHE_PATH -ErrorAction SilentlyContinue
+    }
 
     $apiStartInfo = @{
         FilePath = $pythonCommand
@@ -341,6 +361,12 @@ try {
     Write-Host ""
     Write-Host "DonnieCraftShell is running." -ForegroundColor Green
     Write-Host "Open $webUrl and paste samples\first_playable_quiver_sample.txt."
+    if ($LiveEconomy) {
+        Write-Host "Live economy cache payloads are written under $liveEconomyCachePath."
+    }
+    else {
+        Write-Host "Live economy is disabled. Restart with -LiveEconomy to use runtime poe.show quotes."
+    }
     Write-Host "Press Ctrl+C in this terminal to stop API and web processes."
 
     while ($true) {
@@ -354,6 +380,18 @@ try {
     }
 }
 finally {
+    if ($null -eq $previousLiveEconomyEnabled) {
+        Remove-Item Env:DCS_LIVE_ECONOMY_ENABLED -ErrorAction SilentlyContinue
+    }
+    else {
+        $env:DCS_LIVE_ECONOMY_ENABLED = $previousLiveEconomyEnabled
+    }
+    if ($null -eq $previousLiveEconomyCachePath) {
+        Remove-Item Env:DCS_LIVE_ECONOMY_CACHE_PATH -ErrorAction SilentlyContinue
+    }
+    else {
+        $env:DCS_LIVE_ECONOMY_CACHE_PATH = $previousLiveEconomyCachePath
+    }
     foreach ($process in @($apiProcess, $webProcess)) {
         if ($null -ne $process -and -not $process.HasExited) {
             Stop-ProcessTreeSafely -ProcessId $process.Id -Reason "First Playable launcher shutdown"

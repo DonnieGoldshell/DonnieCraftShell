@@ -109,6 +109,13 @@ failures may use a valid cached snapshot with explicit freshness/warnings; they
 must not fabricate prices. All conversion continues to come from the current
 provider snapshot rate data, not constants.
 
+Advisor API responses expose an explicit economy evidence summary. Clients must
+use that summary to distinguish `OFFLINE_BUNDLED`, `LIVE_FETCHED`,
+`LIVE_CACHED`, `LIVE_CACHE_FALLBACK`, `LOCAL_OVERRIDE`, and missing/unavailable
+states. They must not infer live market evidence from `EconomyQuote.source ==
+"poe.show"` because the committed offline snapshots also originate from
+poe.show.
+
 poe.show asset identity is resolved explicitly. The normalizer first maps the
 exchange-overview `lines[].id`; if that provider row ID is not a known
 DonnieCraftShell alias, it may use the matching `core.items[].detailsId` metadata

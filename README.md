@@ -33,6 +33,16 @@ Start the app:
 powershell -ExecutionPolicy Bypass -File scripts\start_first_playable.ps1
 ```
 
+The default launcher uses bundled/offline economy snapshots only. To deliberately
+enable backend runtime poe.show economy ingestion for a pilot run, start it with:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\start_first_playable.ps1 -LiveEconomy
+```
+
+The launcher prints whether live economy is enabled and, when enabled, the
+`.dcs\economy_cache` path where raw cached provider payloads are written.
+
 Open `http://localhost:3000` and paste
 `samples\first_playable_quiver_sample.txt`. The sample is fixture/example data,
 not live market evidence. A partial analysis or `NO_RECOMMENDATION` is a valid
