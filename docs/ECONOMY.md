@@ -77,21 +77,24 @@ Task 7C connects crafting actions to economy costs through `CraftActionCostServi
 
 Task 22A adds a local operator quote workspace for missing crafting-material prices. These records are exact league/asset evidence in Exalted economic units and are composed into a request-scoped local `EconomySnapshot` only when Advisor analysis is re-run. Local quotes preserve provenance and freshness, but they do not scrape providers, infer related asset prices, cross-use leagues, or alter committed normalized economy fixtures. See [LOCAL_ECONOMY_QUOTES.md](LOCAL_ECONOMY_QUOTES.md).
 
-Issue 77 adds optional backend-only live poe.show economy ingestion for
-league-scoped Advisor analysis. When enabled by API configuration, the backend
-fetches bounded poe.show PoE2 `Currency`, `Ritual`, and `Essences` overview
+Issue 77 adds optional backend-only live economy ingestion for league-scoped
+Advisor analysis. Issue 83 makes the default provider order `poe.show` then
+`poe.ninja`. When enabled by API configuration, the backend fetches bounded
+poe.show/poe.ninja PoE2 `Currency`, `Ritual`, and `Essences` overview
 responses, preserves the raw provider response in a local `.dcs/` cache with
 ETag/source URI/retrieval metadata, normalizes the payload through the same
 `EconomySnapshot` contracts, and composes those snapshots into the
-request-scoped `EconomyRepository`. The frontend never calls poe.show directly.
+request-scoped `EconomyRepository`. The frontend never calls poe.show or
+poe.ninja directly.
 
 Live ingestion has two separate time policies:
 
 - Refresh interval: configured backend cache cadence. The MVP default is 1 hour,
-  aligned with poe.show's roughly hourly source refresh. A cached response still
+  aligned with the roughly hourly source refresh. A cached response still
   inside this interval is normalized directly without a network request. Once
   due, the provider uses conditional ETag requests and reuses cached payloads on
-  `304 Not Modified`.
+  `304 Not Modified`. Cache filenames are provider-scoped so poe.show payloads
+  cannot masquerade as poe.ninja evidence.
 - Freshness: domain evidence quality on the resulting `EconomyQuote` /
   `EconomySnapshot`. A cached snapshot can be due for refresh yet still produce
   explicit `FRESH`, `AGING`, or `STALE` evidence according to DonnieCraftShell's
@@ -101,7 +104,8 @@ Live economy quote precedence is:
 
 1. Fresh/current explicit local operator quote evidence for the exact league and
    asset.
-2. Automatic live poe.show quote for the exact requested league.
+2. Automatic live quote for the exact requested league, using the configured
+   provider order.
 3. No quote; cost remains incomplete.
 
 Old local placeholder quotes do not silently override newer live quotes. Provider
@@ -116,11 +120,11 @@ states. They must not infer live market evidence from `EconomyQuote.source ==
 "poe.show"` because the committed offline snapshots also originate from
 poe.show.
 
-poe.show asset identity is resolved explicitly. The normalizer first maps the
-exchange-overview `lines[].id`; if that provider row ID is not a known
+poe.show/poe.ninja asset identity is resolved explicitly. The normalizer first
+maps the exchange-overview `lines[].id`; if that provider row ID is not a known
 DonnieCraftShell alias, it may use the matching `core.items[].detailsId` metadata
 as a source-backed fallback. Display names alone are not treated as stable asset
-identity. This preserves the separation between poe.show source IDs and
+identity. This preserves the separation between provider source IDs and
 DonnieCraftShell canonical economy asset IDs while allowing provider rows such as
 Orb of Annulment to clear crafting-cost blockers when their metadata is present.
 

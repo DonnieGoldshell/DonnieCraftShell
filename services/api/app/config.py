@@ -25,6 +25,8 @@ class ApiSettings:
     live_economy_enabled: bool
     live_economy_cache_path: Path
     live_economy_base_url: str
+    live_economy_poe_ninja_base_url: str
+    live_economy_provider_order: tuple[str, ...]
     live_economy_user_agent: str
     live_economy_timeout_seconds: Decimal
     live_economy_refresh_interval: timedelta
@@ -115,6 +117,12 @@ def get_settings() -> ApiSettings:
         live_economy_enabled=_env_bool("DCS_LIVE_ECONOMY_ENABLED", False),
         live_economy_cache_path=Path(os.getenv("DCS_LIVE_ECONOMY_CACHE_PATH", str(ROOT / ".dcs" / "economy_cache"))),
         live_economy_base_url=os.getenv("DCS_LIVE_ECONOMY_BASE_URL", "https://poe.show/poe2/api/economy"),
+        live_economy_poe_ninja_base_url=os.getenv("DCS_LIVE_ECONOMY_POE_NINJA_BASE_URL", "https://poe.ninja/poe2/api/economy"),
+        live_economy_provider_order=tuple(
+            provider.strip()
+            for provider in os.getenv("DCS_LIVE_ECONOMY_PROVIDER_ORDER", "poe.show,poe.ninja").split(",")
+            if provider.strip()
+        ),
         live_economy_user_agent=os.getenv(
             "DCS_LIVE_ECONOMY_USER_AGENT",
             "DonnieCraftShell/0.1 (+https://github.com/DonnieGoldshell/DonnieCraftShell)",

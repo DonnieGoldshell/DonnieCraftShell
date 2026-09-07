@@ -190,6 +190,13 @@ provider-error fallback to an existing cache is `LIVE_CACHE_FALLBACK`; operator
 workspace quotes are `LOCAL_OVERRIDE`. Missing quotes remain explicit missing
 requirements.
 
+When live economy is enabled, the backend uses the configured provider order
+without exposing provider payload shapes to the client. The default order is
+`poe.show` then `poe.ninja`. If poe.show fails and poe.ninja provides a usable
+snapshot, `economy_evidence.provider` and the live source breakdown report
+`poe.ninja`; the poe.show failure remains in warnings for auditability. Provider
+caches are isolated by provider-specific filenames.
+
 Partial analysis is HTTP 200. `NO_RECOMMENDATION` is also HTTP 200.
 
 `current_market_valuation` is the authoritative headline market-value contract

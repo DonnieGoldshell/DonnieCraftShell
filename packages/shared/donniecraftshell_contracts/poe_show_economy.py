@@ -25,7 +25,7 @@ from .economy import (
     generate_snapshot_id,
     normalized_exalted_value,
 )
-from .economy_assets import asset_id_for_poe_show
+from .economy_assets import asset_id_for_poe_ninja, asset_id_for_poe_show
 
 
 POE_SHOW_SOURCE_ID = "poe.show"
@@ -67,10 +67,12 @@ def normalize_poe_show_economy_payload(
     response = raw["response"]
     core = response["core"]
     category = _category(raw.get("category"))
+    source = raw.get("source", POE_SHOW_SOURCE_ID)
+    asset_mapper = _asset_mapper(source)
     primary_source_id = core["primary"]
-    primary_asset_id = asset_id_for_poe_show(primary_source_id)
+    primary_asset_id = asset_mapper(primary_source_id, None)
     if primary_asset_id is None:
-        raise ValueError(f"unsupported poe.show primary currency: {primary_source_id}")
+        raise ValueError(f"unsupported {source} primary currency: {primary_source_id}")
 
     snapshot_id = raw.get("snapshot_id") or generate_snapshot_id()
     provenance = (_provenance(raw),)
@@ -91,9 +93,9 @@ def normalize_poe_show_economy_payload(
 
     for line in response.get("lines", []):
         source_asset_id = line["id"]
-        asset_id = asset_id_for_poe_show(source_asset_id, source_items.get(str(source_asset_id)))
+        asset_id = asset_mapper(source_asset_id, source_items.get(str(source_asset_id)))
         if asset_id is None:
-            warnings.append(f"Unmapped poe.show asset skipped: {source_asset_id}")
+            warnings.append(f"Unmapped {source} asset skipped: {source_asset_id}")
             continue
         primary_value = _decimal(line.get("primaryValue"), f"{source_asset_id}.primaryValue")
         if primary_value <= Decimal("0"):
@@ -247,7 +249,7 @@ def _primary_to_exalted_rate(
         retrieved_at=retrieved_at,
         confidence=Confidence(
             level=ConfidenceLevel.MEDIUM,
-            reasons=("Explicit poe.show core.rates cross-rate.",),
+            reasons=(f"Explicit {source} core.rates cross-rate.",),
         ),
         provenance=provenance,
     )
@@ -265,8 +267,14 @@ def _provenance(raw: dict[str, Any]) -> DataProvenance:
             level=ConfidenceLevel.MEDIUM,
             reasons=("Public community economy API; no SLA.",),
         ),
-        notes=f"Offline captured poe.show {raw.get('category', 'economy')} response.",
+        notes=f"Offline captured {raw.get('source', POE_SHOW_SOURCE_ID)} {raw.get('category', 'economy')} response.",
     )
+
+
+def _asset_mapper(source: str):
+    if source == "poe.ninja":
+        return asset_id_for_poe_ninja
+    return asset_id_for_poe_show
 
 
 def _category(value: str | None) -> EconomyCategory | str:

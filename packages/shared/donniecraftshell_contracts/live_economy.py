@@ -21,6 +21,7 @@ from .poe_show_economy import normalize_poe_show_economy_payload
 
 LIVE_ECONOMY_CACHE_VERSION = "dc-live-economy-cache-v1"
 DEFAULT_POE_SHOW_BASE_URL = "https://poe.show/poe2/api/economy"
+DEFAULT_POE_NINJA_BASE_URL = "https://poe.ninja/poe2/api/economy"
 DEFAULT_LIVE_ECONOMY_USER_AGENT = "DonnieCraftShell/0.1 (+https://github.com/DonnieGoldshell/DonnieCraftShell)"
 DEFAULT_LIVE_ECONOMY_CATEGORIES = (
     EconomyCategory.CURRENCY.value,
@@ -87,10 +88,19 @@ class LiveEconomyIngestionResult:
     warnings: tuple[str, ...] = ()
     fetched_count: int = 0
     cache_hit_count: int = 0
+    provider_id: str | None = None
+    selected_provider_id: str | None = None
+    provider_order: tuple[str, ...] = ()
+    attempted_provider_ids: tuple[str, ...] = ()
+    cache_dir: Path | None = None
 
 
 class PoeShowLiveEconomyProvider:
     """Fetch poe.show overview categories and normalize them through the shared adapter."""
+
+    provider_id = "poe.show"
+    cache_prefix = "poe-show"
+    live_snapshot_slug = "poe-show"
 
     def __init__(
         self,
@@ -109,16 +119,25 @@ class PoeShowLiveEconomyProvider:
         as_of: datetime,
     ) -> LiveEconomyIngestionResult:
         if not self.config.enabled:
-            return LiveEconomyIngestionResult(repository=base_repository, snapshots=())
+            return LiveEconomyIngestionResult(
+                repository=base_repository,
+                snapshots=(),
+                provider_id=self.provider_id,
+                selected_provider_id=None,
+                provider_order=(self.provider_id,),
+                attempted_provider_ids=(),
+                cache_dir=self.cache_dir,
+            )
         if not league.strip():
             raise ValueError("league is required for live economy ingestion")
 
+        source_league, league_warnings = self._league_for_request(league, as_of)
         snapshots: list[EconomySnapshot] = []
-        warnings: list[str] = []
+        warnings: list[str] = list(league_warnings)
         fetched_count = 0
         cache_hit_count = 0
         for category in self.config.categories:
-            result = self._snapshot_for_category(league, category, as_of)
+            result = self._snapshot_for_category(league, source_league, category, as_of)
             warnings.extend(result.warnings)
             if result.snapshot is not None:
                 snapshots.append(result.snapshot)
@@ -131,11 +150,19 @@ class PoeShowLiveEconomyProvider:
             warnings=tuple(warnings),
             fetched_count=fetched_count,
             cache_hit_count=cache_hit_count,
+            provider_id=self.provider_id,
+            selected_provider_id=self.provider_id if snapshots else None,
+            provider_order=(self.provider_id,),
+            attempted_provider_ids=(self.provider_id,),
+            cache_dir=self.cache_dir,
         )
 
-    def _snapshot_for_category(self, league: str, category: str, as_of: datetime) -> "_CategorySnapshotResult":
-        url = _overview_url(self.config.base_url, league, category)
-        cache_path = self._cache_path(league, category)
+    def _league_for_request(self, league: str, as_of: datetime) -> tuple[str, tuple[str, ...]]:
+        return league, ()
+
+    def _snapshot_for_category(self, league: str, source_league: str, category: str, as_of: datetime) -> "_CategorySnapshotResult":
+        url = _overview_url(self.config.base_url, source_league, category)
+        cache_path = self._cache_path(league, source_league, category)
         cached = _read_cache(cache_path)
         if cached and _cache_age(cached, as_of) <= self.config.refresh_interval:
             return _normalize_cached(cached, as_of, cache_hit=True)
@@ -151,19 +178,22 @@ class PoeShowLiveEconomyProvider:
                 if cached is None:
                     return _CategorySnapshotResult(
                         None,
-                        (f"poe.show returned 304 for {category}, but no local cache was available.",),
+                        (f"{self.provider_id} returned 304 for {category}, but no local cache was available.",),
                     )
                 return _normalize_cached(cached, as_of, cache_hit=True)
             if response.status_code != 200:
                 return self._fallback_or_warning(
                     cached,
                     as_of,
-                    f"poe.show {category} fetch returned HTTP {response.status_code}.",
+                    f"{self.provider_id} {category} fetch returned HTTP {response.status_code}.",
                 )
             raw_response = json.loads(response.body or "{}", parse_float=Decimal, parse_int=Decimal)
             envelope = _cache_envelope(
+                provider_id=self.provider_id,
+                live_snapshot_slug=self.live_snapshot_slug,
                 source_uri=url,
                 league=league,
+                source_league=source_league,
                 category=category,
                 response=raw_response,
                 retrieved_at=as_of,
@@ -173,7 +203,7 @@ class PoeShowLiveEconomyProvider:
             normalized = normalize_poe_show_economy_payload(envelope, as_of)
             return _CategorySnapshotResult(normalized, tuple(normalized.warnings), fetched_count=1)
         except (TimeoutError, socket.timeout, urllib.error.URLError, OSError, json.JSONDecodeError, ValueError) as exc:
-            return self._fallback_or_warning(cached, as_of, f"poe.show {category} fetch failed: {exc}")
+            return self._fallback_or_warning(cached, as_of, f"{self.provider_id} {category} fetch failed: {exc}")
 
     def _fallback_or_warning(
         self,
@@ -190,9 +220,123 @@ class PoeShowLiveEconomyProvider:
             cache_hit_count=1,
         )
 
-    def _cache_path(self, league: str, category: str) -> Path:
-        digest = hashlib.sha256(f"{league}|{category}|{self.config.base_url}".encode("utf-8")).hexdigest()[:24]
-        return self.cache_dir / f"poe-show-{digest}.json"
+    def _cache_path(self, league: str, source_league: str, category: str) -> Path:
+        digest = hashlib.sha256(
+            f"{self.provider_id}|{league}|{source_league}|{category}|{self.config.base_url}".encode("utf-8")
+        ).hexdigest()[:24]
+        return self.cache_dir / f"{self.cache_prefix}-{digest}.json"
+
+
+class PoeNinjaLiveEconomyProvider(PoeShowLiveEconomyProvider):
+    """Fetch poe.ninja overview categories with a poe.ninja-isolated cache namespace."""
+
+    provider_id = "poe.ninja"
+    cache_prefix = "poe-ninja"
+    live_snapshot_slug = "poe-ninja"
+
+    def _league_for_request(self, league: str, as_of: datetime) -> tuple[str, tuple[str, ...]]:
+        cache_path = self._league_cache_path(league)
+        cached = _read_cache(cache_path)
+        if cached and _cache_age(cached, as_of) <= self.config.refresh_interval:
+            source_league = cached.get("source_league")
+            if isinstance(source_league, str) and source_league.strip():
+                return source_league, ()
+        url = f"{self.config.base_url.rstrip('/')}/leagues"
+        headers = {
+            "Accept": "application/json",
+            "User-Agent": self.config.user_agent,
+        }
+        try:
+            response = self.transport.get(url, headers, self.config.timeout_seconds)
+            if response.status_code != 200:
+                return league, (f"{self.provider_id} league discovery returned HTTP {response.status_code}; using requested league.",)
+            payload = json.loads(response.body or "[]", parse_float=Decimal, parse_int=Decimal)
+            resolved = _resolve_poe_ninja_league_id(payload, league)
+            if resolved is None:
+                return league, (f"{self.provider_id} league discovery did not contain exact league {league}; using requested league.",)
+            _write_cache(
+                cache_path,
+                {
+                    "cache_version": LIVE_ECONOMY_CACHE_VERSION,
+                    "source": self.provider_id,
+                    "source_uri": url,
+                    "league": league,
+                    "source_league": resolved,
+                    "retrieved_at": as_of.astimezone(timezone.utc).isoformat(),
+                    "category": "Leagues",
+                    "response": payload,
+                },
+            )
+            return resolved, ()
+        except (TimeoutError, socket.timeout, urllib.error.URLError, OSError, json.JSONDecodeError, ValueError) as exc:
+            return league, (f"{self.provider_id} league discovery failed: {exc}; using requested league.",)
+
+    def _league_cache_path(self, league: str) -> Path:
+        digest = hashlib.sha256(f"{self.provider_id}|leagues|{league}|{self.config.base_url}".encode("utf-8")).hexdigest()[:24]
+        return self.cache_dir / f"{self.cache_prefix}-leagues-{digest}.json"
+
+
+class LiveEconomyProviderChain:
+    """Ordered live economy provider chain with fail-closed fallback provenance."""
+
+    def __init__(self, providers: tuple[PoeShowLiveEconomyProvider, ...]) -> None:
+        if not providers:
+            raise ValueError("at least one live economy provider is required")
+        self.providers = providers
+        self.config = providers[0].config
+        self.cache_dir = providers[0].cache_dir
+        self.provider_order = tuple(provider.provider_id for provider in providers)
+
+    def economy_repository(
+        self,
+        base_repository: EconomyRepository,
+        league: str,
+        as_of: datetime,
+    ) -> LiveEconomyIngestionResult:
+        if not any(provider.config.enabled for provider in self.providers):
+            return LiveEconomyIngestionResult(
+                repository=base_repository,
+                snapshots=(),
+                provider_order=self.provider_order,
+                attempted_provider_ids=(),
+                cache_dir=self.cache_dir,
+            )
+
+        attempted: list[str] = []
+        warnings: list[str] = []
+        cached_fallback: LiveEconomyIngestionResult | None = None
+        for provider in self.providers:
+            if not provider.config.enabled:
+                continue
+            attempted.append(provider.provider_id)
+            result = provider.economy_repository(base_repository, league, as_of)
+            provider_warnings = [f"{provider.provider_id}: {warning}" for warning in result.warnings]
+            warnings.extend(provider_warnings)
+            provider_result = _with_chain_metadata(
+                result,
+                warnings=tuple(warnings),
+                provider_order=self.provider_order,
+                attempted_provider_ids=tuple(attempted),
+            )
+            if result.fetched_count and result.snapshots:
+                return provider_result
+            if result.snapshots and cached_fallback is None:
+                cached_fallback = provider_result
+                if not _result_used_provider_error_cache(result):
+                    return provider_result
+                continue
+            if result.snapshots:
+                return provider_result
+        if cached_fallback is not None:
+            return cached_fallback
+        return LiveEconomyIngestionResult(
+            repository=base_repository,
+            snapshots=(),
+            warnings=tuple(warnings) or ("Live economy providers returned no usable snapshots.",),
+            provider_order=self.provider_order,
+            attempted_provider_ids=tuple(attempted),
+            cache_dir=self.cache_dir,
+        )
 
 
 @dataclass(frozen=True)
@@ -209,8 +353,11 @@ def _overview_url(base_url: str, league: str, category: str) -> str:
 
 
 def _cache_envelope(
+    provider_id: str,
+    live_snapshot_slug: str,
     source_uri: str,
     league: str,
+    source_league: str,
     category: str,
     response: dict[str, Any],
     retrieved_at: datetime,
@@ -220,16 +367,65 @@ def _cache_envelope(
     snapshot_seed = hashlib.sha256(f"{league}|{category}|{retrieved_at.isoformat()}|{checksum}".encode("utf-8")).hexdigest()[:24]
     return {
         "cache_version": LIVE_ECONOMY_CACHE_VERSION,
-        "source": "poe.show",
+        "source": provider_id,
         "source_uri": source_uri,
         "league": league,
+        "source_league": source_league,
         "retrieved_at": retrieved_at.astimezone(timezone.utc).isoformat(),
         "category": category,
-        "snapshot_id": f"economy-snapshot:live-poe-show:{snapshot_seed}",
+        "snapshot_id": f"economy-snapshot:live-{live_snapshot_slug}:{snapshot_seed}",
         "etag": etag,
         "raw_checksum": checksum,
         "response": response,
     }
+
+
+def _with_chain_metadata(
+    result: LiveEconomyIngestionResult,
+    warnings: tuple[str, ...],
+    provider_order: tuple[str, ...],
+    attempted_provider_ids: tuple[str, ...],
+) -> LiveEconomyIngestionResult:
+    return LiveEconomyIngestionResult(
+        repository=result.repository,
+        snapshots=result.snapshots,
+        warnings=warnings,
+        fetched_count=result.fetched_count,
+        cache_hit_count=result.cache_hit_count,
+        provider_id=result.provider_id,
+        selected_provider_id=result.selected_provider_id,
+        provider_order=provider_order,
+        attempted_provider_ids=attempted_provider_ids,
+        cache_dir=result.cache_dir,
+    )
+
+
+def _result_used_provider_error_cache(result: LiveEconomyIngestionResult) -> bool:
+    warnings = " ".join(result.warnings).lower()
+    return bool(result.cache_hit_count and ("fetch failed" in warnings or "returned http" in warnings))
+
+
+def _resolve_poe_ninja_league_id(payload: Any, requested_league: str) -> str | None:
+    requested = requested_league.strip().lower()
+    candidates = payload
+    if isinstance(payload, dict):
+        candidates = payload.get("leagues") or payload.get("data") or payload.get("result") or []
+    if not isinstance(candidates, list):
+        return None
+    for candidate in candidates:
+        if not isinstance(candidate, dict):
+            continue
+        possible_labels = (
+            candidate.get("id"),
+            candidate.get("name"),
+            candidate.get("text"),
+            candidate.get("displayName"),
+            candidate.get("display_name"),
+        )
+        if any(isinstance(label, str) and label.strip().lower() == requested for label in possible_labels):
+            source_id = candidate.get("id")
+            return str(source_id) if source_id is not None else requested_league
+    return None
 
 
 def _read_cache(path: Path) -> dict[str, Any] | None:

@@ -18,7 +18,7 @@ from packages.shared.donniecraftshell_contracts.economy_quote_workspace import (
     EconomyQuoteWorkspaceRepository,
     EconomyQuoteWorkspaceSaveStatus,
 )
-from packages.shared.donniecraftshell_contracts.live_economy import PoeShowLiveEconomyProvider
+from packages.shared.donniecraftshell_contracts.live_economy import LiveEconomyProviderChain
 from packages.shared.donniecraftshell_contracts.manual_valuation_workspace import (
     MANUAL_VALUATION_WORKSPACE_VERSION,
     ManualValuationWorkspaceRepository,
@@ -80,7 +80,7 @@ def analyze_advisor(
     orchestrator: CraftAdvisorOrchestrator = Depends(get_advisor_orchestrator),
     economy_repository: EconomyRepository = Depends(get_economy_repository),
     economy_quote_workspace: EconomyQuoteWorkspaceRepository = Depends(get_economy_quote_workspace),
-    live_economy_provider: PoeShowLiveEconomyProvider = Depends(get_live_economy_provider),
+    live_economy_provider: LiveEconomyProviderChain = Depends(get_live_economy_provider),
 ) -> AdvisorAnalyzeResponseDto:
     if not request.clipboard_text.strip():
         raise HTTPException(
@@ -131,7 +131,7 @@ def analyze_advisor(
 
 def _economy_evidence_summary(
     dto: AdvisorAnalyzeResponseDto,
-    live_economy_provider: PoeShowLiveEconomyProvider,
+    live_economy_provider: LiveEconomyProviderChain,
     live_result,
 ) -> EconomyEvidenceSummaryDto:
     line_summaries = _economy_line_summaries(dto)
@@ -163,7 +163,7 @@ def _economy_evidence_summary(
     return EconomyEvidenceSummaryDto(
         mode=mode,
         live_economy_enabled=_live_economy_enabled(live_economy_provider, live_result),
-        provider="poe.show" if _live_economy_enabled(live_economy_provider, live_result) else None,
+        provider=_summary_provider(mode, live_result) if _live_economy_enabled(live_economy_provider, live_result) else None,
         league=dto.context.league,
         cache_path=_live_cache_path(live_economy_provider) if _live_economy_enabled(live_economy_provider, live_result) else None,
         resolved_required_asset_count=len(resolved_assets),
@@ -197,7 +197,7 @@ def _economy_line_summaries(dto: AdvisorAnalyzeResponseDto) -> list[dict]:
 def _economy_source_breakdown(
     league: str,
     lines: list[dict],
-    live_economy_provider: PoeShowLiveEconomyProvider,
+    live_economy_provider: LiveEconomyProviderChain,
     live_result,
     missing_assets: set[str],
 ) -> list[EconomyEvidenceSourceDto]:
@@ -209,7 +209,7 @@ def _economy_source_breakdown(
     breakdowns = [
         EconomyEvidenceSourceDto(
             mode=mode,
-            provider=_provider_for_mode(mode),
+            provider=_provider_for_lines(mode, mode_lines),
             league=league,
             snapshot_ids=sorted({str(line["snapshot_id"]) for line in mode_lines if line.get("snapshot_id")}),
             resolved_required_asset_count=len({line["asset_id"] for line in mode_lines}),
@@ -228,7 +228,7 @@ def _economy_source_breakdown(
         breakdowns.append(
             EconomyEvidenceSourceDto(
                 mode="LIVE_UNAVAILABLE",
-                provider="poe.show",
+                provider=_summary_provider("LIVE_UNAVAILABLE", live_result),
                 league=league,
                 cache_path=_live_cache_path(live_economy_provider),
                 warnings=list(live_result.warnings) or ["Live economy provider returned no usable snapshots."],
@@ -273,7 +273,7 @@ def _live_result_mode(live_result) -> str:
     return "LIVE_UNAVAILABLE"
 
 
-def _live_economy_enabled(live_economy_provider: PoeShowLiveEconomyProvider, live_result) -> bool:
+def _live_economy_enabled(live_economy_provider: LiveEconomyProviderChain, live_result) -> bool:
     config = getattr(live_economy_provider, "config", None)
     enabled = getattr(config, "enabled", None)
     if enabled is not None:
@@ -281,17 +281,38 @@ def _live_economy_enabled(live_economy_provider: PoeShowLiveEconomyProvider, liv
     return bool(live_result.fetched_count or live_result.cache_hit_count or live_result.snapshots)
 
 
-def _live_cache_path(live_economy_provider: PoeShowLiveEconomyProvider) -> str | None:
+def _live_cache_path(live_economy_provider: LiveEconomyProviderChain) -> str | None:
     cache_dir = getattr(live_economy_provider, "cache_dir", None)
     return str(cache_dir) if cache_dir is not None else None
 
 
-def _provider_for_mode(mode: str) -> str | None:
-    if mode.startswith("LIVE") or mode == "OFFLINE_BUNDLED":
+def _provider_for_lines(mode: str, lines: list[dict]) -> str | None:
+    if mode.startswith("LIVE"):
+        providers = sorted({str(line["source"]) for line in lines if line.get("source")})
+        if len(providers) == 1:
+            return providers[0]
+        return ",".join(providers) if providers else None
+    if mode == "OFFLINE_BUNDLED":
         return "poe.show"
     if mode == "LOCAL_OVERRIDE":
         return "LOCAL_OPERATOR_ECONOMY_QUOTE"
     return None
+
+
+def _summary_provider(mode: str, live_result) -> str | None:
+    if mode == "LIVE_UNAVAILABLE":
+        attempted = getattr(live_result, "attempted_provider_ids", ())
+        return ",".join(attempted) if attempted else ",".join(getattr(live_result, "provider_order", ())) or None
+    selected = getattr(live_result, "selected_provider_id", None)
+    if selected:
+        return str(selected)
+    provider_id = getattr(live_result, "provider_id", None)
+    if provider_id:
+        return str(provider_id)
+    snapshot_providers = sorted({snapshot.provider for snapshot in getattr(live_result, "snapshots", ()) if getattr(snapshot, "provider", None)})
+    if len(snapshot_providers) == 1:
+        return snapshot_providers[0]
+    return ",".join(snapshot_providers) if snapshot_providers else None
 
 
 def _warnings_for_mode(mode: str, live_result) -> list[str]:

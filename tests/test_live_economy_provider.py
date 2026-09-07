@@ -18,7 +18,9 @@ from packages.shared.donniecraftshell_contracts.economy import (
 from packages.shared.donniecraftshell_contracts.economy_repository import EconomyRepository
 from packages.shared.donniecraftshell_contracts.live_economy import (
     HttpResponse,
+    LiveEconomyProviderChain,
     LiveEconomyProviderConfig,
+    PoeNinjaLiveEconomyProvider,
     PoeShowLiveEconomyProvider,
 )
 
@@ -190,6 +192,154 @@ class LiveEconomyProviderTests(unittest.TestCase):
         self.assertIsNone(result.repository.get_current_quote(LEAGUE, DIVINE_ASSET_ID, AS_OF))
         self.assertTrue(any("timed out" in warning for warning in result.warnings))
 
+    def test_provider_chain_uses_poe_show_success_without_poe_ninja_fetch(self):
+        cache_dir = self._cache_dir()
+        show_transport = FakeTransport((_response(currency_payload()),))
+        ninja_transport = FakeTransport((_response(currency_payload()),))
+        chain = LiveEconomyProviderChain((
+            _provider(cache_dir, show_transport),
+            _ninja_provider(cache_dir, ninja_transport),
+        ))
+
+        result = chain.economy_repository(EconomyRepository(()), LEAGUE, AS_OF)
+
+        quote = result.repository.get_current_quote(LEAGUE, ORB_OF_ANNULMENT_ASSET_ID, AS_OF)
+        self.assertEqual(result.selected_provider_id, "poe.show")
+        self.assertEqual(result.provider_order, ("poe.show", "poe.ninja"))
+        self.assertEqual(result.attempted_provider_ids, ("poe.show",))
+        self.assertEqual(len(show_transport.requests), 1)
+        self.assertEqual(len(ninja_transport.requests), 0)
+        self.assertEqual(quote.source, "poe.show")
+
+    def test_provider_chain_uses_clean_poe_show_cache_without_poe_ninja_fetch(self):
+        cache_dir = self._cache_dir()
+        show_transport = FakeTransport((_response(currency_payload()),))
+        ninja_transport = FakeTransport((
+            _response(poe_ninja_leagues_payload()),
+            _response(currency_payload()),
+        ))
+        show_provider = _provider(cache_dir, show_transport)
+        show_provider.economy_repository(EconomyRepository(()), LEAGUE, AS_OF)
+        chain = LiveEconomyProviderChain((
+            show_provider,
+            _ninja_provider(cache_dir, ninja_transport),
+        ))
+
+        result = chain.economy_repository(EconomyRepository(()), LEAGUE, AS_OF + timedelta(minutes=10))
+
+        quote = result.repository.get_current_quote(LEAGUE, ORB_OF_ANNULMENT_ASSET_ID, AS_OF + timedelta(minutes=10))
+        self.assertEqual(result.selected_provider_id, "poe.show")
+        self.assertEqual(result.cache_hit_count, 1)
+        self.assertEqual(len(show_transport.requests), 1)
+        self.assertEqual(len(ninja_transport.requests), 0)
+        self.assertEqual(quote.source, "poe.show")
+
+    def test_provider_chain_falls_back_to_poe_ninja_on_poe_show_5xx(self):
+        cache_dir = self._cache_dir()
+        show_transport = FakeTransport((HttpResponse(status_code=522, headers={}, body=""),))
+        ninja_transport = FakeTransport((
+            _response(poe_ninja_leagues_payload()),
+            _response(currency_payload_with_metadata_annulment()),
+        ))
+        chain = LiveEconomyProviderChain((
+            _provider(cache_dir, show_transport),
+            _ninja_provider(cache_dir, ninja_transport),
+        ))
+
+        result = chain.economy_repository(EconomyRepository(()), LEAGUE, AS_OF)
+
+        quote = result.repository.get_current_quote(LEAGUE, ORB_OF_ANNULMENT_ASSET_ID, AS_OF)
+        self.assertEqual(result.selected_provider_id, "poe.ninja")
+        self.assertEqual(result.attempted_provider_ids, ("poe.show", "poe.ninja"))
+        self.assertIsNotNone(quote)
+        self.assertEqual(quote.source, "poe.ninja")
+        self.assertEqual(quote.normalized_value.amount, Decimal("170.00"))
+        self.assertTrue(quote.snapshot_id.startswith("economy-snapshot:live-poe-ninja:"))
+        self.assertTrue(any("poe.show" in warning and "HTTP 522" in warning for warning in result.warnings))
+        self.assertIn("/leagues", ninja_transport.requests[0][0])
+        self.assertIn("league=runes-of-aldur", ninja_transport.requests[1][0])
+
+    def test_provider_chain_prefers_fresh_poe_ninja_over_poe_show_error_cache(self):
+        cache_dir = self._cache_dir()
+        seed_show_transport = FakeTransport((_response(currency_payload()),))
+        failing_show_transport = FakeTransport((TimeoutError("show down"),))
+        ninja_transport = FakeTransport((
+            _response(poe_ninja_leagues_payload()),
+            _response(currency_payload_with_metadata_annulment()),
+        ))
+        _provider(cache_dir, seed_show_transport).economy_repository(EconomyRepository(()), LEAGUE, AS_OF)
+        chain = LiveEconomyProviderChain((
+            _provider(cache_dir, failing_show_transport),
+            _ninja_provider(cache_dir, ninja_transport),
+        ))
+
+        result = chain.economy_repository(EconomyRepository(()), LEAGUE, AS_OF + timedelta(hours=2))
+
+        quote = result.repository.get_current_quote(LEAGUE, ORB_OF_ANNULMENT_ASSET_ID, AS_OF + timedelta(hours=2))
+        self.assertEqual(result.selected_provider_id, "poe.ninja")
+        self.assertEqual(quote.source, "poe.ninja")
+        self.assertTrue(any("poe.show" in warning and "show down" in warning for warning in result.warnings))
+
+    def test_poe_ninja_currency_payload_resolves_orb_of_annulment_stable_identity(self):
+        transport = FakeTransport((
+            _response(poe_ninja_leagues_payload()),
+            _response(currency_payload_with_metadata_annulment()),
+        ))
+
+        result = _ninja_provider(self._cache_dir(), transport).economy_repository(EconomyRepository(()), LEAGUE, AS_OF)
+
+        quote = result.repository.get_current_quote(LEAGUE, ORB_OF_ANNULMENT_ASSET_ID, AS_OF)
+        self.assertIsNotNone(quote)
+        self.assertEqual(result.selected_provider_id, "poe.ninja")
+        self.assertEqual(quote.source, "poe.ninja")
+        self.assertEqual(quote.asset_id, ORB_OF_ANNULMENT_ASSET_ID)
+        self.assertEqual(quote.provenance[0].source_id, "poe.ninja")
+
+    def test_provider_chain_fails_closed_when_both_providers_fail(self):
+        chain = LiveEconomyProviderChain((
+            _provider(self._cache_dir(), FakeTransport((HttpResponse(status_code=522, headers={}, body=""),))),
+            _ninja_provider(self._cache_dir(), FakeTransport((TimeoutError("ninja leagues down"), TimeoutError("ninja down")))),
+        ))
+
+        result = chain.economy_repository(EconomyRepository(()), LEAGUE, AS_OF)
+
+        self.assertEqual(result.snapshots, ())
+        self.assertIsNone(result.repository.get_current_quote(LEAGUE, ORB_OF_ANNULMENT_ASSET_ID, AS_OF))
+        self.assertEqual(result.attempted_provider_ids, ("poe.show", "poe.ninja"))
+        self.assertTrue(any("poe.show" in warning for warning in result.warnings))
+        self.assertTrue(any("poe.ninja" in warning for warning in result.warnings))
+
+    def test_provider_specific_caches_do_not_cross_contaminate(self):
+        cache_dir = self._cache_dir()
+        ninja_transport = FakeTransport((
+            _response(poe_ninja_leagues_payload()),
+            _response(currency_payload()),
+        ))
+
+        result = _ninja_provider(cache_dir, ninja_transport).economy_repository(EconomyRepository(()), LEAGUE, AS_OF)
+
+        self.assertEqual(result.selected_provider_id, "poe.ninja")
+        self.assertEqual(len(list(Path(cache_dir).glob("poe-ninja-*.json"))), 2)
+        self.assertEqual(len(list(Path(cache_dir).glob("poe-show-*.json"))), 0)
+
+    def test_poe_ninja_cache_reuse_avoids_repeated_http_within_refresh_interval(self):
+        cache_dir = self._cache_dir()
+        transport = FakeTransport((
+            _response(poe_ninja_leagues_payload()),
+            _response(currency_payload(), etag="ninja-currency-v1"),
+        ))
+        provider = _ninja_provider(cache_dir, transport)
+
+        first = provider.economy_repository(EconomyRepository(()), LEAGUE, AS_OF)
+        second = provider.economy_repository(EconomyRepository(()), LEAGUE, AS_OF + timedelta(minutes=10))
+
+        quote = second.repository.get_current_quote(LEAGUE, ORB_OF_ANNULMENT_ASSET_ID, AS_OF + timedelta(minutes=10))
+        self.assertEqual(first.fetched_count, 1)
+        self.assertEqual(second.fetched_count, 0)
+        self.assertEqual(second.cache_hit_count, 1)
+        self.assertEqual(len(transport.requests), 2)
+        self.assertEqual(quote.source, "poe.ninja")
+
 
 def _provider(tmp: str, transport: FakeTransport) -> PoeShowLiveEconomyProvider:
     return PoeShowLiveEconomyProvider(
@@ -197,6 +347,21 @@ def _provider(tmp: str, transport: FakeTransport) -> PoeShowLiveEconomyProvider:
         LiveEconomyProviderConfig(
             enabled=True,
             base_url="https://poe.show/poe2/api/economy",
+            user_agent="DonnieCraftShell test",
+            timeout_seconds=Decimal("2"),
+            refresh_interval=timedelta(hours=1),
+            categories=(EconomyCategory.CURRENCY.value,),
+        ),
+        transport,
+    )
+
+
+def _ninja_provider(tmp: str, transport: FakeTransport) -> PoeNinjaLiveEconomyProvider:
+    return PoeNinjaLiveEconomyProvider(
+        Path(tmp),
+        LiveEconomyProviderConfig(
+            enabled=True,
+            base_url="https://poe.ninja/poe2/api/economy",
             user_agent="DonnieCraftShell test",
             timeout_seconds=Decimal("2"),
             refresh_interval=timedelta(hours=1),
@@ -224,6 +389,10 @@ def currency_payload() -> dict:
             {"id": "orb-of-annulment", "primaryValue": "6", "volumePrimaryValue": "33"},
         ],
     }
+
+
+def poe_ninja_leagues_payload() -> list[dict]:
+    return [{"id": "runes-of-aldur", "text": LEAGUE}]
 
 
 def currency_payload_with_metadata_annulment() -> dict:
