@@ -177,21 +177,24 @@ evidence returns no fabricated profit. Local workspace endpoints persist ledger
 entries under `.dcs/` and do not submit, infer, or recommend actions by
 themselves.
 
-Issue 77 allows `POST /api/v1/advisor/analyze` to use a configured backend-only
-live economy provider before manual-quote overlay. The transport contract does
-not expose poe.show payload fields directly: action material-cost rows continue
-to serialize normalized `EconomyQuote` evidence, including source, snapshot ID,
-freshness, and warnings. Live provider warnings appear in the top-level analysis
-warnings. A partial or stale live economy state is still HTTP success; missing
-quotes remain structured `ECONOMY_QUOTE_REQUIRED` requirements rather than zero
-prices or HTTP errors. The endpoint must not fetch PoE2DB, Trade, or frontend
-network data.
+Issue 77 allows `POST /api/v1/advisor/analyze` to use configured backend-only
+live economy providers before manual-quote overlay. Issue 83 makes the default
+order `poe.show,poe.ninja`; failures from the earlier provider are retained as
+warnings and do not prevent trying the next provider. The transport contract
+does not expose poe.show or poe.ninja payload fields directly: action
+material-cost rows continue to serialize normalized `EconomyQuote` evidence,
+including source, snapshot ID, freshness, and warnings. Live provider warnings
+appear in the top-level analysis warnings. A partial or stale live economy state
+is still HTTP success; missing quotes remain structured
+`ECONOMY_QUOTE_REQUIRED` requirements rather than zero prices or HTTP errors.
+The endpoint must not fetch PoE2DB, Trade, or frontend network data.
 
-Live poe.show refresh cadence is application configuration, not a transport
-response field. `DCS_LIVE_ECONOMY_REFRESH_INTERVAL_SECONDS` defaults to `3600`.
-When a cached source response is inside that interval, `/api/v1/advisor/analyze`
-must reuse it without a transport request; after the interval, the backend may
-make a conditional ETag request and reuse cached payloads on `304`.
+Live refresh cadence is application configuration, not a transport response
+field. `DCS_LIVE_ECONOMY_REFRESH_INTERVAL_SECONDS` defaults to `3600`. When a
+cached source response is inside that interval, `/api/v1/advisor/analyze` must
+reuse it without a transport request; after the interval, the backend may make a
+conditional ETag request and reuse cached payloads on `304`. Cache payloads are
+provider-scoped, so poe.show and poe.ninja cannot masquerade as each other.
 
 Issue 71 extends `POST /api/v1/advisor/analyze` with `current_market_valuation`
 and `stop_continue_decision`. The response uses the same `market_valuation`

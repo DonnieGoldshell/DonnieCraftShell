@@ -78,146 +78,153 @@ POE_SHOW_DETAILS_ID_ALIASES = {
 }
 
 
+def _provider_aliases(provider_id: str, poe2db_name: str | None = None) -> dict[str, str]:
+    aliases = {"poe.show": provider_id, "poe.ninja": provider_id}
+    if poe2db_name is not None:
+        aliases["poe2db"] = poe2db_name
+    return aliases
+
+
 ASSETS_BY_ID = {
     EXALTED_ASSET_ID: EconomyAsset(
         asset_id=EXALTED_ASSET_ID,
         game="Path of Exile 2",
         display_name="Exalted Orb",
         category=EconomyCategory.CURRENCY,
-        source_aliases={"poe.show": "exalted"},
+        source_aliases=_provider_aliases("exalted"),
     ),
     DIVINE_ASSET_ID: EconomyAsset(
         asset_id=DIVINE_ASSET_ID,
         game="Path of Exile 2",
         display_name="Divine Orb",
         category=EconomyCategory.CURRENCY,
-        source_aliases={"poe.show": "divine"},
+        source_aliases=_provider_aliases("divine"),
     ),
     PERFECT_EXALTED_ASSET_ID: EconomyAsset(
         asset_id=PERFECT_EXALTED_ASSET_ID,
         game="Path of Exile 2",
         display_name="Perfect Exalted Orb",
         category=EconomyCategory.CURRENCY,
-        source_aliases={"poe.show": "perfect-exalted-orb"},
+        source_aliases=_provider_aliases("perfect-exalted-orb"),
     ),
     GREATER_EXALTED_ASSET_ID: EconomyAsset(
         asset_id=GREATER_EXALTED_ASSET_ID,
         game="Path of Exile 2",
         display_name="Greater Exalted Orb",
         category=EconomyCategory.CURRENCY,
-        source_aliases={"poe.show": "greater-exalted-orb"},
+        source_aliases=_provider_aliases("greater-exalted-orb"),
     ),
     ORB_OF_ANNULMENT_ASSET_ID: EconomyAsset(
         asset_id=ORB_OF_ANNULMENT_ASSET_ID,
         game="Path of Exile 2",
         display_name="Orb of Annulment",
         category=EconomyCategory.CURRENCY,
-        source_aliases={"poe.show": "orb-of-annulment", "poe2db": "Orb of Annulment"},
+        source_aliases=_provider_aliases("orb-of-annulment", "Orb of Annulment"),
     ),
     OMEN_OF_SINISTRAL_EXALTATION_ASSET_ID: EconomyAsset(
         asset_id=OMEN_OF_SINISTRAL_EXALTATION_ASSET_ID,
         game="Path of Exile 2",
         display_name="Omen of Sinistral Exaltation",
         category=EconomyCategory.RITUAL,
-        source_aliases={"poe.show": "omen-of-sinistral-exaltation", "poe2db": "Omen of Sinistral Exaltation"},
+        source_aliases=_provider_aliases("omen-of-sinistral-exaltation", "Omen of Sinistral Exaltation"),
     ),
     OMEN_OF_DEXTRAL_EXALTATION_ASSET_ID: EconomyAsset(
         asset_id=OMEN_OF_DEXTRAL_EXALTATION_ASSET_ID,
         game="Path of Exile 2",
         display_name="Omen of Dextral Exaltation",
         category=EconomyCategory.RITUAL,
-        source_aliases={"poe.show": "omen-of-dextral-exaltation", "poe2db": "Omen of Dextral Exaltation"},
+        source_aliases=_provider_aliases("omen-of-dextral-exaltation", "Omen of Dextral Exaltation"),
     ),
     OMEN_OF_GREATER_EXALTATION_ASSET_ID: EconomyAsset(
         asset_id=OMEN_OF_GREATER_EXALTATION_ASSET_ID,
         game="Path of Exile 2",
         display_name="Omen of Greater Exaltation",
         category=EconomyCategory.RITUAL,
-        source_aliases={"poe.show": "omen-of-greater-exaltation", "poe2db": "Omen of Greater Exaltation"},
+        source_aliases=_provider_aliases("omen-of-greater-exaltation", "Omen of Greater Exaltation"),
     ),
     OMEN_OF_SINISTRAL_ANNULMENT_ASSET_ID: EconomyAsset(
         asset_id=OMEN_OF_SINISTRAL_ANNULMENT_ASSET_ID,
         game="Path of Exile 2",
         display_name="Omen of Sinistral Annulment",
         category=EconomyCategory.RITUAL,
-        source_aliases={"poe.show": "omen-of-sinistral-annulment", "poe2db": "Omen of Sinistral Annulment"},
+        source_aliases=_provider_aliases("omen-of-sinistral-annulment", "Omen of Sinistral Annulment"),
     ),
     OMEN_OF_DEXTRAL_ANNULMENT_ASSET_ID: EconomyAsset(
         asset_id=OMEN_OF_DEXTRAL_ANNULMENT_ASSET_ID,
         game="Path of Exile 2",
         display_name="Omen of Dextral Annulment",
         category=EconomyCategory.RITUAL,
-        source_aliases={"poe.show": "omen-of-dextral-annulment", "poe2db": "Omen of Dextral Annulment"},
+        source_aliases=_provider_aliases("omen-of-dextral-annulment", "Omen of Dextral Annulment"),
     ),
     OMEN_OF_GREATER_ANNULMENT_ASSET_ID: EconomyAsset(
         asset_id=OMEN_OF_GREATER_ANNULMENT_ASSET_ID,
         game="Path of Exile 2",
         display_name="Omen of Greater Annulment",
         category=EconomyCategory.RITUAL,
-        source_aliases={"poe.show": "omen-of-greater-annulment", "poe2db": "Omen of Greater Annulment"},
+        source_aliases=_provider_aliases("omen-of-greater-annulment", "Omen of Greater Annulment"),
     ),
     OMEN_OF_PUTREFACTION_ASSET_ID: EconomyAsset(
         asset_id=OMEN_OF_PUTREFACTION_ASSET_ID,
         game="Path of Exile 2",
         display_name="Omen of Putrefaction",
         category=EconomyCategory.RITUAL,
-        source_aliases={"poe.show": "omen-of-putrefaction"},
+        source_aliases=_provider_aliases("omen-of-putrefaction"),
     ),
     OMEN_OF_CATALYSING_EXALTATION_ASSET_ID: EconomyAsset(
         asset_id=OMEN_OF_CATALYSING_EXALTATION_ASSET_ID,
         game="Path of Exile 2",
         display_name="Omen of Catalysing Exaltation",
         category=EconomyCategory.RITUAL,
-        source_aliases={"poe.show": "omen-of-catalysing-exaltation"},
+        source_aliases=_provider_aliases("omen-of-catalysing-exaltation"),
     ),
     OMEN_OF_CHAOTIC_MONSTERS_ASSET_ID: EconomyAsset(
         asset_id=OMEN_OF_CHAOTIC_MONSTERS_ASSET_ID,
         game="Path of Exile 2",
         display_name="Omen of Chaotic Monsters",
         category=EconomyCategory.RITUAL,
-        source_aliases={"poe.show": "omen-of-chaotic-monsters"},
+        source_aliases=_provider_aliases("omen-of-chaotic-monsters"),
     ),
     OMEN_OF_LIGHT_ASSET_ID: EconomyAsset(
         asset_id=OMEN_OF_LIGHT_ASSET_ID,
         game="Path of Exile 2",
         display_name="Omen of Light",
         category=EconomyCategory.RITUAL,
-        source_aliases={"poe.show": "omen-of-light"},
+        source_aliases=_provider_aliases("omen-of-light"),
     ),
     PERFECT_ESSENCE_OF_BATTLE_ASSET_ID: EconomyAsset(
         asset_id=PERFECT_ESSENCE_OF_BATTLE_ASSET_ID,
         game="Path of Exile 2",
         display_name="Perfect Essence of Battle",
         category=EconomyCategory.ESSENCES,
-        source_aliases={"poe.show": "perfect-essence-of-battle"},
+        source_aliases=_provider_aliases("perfect-essence-of-battle"),
     ),
     PERFECT_ESSENCE_OF_ALACRITY_ASSET_ID: EconomyAsset(
         asset_id=PERFECT_ESSENCE_OF_ALACRITY_ASSET_ID,
         game="Path of Exile 2",
         display_name="Perfect Essence of Alacrity",
         category=EconomyCategory.ESSENCES,
-        source_aliases={"poe.show": "perfect-essence-of-alacrity"},
+        source_aliases=_provider_aliases("perfect-essence-of-alacrity"),
     ),
     GREATER_ESSENCE_OF_ICE_ASSET_ID: EconomyAsset(
         asset_id=GREATER_ESSENCE_OF_ICE_ASSET_ID,
         game="Path of Exile 2",
         display_name="Greater Essence of Ice",
         category=EconomyCategory.ESSENCES,
-        source_aliases={"poe.show": "greater-essence-of-ice"},
+        source_aliases=_provider_aliases("greater-essence-of-ice"),
     ),
     ESSENCE_OF_ENHANCEMENT_ASSET_ID: EconomyAsset(
         asset_id=ESSENCE_OF_ENHANCEMENT_ASSET_ID,
         game="Path of Exile 2",
         display_name="Essence of Enhancement",
         category=EconomyCategory.ESSENCES,
-        source_aliases={"poe.show": "essence-of-enhancement"},
+        source_aliases=_provider_aliases("essence-of-enhancement"),
     ),
     ESSENCE_OF_HYSTERIA_ASSET_ID: EconomyAsset(
         asset_id=ESSENCE_OF_HYSTERIA_ASSET_ID,
         game="Path of Exile 2",
         display_name="Essence of Hysteria",
         category=EconomyCategory.ESSENCES,
-        source_aliases={"poe.show": "essence-of-hysteria", "poe2db": "Essence of Hysteria"},
+        source_aliases=_provider_aliases("essence-of-hysteria", "Essence of Hysteria"),
     ),
 }
 
@@ -232,3 +239,7 @@ def asset_id_for_poe_show(source_id: str, metadata: Mapping[str, Any] | None = N
     if isinstance(details_id, str):
         return POE_SHOW_DETAILS_ID_ALIASES.get(details_id)
     return None
+
+
+def asset_id_for_poe_ninja(source_id: str, metadata: Mapping[str, Any] | None = None) -> str | None:
+    return asset_id_for_poe_show(source_id, metadata)

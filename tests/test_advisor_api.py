@@ -415,6 +415,104 @@ class AdvisorApiTests(unittest.TestCase):
         self.assertTrue(missing_probability)
         self.assertTrue(any("Ready - live economy snapshot" in warning for warning in response["warnings"]))
 
+    def test_advisor_reports_poe_ninja_fallback_live_economy_provenance(self):
+        from packages.shared.donniecraftshell_contracts.live_economy import (
+            HttpResponse,
+            LiveEconomyProviderChain,
+            LiveEconomyProviderConfig,
+            PoeNinjaLiveEconomyProvider,
+            PoeShowLiveEconomyProvider,
+        )
+        from services.api.app.dependencies.advisor import get_live_economy_provider
+
+        class StaticTransport:
+            def __init__(self, responses):
+                self.responses = list(responses)
+                self.requests = []
+
+            def get(self, url, headers, timeout_seconds):
+                self.requests.append((url, dict(headers), timeout_seconds))
+                response = self.responses.pop(0)
+                if isinstance(response, Exception):
+                    raise response
+                return response
+
+        def response(payload, status_code=200):
+            return HttpResponse(status_code=status_code, headers={}, body=json.dumps(payload))
+
+        cache_dir = ROOT / ".tmp-tests" / "live-economy-api" / f"{os.getpid()}-{self._testMethodName}"
+        cache_dir.mkdir(parents=True, exist_ok=True)
+        for child in cache_dir.glob("*"):
+            if child.is_file():
+                child.unlink()
+        show_transport = StaticTransport((HttpResponse(status_code=522, headers={}, body=""),))
+        ninja_transport = StaticTransport((
+            response([{"id": "runes-of-aldur", "text": LEAGUE}]),
+            response(
+                {
+                    "core": {
+                        "primary": "divine",
+                        "secondary": "exalted",
+                        "rates": {"exalted": "340"},
+                        "items": [
+                            {"id": "divine", "name": "Divine Orb", "category": "Currency", "detailsId": "divine-orb"},
+                            {
+                                "id": "provider-specific-annulment-id",
+                                "name": "Orb of Annulment",
+                                "category": "Currency",
+                                "detailsId": "orb-of-annulment",
+                            },
+                        ],
+                    },
+                    "lines": [
+                        {"id": "divine", "primaryValue": "1", "volumePrimaryValue": "1000"},
+                        {"id": "provider-specific-annulment-id", "primaryValue": "6", "volumePrimaryValue": "33"},
+                    ],
+                }
+            ),
+        ))
+        chain = LiveEconomyProviderChain(
+            (
+                PoeShowLiveEconomyProvider(
+                    cache_dir,
+                    LiveEconomyProviderConfig(
+                        enabled=True,
+                        base_url="https://poe.show/poe2/api/economy",
+                        user_agent="DonnieCraftShell API test",
+                        categories=("Currency",),
+                    ),
+                    show_transport,
+                ),
+                PoeNinjaLiveEconomyProvider(
+                    cache_dir,
+                    LiveEconomyProviderConfig(
+                        enabled=True,
+                        base_url="https://poe.ninja/poe2/api/economy",
+                        user_agent="DonnieCraftShell API test",
+                        categories=("Currency",),
+                    ),
+                    ninja_transport,
+                ),
+            )
+        )
+        self.app.dependency_overrides[get_live_economy_provider] = lambda: chain
+
+        api_response = self.client.post("/api/v1/advisor/analyze", json=base_request())
+
+        body = api_response.json()
+        annulment = self._action(body, "dc:poe2:craft-action:orb-of-annulment")
+        live_breakdown = next(source for source in body["economy_evidence"]["source_breakdown"] if source["mode"] == "LIVE_FETCHED")
+        self.assertEqual(api_response.status_code, 200)
+        self.assertTrue(annulment["material_cost"]["complete"])
+        self.assertEqual(annulment["material_cost"]["lines"][0]["source"], "poe.ninja")
+        self.assertEqual(body["economy_evidence"]["mode"], "LIVE_FETCHED")
+        self.assertEqual(body["economy_evidence"]["provider"], "poe.ninja")
+        self.assertEqual(live_breakdown["provider"], "poe.ninja")
+        self.assertTrue(any("poe.show" in warning and "HTTP 522" in warning for warning in body["economy_evidence"]["warnings"]))
+        self.assertEqual(len(show_transport.requests), 1)
+        self.assertIn("/leagues", ninja_transport.requests[0][0])
+        self.assertIn("league=runes-of-aldur", ninja_transport.requests[1][0])
+
     def test_advisor_live_economy_reuses_cache_within_refresh_interval(self):
         from packages.shared.donniecraftshell_contracts.live_economy import (
             HttpResponse,

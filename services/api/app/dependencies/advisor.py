@@ -24,7 +24,12 @@ from packages.shared.donniecraftshell_contracts.empirical_probability import (
     FileBackedEmpiricalProbabilityDatasetRegistry,
 )
 from packages.shared.donniecraftshell_contracts.game_data_repository import GameDataRepository
-from packages.shared.donniecraftshell_contracts.live_economy import LiveEconomyProviderConfig, PoeShowLiveEconomyProvider
+from packages.shared.donniecraftshell_contracts.live_economy import (
+    LiveEconomyProviderChain,
+    LiveEconomyProviderConfig,
+    PoeNinjaLiveEconomyProvider,
+    PoeShowLiveEconomyProvider,
+)
 from packages.shared.donniecraftshell_contracts.manual_valuation_workspace import (
     FileBackedManualValuationWorkspaceRepository,
     ManualValuationWorkspaceRepository,
@@ -55,18 +60,48 @@ def get_economy_repository() -> EconomyRepository:
 
 
 @lru_cache(maxsize=1)
-def get_live_economy_provider() -> PoeShowLiveEconomyProvider:
+def get_live_economy_provider() -> LiveEconomyProviderChain:
     settings = get_cached_settings()
-    return PoeShowLiveEconomyProvider(
-        settings.live_economy_cache_path,
-        LiveEconomyProviderConfig(
-            enabled=settings.live_economy_enabled,
-            base_url=settings.live_economy_base_url,
-            user_agent=settings.live_economy_user_agent,
-            timeout_seconds=settings.live_economy_timeout_seconds,
-            refresh_interval=settings.live_economy_refresh_interval,
-            categories=settings.live_economy_categories,
+    providers = {
+        "poe.show": PoeShowLiveEconomyProvider(
+            settings.live_economy_cache_path,
+            LiveEconomyProviderConfig(
+                enabled=settings.live_economy_enabled,
+                base_url=settings.live_economy_base_url,
+                user_agent=settings.live_economy_user_agent,
+                timeout_seconds=settings.live_economy_timeout_seconds,
+                refresh_interval=settings.live_economy_refresh_interval,
+                categories=settings.live_economy_categories,
+            ),
         ),
+        "poe.ninja": PoeNinjaLiveEconomyProvider(
+            settings.live_economy_cache_path,
+            LiveEconomyProviderConfig(
+                enabled=settings.live_economy_enabled,
+                base_url=settings.live_economy_poe_ninja_base_url,
+                user_agent=settings.live_economy_user_agent,
+                timeout_seconds=settings.live_economy_timeout_seconds,
+                refresh_interval=settings.live_economy_refresh_interval,
+                categories=settings.live_economy_categories,
+            ),
+        ),
+    }
+    ordered = tuple(providers[provider_id] for provider_id in settings.live_economy_provider_order if provider_id in providers)
+    return LiveEconomyProviderChain(
+        ordered
+        or (
+            PoeShowLiveEconomyProvider(
+                settings.live_economy_cache_path,
+                LiveEconomyProviderConfig(
+                    enabled=settings.live_economy_enabled,
+                    base_url=settings.live_economy_base_url,
+                    user_agent=settings.live_economy_user_agent,
+                    timeout_seconds=settings.live_economy_timeout_seconds,
+                    refresh_interval=settings.live_economy_refresh_interval,
+                    categories=settings.live_economy_categories,
+                ),
+            ),
+        )
     )
 
 

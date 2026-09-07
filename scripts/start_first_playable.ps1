@@ -301,7 +301,8 @@ Write-Host "  Web: $webUrl"
 Write-Host "  Logs: $logsRoot"
 if ($LiveEconomy) {
     New-Item -ItemType Directory -Force -Path $liveEconomyCachePath | Out-Null
-    Write-Host "  Live economy: ENABLED (backend poe.show provider)"
+    $liveEconomyProviderOrder = if ($env:DCS_LIVE_ECONOMY_PROVIDER_ORDER) { $env:DCS_LIVE_ECONOMY_PROVIDER_ORDER } else { "poe.show,poe.ninja" }
+    Write-Host "  Live economy: ENABLED (backend provider order: $liveEconomyProviderOrder)"
     Write-Host "  Live economy cache: $liveEconomyCachePath"
 }
 else {
@@ -313,6 +314,7 @@ $apiProcess = $null
 $webProcess = $null
 $previousLiveEconomyEnabled = $env:DCS_LIVE_ECONOMY_ENABLED
 $previousLiveEconomyCachePath = $env:DCS_LIVE_ECONOMY_CACHE_PATH
+$previousLiveEconomyProviderOrder = $env:DCS_LIVE_ECONOMY_PROVIDER_ORDER
 
 try {
     $env:DCS_CORS_ALLOWED_ORIGINS = "$webUrl,http://127.0.0.1:$WebPort"
@@ -320,6 +322,9 @@ try {
     if ($LiveEconomy) {
         $env:DCS_LIVE_ECONOMY_ENABLED = "true"
         $env:DCS_LIVE_ECONOMY_CACHE_PATH = $liveEconomyCachePath
+        if (-not $env:DCS_LIVE_ECONOMY_PROVIDER_ORDER) {
+            $env:DCS_LIVE_ECONOMY_PROVIDER_ORDER = "poe.show,poe.ninja"
+        }
     }
     else {
         $env:DCS_LIVE_ECONOMY_ENABLED = "false"
@@ -363,9 +368,10 @@ try {
     Write-Host "Open $webUrl and paste samples\first_playable_quiver_sample.txt."
     if ($LiveEconomy) {
         Write-Host "Live economy cache payloads are written under $liveEconomyCachePath."
+        Write-Host "Live economy provider order: $env:DCS_LIVE_ECONOMY_PROVIDER_ORDER."
     }
     else {
-        Write-Host "Live economy is disabled. Restart with -LiveEconomy to use runtime poe.show quotes."
+        Write-Host "Live economy is disabled. Restart with -LiveEconomy to use runtime poe.show -> poe.ninja quotes."
     }
     Write-Host "Press Ctrl+C in this terminal to stop API and web processes."
 
@@ -391,6 +397,12 @@ finally {
     }
     else {
         $env:DCS_LIVE_ECONOMY_CACHE_PATH = $previousLiveEconomyCachePath
+    }
+    if ($null -eq $previousLiveEconomyProviderOrder) {
+        Remove-Item Env:DCS_LIVE_ECONOMY_PROVIDER_ORDER -ErrorAction SilentlyContinue
+    }
+    else {
+        $env:DCS_LIVE_ECONOMY_PROVIDER_ORDER = $previousLiveEconomyProviderOrder
     }
     foreach ($process in @($apiProcess, $webProcess)) {
         if ($null -ne $process -and -not $process.HasExited) {

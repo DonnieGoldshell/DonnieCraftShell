@@ -69,13 +69,16 @@ Store raw imported data separately from normalized application data. Keep derive
 - Provenance requirements: endpoint, league ID/name, category, source line ID, observed/retrieved timestamps, cache metadata where available, source values, volume fields, and confidence/freshness.
 - Known limitations: no SLA or versioning guarantee, community source, may block excessive use, and must not be called directly from frontend or end-user machines.
 
-Issue 77 implements the first optional backend-only live poe.show ingestion path
-for Advisor crafting-material costs. The API may fetch only configured PoE2
-economy overview categories (`Currency`, `Ritual`, `Essences` for the MVP) for
-the exact requested league, using a descriptive User-Agent, timeout, and local
-`.dcs/` cache. Cached raw responses preserve source URI, retrieval timestamp,
-ETag where supplied, checksum, category, league, and provider payload. Automated
-tests use fake/offline transports only.
+Issue 77 implements the first optional backend-only live economy ingestion path
+for Advisor crafting-material costs. Issue 83 configures the default provider
+order as `poe.show` followed by `poe.ninja`; poe.ninja is a fallback when the
+earlier provider cannot produce a usable live snapshot. The API may fetch only
+configured PoE2 economy overview categories (`Currency`, `Ritual`, `Essences`
+for the MVP) for the exact requested league, using a descriptive User-Agent,
+timeout, and local `.dcs/` cache. Cached raw responses preserve source URI,
+retrieval timestamp, ETag where supplied, checksum, category, league, and
+provider payload. Cache entries are provider-scoped. Automated tests use
+fake/offline transports only.
 
 The live provider is community provenance, not official GGG data. It never
 cross-uses another league's snapshot, never substitutes constants for exchange
