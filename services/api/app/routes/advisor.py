@@ -224,7 +224,17 @@ def _economy_source_breakdown(
         )
         for mode, mode_lines in sorted(grouped.items())
     ]
-    if _live_economy_enabled(live_economy_provider, live_result) and not any(item.mode.startswith("LIVE") for item in breakdowns):
+    breakdowns.extend(
+        _live_attempt_breakdowns(
+            league,
+            live_result,
+            {item.provider for item in breakdowns if item.mode.startswith("LIVE")},
+        )
+    )
+    if (
+        _live_economy_enabled(live_economy_provider, live_result)
+        and not any(item.mode.startswith("LIVE") for item in breakdowns)
+    ):
         breakdowns.append(
             EconomyEvidenceSourceDto(
                 mode="LIVE_UNAVAILABLE",
@@ -245,6 +255,44 @@ def _economy_source_breakdown(
             )
         )
     return breakdowns
+
+
+def _live_attempt_breakdowns(
+    league: str,
+    live_result,
+    live_providers_with_quotes: set[str | None],
+) -> list[EconomyEvidenceSourceDto]:
+    by_provider: dict[str, list] = {}
+    for attempt in getattr(live_result, "attempts", ()):
+        if attempt.produced_usable_snapshot and attempt.provider_id in live_providers_with_quotes:
+            continue
+        if attempt.produced_usable_snapshot and not attempt.failure_reason:
+            continue
+        by_provider.setdefault(attempt.provider_id, []).append(attempt)
+    breakdowns: list[EconomyEvidenceSourceDto] = []
+    for provider_id, attempts in by_provider.items():
+        provider_had_usable_snapshot = any(attempt.produced_usable_snapshot for attempt in attempts)
+        breakdowns.append(
+            EconomyEvidenceSourceDto(
+                mode="LIVE_ATTEMPT_WARNING" if provider_had_usable_snapshot else "LIVE_ATTEMPT_FAILED",
+                provider=provider_id,
+                league=league,
+                missing_required_asset_count=0,
+                cache_path=str(getattr(live_result, "cache_dir", "")) or None,
+                warnings=[_attempt_warning(attempt) for attempt in attempts],
+            )
+        )
+    return breakdowns
+
+
+def _attempt_warning(attempt) -> str:
+    reason = attempt.failure_reason or attempt.status
+    http = f" HTTP {attempt.http_status}" if attempt.http_status is not None else ""
+    fallback = " fallback continues" if attempt.fallback_continues else " fallback stops"
+    return (
+        f"{attempt.provider_id} {attempt.category} {attempt.source} attempt {attempt.status}{http}; "
+        f"usable snapshot: {attempt.produced_usable_snapshot};{fallback}; reason: {reason}"
+    )
 
 
 def _line_source_mode(line: dict, live_result) -> str:
@@ -301,8 +349,7 @@ def _provider_for_lines(mode: str, lines: list[dict]) -> str | None:
 
 def _summary_provider(mode: str, live_result) -> str | None:
     if mode == "LIVE_UNAVAILABLE":
-        attempted = getattr(live_result, "attempted_provider_ids", ())
-        return ",".join(attempted) if attempted else ",".join(getattr(live_result, "provider_order", ())) or None
+        return None
     selected = getattr(live_result, "selected_provider_id", None)
     if selected:
         return str(selected)

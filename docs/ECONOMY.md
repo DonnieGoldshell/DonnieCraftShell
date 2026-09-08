@@ -113,12 +113,27 @@ failures may use a valid cached snapshot with explicit freshness/warnings; they
 must not fabricate prices. All conversion continues to come from the current
 provider snapshot rate data, not constants.
 
+Each live provider attempt is logged at info level by the backend with provider
+ID, requested league, category, cache-vs-network source, status or HTTP code,
+usable-snapshot result, and fallback decision. Advisor analysis also logs one
+chain summary with the configured order, attempted providers, selected provider
+or `none`, fetched/cache counts, cache directory, and warnings. First Playable
+redirects those logs to `.dcs/logs/first-playable-api.*.log`, so operator
+diagnostics can be collected with:
+
+```powershell
+Select-String -Path .dcs\logs\first-playable-api.*.log `
+  -Pattern "poe.show|poe.ninja|522|live economy|provider|failed|timeout|error|HTTP" `
+  -CaseSensitive:$false
+```
+
 Advisor API responses expose an explicit economy evidence summary. Clients must
 use that summary to distinguish `OFFLINE_BUNDLED`, `LIVE_FETCHED`,
-`LIVE_CACHED`, `LIVE_CACHE_FALLBACK`, `LOCAL_OVERRIDE`, and missing/unavailable
-states. They must not infer live market evidence from `EconomyQuote.source ==
-"poe.show"` because the committed offline snapshots also originate from
-poe.show.
+`LIVE_CACHED`, `LIVE_CACHE_FALLBACK`, `LIVE_ATTEMPT_FAILED`,
+`LOCAL_OVERRIDE`, and missing/unavailable states. They must not infer live
+market evidence from `EconomyQuote.source == "poe.show"` because the committed
+offline snapshots also originate from poe.show. Failed provider attempts remain
+visible even when no live snapshot exists.
 
 poe.show/poe.ninja asset identity is resolved explicitly. The normalizer first
 maps the exchange-overview `lines[].id`; if that provider row ID is not a known

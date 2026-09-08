@@ -210,6 +210,10 @@ class LiveEconomyProviderTests(unittest.TestCase):
         self.assertEqual(len(show_transport.requests), 1)
         self.assertEqual(len(ninja_transport.requests), 0)
         self.assertEqual(quote.source, "poe.show")
+        self.assertEqual(len(result.attempts), 1)
+        self.assertEqual(result.attempts[0].provider_id, "poe.show")
+        self.assertEqual(result.attempts[0].status, "SUCCESS")
+        self.assertFalse(result.attempts[0].fallback_continues)
 
     def test_provider_chain_uses_clean_poe_show_cache_without_poe_ninja_fetch(self):
         cache_dir = self._cache_dir()
@@ -233,6 +237,9 @@ class LiveEconomyProviderTests(unittest.TestCase):
         self.assertEqual(len(show_transport.requests), 1)
         self.assertEqual(len(ninja_transport.requests), 0)
         self.assertEqual(quote.source, "poe.show")
+        self.assertEqual(len(result.attempts), 1)
+        self.assertEqual(result.attempts[0].status, "CACHE_HIT")
+        self.assertFalse(result.attempts[0].fallback_continues)
 
     def test_provider_chain_falls_back_to_poe_ninja_on_poe_show_5xx(self):
         cache_dir = self._cache_dir()
@@ -246,7 +253,8 @@ class LiveEconomyProviderTests(unittest.TestCase):
             _ninja_provider(cache_dir, ninja_transport),
         ))
 
-        result = chain.economy_repository(EconomyRepository(()), LEAGUE, AS_OF)
+        with self.assertLogs("packages.shared.donniecraftshell_contracts.live_economy", level="INFO") as logs:
+            result = chain.economy_repository(EconomyRepository(()), LEAGUE, AS_OF)
 
         quote = result.repository.get_current_quote(LEAGUE, ORB_OF_ANNULMENT_ASSET_ID, AS_OF)
         self.assertEqual(result.selected_provider_id, "poe.ninja")
@@ -258,6 +266,20 @@ class LiveEconomyProviderTests(unittest.TestCase):
         self.assertTrue(any("poe.show" in warning and "HTTP 522" in warning for warning in result.warnings))
         self.assertIn("/leagues", ninja_transport.requests[0][0])
         self.assertIn("league=runes-of-aldur", ninja_transport.requests[1][0])
+        self.assertEqual([attempt.provider_id for attempt in result.attempts], ["poe.show", "poe.ninja"])
+        self.assertEqual(result.attempts[0].status, "HTTP_ERROR")
+        self.assertEqual(result.attempts[0].http_status, 522)
+        self.assertTrue(result.attempts[0].fallback_continues)
+        self.assertEqual(result.attempts[1].status, "SUCCESS")
+        self.assertFalse(result.attempts[1].fallback_continues)
+        log_text = "\n".join(logs.output)
+        self.assertIn("live economy provider attempt provider=poe.show", log_text)
+        self.assertIn("status=HTTP_ERROR", log_text)
+        self.assertIn("http_status=522", log_text)
+        self.assertIn("fallback_continues=True", log_text)
+        self.assertIn("live economy provider attempt provider=poe.ninja", log_text)
+        self.assertIn("live economy chain summary", log_text)
+        self.assertIn("selected_provider=poe.ninja", log_text)
 
     def test_provider_chain_prefers_fresh_poe_ninja_over_poe_show_error_cache(self):
         cache_dir = self._cache_dir()
@@ -301,13 +323,50 @@ class LiveEconomyProviderTests(unittest.TestCase):
             _ninja_provider(self._cache_dir(), FakeTransport((TimeoutError("ninja leagues down"), TimeoutError("ninja down")))),
         ))
 
-        result = chain.economy_repository(EconomyRepository(()), LEAGUE, AS_OF)
+        with self.assertLogs("packages.shared.donniecraftshell_contracts.live_economy", level="INFO") as logs:
+            result = chain.economy_repository(EconomyRepository(()), LEAGUE, AS_OF)
 
         self.assertEqual(result.snapshots, ())
         self.assertIsNone(result.repository.get_current_quote(LEAGUE, ORB_OF_ANNULMENT_ASSET_ID, AS_OF))
         self.assertEqual(result.attempted_provider_ids, ("poe.show", "poe.ninja"))
         self.assertTrue(any("poe.show" in warning for warning in result.warnings))
         self.assertTrue(any("poe.ninja" in warning for warning in result.warnings))
+        self.assertEqual([attempt.provider_id for attempt in result.attempts], ["poe.show", "poe.ninja"])
+        self.assertTrue(result.attempts[0].fallback_continues)
+        self.assertFalse(result.attempts[1].fallback_continues)
+        log_text = "\n".join(logs.output)
+        self.assertIn("live economy provider attempt provider=poe.show", log_text)
+        self.assertIn("http_status=522", log_text)
+        self.assertIn("live economy provider attempt provider=poe.ninja", log_text)
+        self.assertIn("failure=ninja down", log_text)
+        self.assertIn("ninja leagues down", log_text)
+        self.assertIn("selected_provider=none", log_text)
+
+    def test_normalization_failure_does_not_write_cache(self):
+        cache_dir = self._cache_dir()
+        transport = FakeTransport((
+            _response(
+                {
+                    "core": {
+                        "primary": "divine",
+                        "secondary": "exalted",
+                        "rates": {},
+                    },
+                    "lines": [
+                        {"id": "divine", "primaryValue": "1", "volumePrimaryValue": "1000"},
+                    ],
+                }
+            ),
+        ))
+
+        result = _provider(cache_dir, transport).economy_repository(EconomyRepository(()), LEAGUE, AS_OF)
+
+        self.assertEqual(result.snapshots, ())
+        self.assertEqual(result.fetched_count, 0)
+        self.assertEqual(len(list(Path(cache_dir).glob("poe-show-*.json"))), 0)
+        self.assertEqual(len(result.attempts), 1)
+        self.assertEqual(result.attempts[0].status, "NORMALIZATION_FAILED")
+        self.assertFalse(result.attempts[0].produced_usable_snapshot)
 
     def test_provider_specific_caches_do_not_cross_contaminate(self):
         cache_dir = self._cache_dir()

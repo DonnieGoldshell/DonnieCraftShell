@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import logging
+
 try:
     from fastapi import FastAPI
     from fastapi.middleware.cors import CORSMiddleware
@@ -15,6 +17,9 @@ from services.api.app.config import get_settings
 from services.api.app.routes import advisor, health, items, observations
 
 
+logging.basicConfig(level=logging.INFO)
+logging.getLogger("httpx").setLevel(logging.WARNING)
+logging.getLogger("httpx2").setLevel(logging.WARNING)
 app = FastAPI(title="DonnieCraftShell API", version="0.1.0")
 settings = get_settings()
 if settings.cors_allowed_origins:

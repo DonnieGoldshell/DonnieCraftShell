@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import logging
 import socket
 import urllib.error
 import urllib.parse
@@ -29,6 +30,7 @@ DEFAULT_LIVE_ECONOMY_CATEGORIES = (
     EconomyCategory.ESSENCES.value,
 )
 DEFAULT_LIVE_ECONOMY_REFRESH_INTERVAL = timedelta(hours=1)
+LOGGER = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True)
@@ -82,6 +84,19 @@ class LiveEconomyProviderConfig:
 
 
 @dataclass(frozen=True)
+class LiveEconomyProviderAttempt:
+    provider_id: str
+    league: str
+    category: str
+    source: str
+    status: str
+    produced_usable_snapshot: bool
+    http_status: int | None = None
+    failure_reason: str | None = None
+    fallback_continues: bool = False
+
+
+@dataclass(frozen=True)
 class LiveEconomyIngestionResult:
     repository: EconomyRepository
     snapshots: tuple[EconomySnapshot, ...]
@@ -93,6 +108,7 @@ class LiveEconomyIngestionResult:
     provider_order: tuple[str, ...] = ()
     attempted_provider_ids: tuple[str, ...] = ()
     cache_dir: Path | None = None
+    attempts: tuple[LiveEconomyProviderAttempt, ...] = ()
 
 
 class PoeShowLiveEconomyProvider:
@@ -134,6 +150,7 @@ class PoeShowLiveEconomyProvider:
         source_league, league_warnings = self._league_for_request(league, as_of)
         snapshots: list[EconomySnapshot] = []
         warnings: list[str] = list(league_warnings)
+        attempts: list[LiveEconomyProviderAttempt] = []
         fetched_count = 0
         cache_hit_count = 0
         for category in self.config.categories:
@@ -143,6 +160,7 @@ class PoeShowLiveEconomyProvider:
                 snapshots.append(result.snapshot)
             fetched_count += result.fetched_count
             cache_hit_count += result.cache_hit_count
+            attempts.extend(result.attempts)
         repository = EconomyRepository((*base_repository.snapshots(), *snapshots))
         return LiveEconomyIngestionResult(
             repository=repository,
@@ -155,6 +173,7 @@ class PoeShowLiveEconomyProvider:
             provider_order=(self.provider_id,),
             attempted_provider_ids=(self.provider_id,),
             cache_dir=self.cache_dir,
+            attempts=tuple(attempts),
         )
 
     def _league_for_request(self, league: str, as_of: datetime) -> tuple[str, tuple[str, ...]]:
@@ -165,7 +184,14 @@ class PoeShowLiveEconomyProvider:
         cache_path = self._cache_path(league, source_league, category)
         cached = _read_cache(cache_path)
         if cached and _cache_age(cached, as_of) <= self.config.refresh_interval:
-            return _normalize_cached(cached, as_of, cache_hit=True)
+            return self._with_attempt(
+                _normalize_cached(cached, as_of, cache_hit=True),
+                league=league,
+                category=category,
+                source="cache",
+                status="CACHE_HIT",
+                produced_usable_snapshot=True,
+            )
         headers = {
             "Accept": "application/json",
             "User-Agent": self.config.user_agent,
@@ -176,16 +202,36 @@ class PoeShowLiveEconomyProvider:
             response = self.transport.get(url, headers, self.config.timeout_seconds)
             if response.status_code == 304:
                 if cached is None:
-                    return _CategorySnapshotResult(
-                        None,
-                        (f"{self.provider_id} returned 304 for {category}, but no local cache was available.",),
+                    return self._with_attempt(
+                        _CategorySnapshotResult(
+                            None,
+                            (f"{self.provider_id} returned 304 for {category}, but no local cache was available.",),
+                        ),
+                        league=league,
+                        category=category,
+                        source="network",
+                        status="HTTP_NOT_MODIFIED_WITHOUT_CACHE",
+                        produced_usable_snapshot=False,
+                        http_status=304,
                     )
-                return _normalize_cached(cached, as_of, cache_hit=True)
+                return self._with_attempt(
+                    _normalize_cached(cached, as_of, cache_hit=True),
+                    league=league,
+                    category=category,
+                    source="cache",
+                    status="HTTP_NOT_MODIFIED_CACHE_HIT",
+                    produced_usable_snapshot=True,
+                    http_status=304,
+                )
             if response.status_code != 200:
                 return self._fallback_or_warning(
                     cached,
                     as_of,
                     f"{self.provider_id} {category} fetch returned HTTP {response.status_code}.",
+                    league=league,
+                    category=category,
+                    status="HTTP_ERROR",
+                    http_status=response.status_code,
                 )
             raw_response = json.loads(response.body or "{}", parse_float=Decimal, parse_int=Decimal)
             envelope = _cache_envelope(
@@ -199,25 +245,84 @@ class PoeShowLiveEconomyProvider:
                 retrieved_at=as_of,
                 etag=_header(response.headers, "etag"),
             )
-            _write_cache(cache_path, envelope)
             normalized = normalize_poe_show_economy_payload(envelope, as_of)
-            return _CategorySnapshotResult(normalized, tuple(normalized.warnings), fetched_count=1)
-        except (TimeoutError, socket.timeout, urllib.error.URLError, OSError, json.JSONDecodeError, ValueError) as exc:
-            return self._fallback_or_warning(cached, as_of, f"{self.provider_id} {category} fetch failed: {exc}")
+            _write_cache(cache_path, envelope)
+            return self._with_attempt(
+                _CategorySnapshotResult(normalized, tuple(normalized.warnings), fetched_count=1),
+                league=league,
+                category=category,
+                source="network",
+                status="SUCCESS",
+                produced_usable_snapshot=True,
+                http_status=200,
+            )
+        except json.JSONDecodeError as exc:
+            return self._fallback_or_warning(
+                cached,
+                as_of,
+                f"{self.provider_id} {category} response was not valid JSON: {exc}",
+                league=league,
+                category=category,
+                status="MALFORMED_RESPONSE",
+                failure_reason=str(exc),
+            )
+        except ValueError as exc:
+            return self._fallback_or_warning(
+                cached,
+                as_of,
+                f"{self.provider_id} {category} normalization failed: {exc}",
+                league=league,
+                category=category,
+                status="NORMALIZATION_FAILED",
+                failure_reason=str(exc),
+            )
+        except (TimeoutError, socket.timeout, urllib.error.URLError, OSError) as exc:
+            return self._fallback_or_warning(
+                cached,
+                as_of,
+                f"{self.provider_id} {category} fetch failed: {exc}",
+                league=league,
+                category=category,
+                status="FETCH_FAILED",
+                failure_reason=str(exc),
+            )
 
     def _fallback_or_warning(
         self,
         cached: dict[str, Any] | None,
         as_of: datetime,
         warning: str,
+        league: str,
+        category: str,
+        status: str,
+        http_status: int | None = None,
+        failure_reason: str | None = None,
     ) -> "_CategorySnapshotResult":
         if cached is None:
-            return _CategorySnapshotResult(None, (warning,))
+            return self._with_attempt(
+                _CategorySnapshotResult(None, (warning,)),
+                league=league,
+                category=category,
+                source="network",
+                status=status,
+                produced_usable_snapshot=False,
+                http_status=http_status,
+                failure_reason=failure_reason or warning,
+            )
         normalized = normalize_poe_show_economy_payload(cached, as_of)
-        return _CategorySnapshotResult(
-            normalized,
-            (warning, f"Using cached live economy snapshot {normalized.snapshot_id} with freshness {normalized.freshness.value}.", *normalized.warnings),
-            cache_hit_count=1,
+        return self._with_attempt(
+            _CategorySnapshotResult(
+                normalized,
+                (warning, f"Using cached live economy snapshot {normalized.snapshot_id} with freshness {normalized.freshness.value}.", *normalized.warnings),
+                cache_hit_count=1,
+            ),
+            league=league,
+            category=category,
+            source="cache",
+            status=f"{status}_CACHE_FALLBACK",
+            produced_usable_snapshot=True,
+            http_status=http_status,
+            failure_reason=failure_reason or warning,
         )
 
     def _cache_path(self, league: str, source_league: str, category: str) -> Path:
@@ -225,6 +330,35 @@ class PoeShowLiveEconomyProvider:
             f"{self.provider_id}|{league}|{source_league}|{category}|{self.config.base_url}".encode("utf-8")
         ).hexdigest()[:24]
         return self.cache_dir / f"{self.cache_prefix}-{digest}.json"
+
+    def _with_attempt(
+        self,
+        result: "_CategorySnapshotResult",
+        league: str,
+        category: str,
+        source: str,
+        status: str,
+        produced_usable_snapshot: bool,
+        http_status: int | None = None,
+        failure_reason: str | None = None,
+    ) -> "_CategorySnapshotResult":
+        attempt = LiveEconomyProviderAttempt(
+            provider_id=self.provider_id,
+            league=league,
+            category=category,
+            source=source,
+            status=status,
+            produced_usable_snapshot=produced_usable_snapshot,
+            http_status=http_status,
+            failure_reason=failure_reason,
+        )
+        return _CategorySnapshotResult(
+            snapshot=result.snapshot,
+            warnings=result.warnings,
+            fetched_count=result.fetched_count,
+            cache_hit_count=result.cache_hit_count,
+            attempts=(*result.attempts, attempt),
+        )
 
 
 class PoeNinjaLiveEconomyProvider(PoeShowLiveEconomyProvider):
@@ -300,16 +434,31 @@ class LiveEconomyProviderChain:
                 provider_order=self.provider_order,
                 attempted_provider_ids=(),
                 cache_dir=self.cache_dir,
+                attempts=(),
             )
 
+        enabled_providers = tuple(provider for provider in self.providers if provider.config.enabled)
         attempted: list[str] = []
         warnings: list[str] = []
+        attempts: list[LiveEconomyProviderAttempt] = []
         cached_fallback: LiveEconomyIngestionResult | None = None
-        for provider in self.providers:
-            if not provider.config.enabled:
-                continue
+        for index, provider in enumerate(enabled_providers):
             attempted.append(provider.provider_id)
             result = provider.economy_repository(base_repository, league, as_of)
+            result_uses_error_cache = _result_used_provider_error_cache(result)
+            provider_selected_now = bool(
+                (result.fetched_count and result.snapshots)
+                or (result.snapshots and cached_fallback is None and not result_uses_error_cache)
+                or (result.snapshots and cached_fallback is not None)
+            )
+            provider_attempts = _mark_fallback(
+                result.attempts,
+                continues=not provider_selected_now
+                and index < len(enabled_providers) - 1,
+            )
+            for attempt in provider_attempts:
+                _log_provider_attempt(attempt)
+            attempts.extend(provider_attempts)
             provider_warnings = [f"{provider.provider_id}: {warning}" for warning in result.warnings]
             warnings.extend(provider_warnings)
             provider_result = _with_chain_metadata(
@@ -317,26 +466,34 @@ class LiveEconomyProviderChain:
                 warnings=tuple(warnings),
                 provider_order=self.provider_order,
                 attempted_provider_ids=tuple(attempted),
+                attempts=tuple(attempts),
             )
             if result.fetched_count and result.snapshots:
+                _log_chain_summary(provider_result)
                 return provider_result
             if result.snapshots and cached_fallback is None:
                 cached_fallback = provider_result
-                if not _result_used_provider_error_cache(result):
+                if not result_uses_error_cache:
+                    _log_chain_summary(provider_result)
                     return provider_result
                 continue
             if result.snapshots:
+                _log_chain_summary(provider_result)
                 return provider_result
         if cached_fallback is not None:
+            _log_chain_summary(cached_fallback)
             return cached_fallback
-        return LiveEconomyIngestionResult(
+        result = LiveEconomyIngestionResult(
             repository=base_repository,
             snapshots=(),
             warnings=tuple(warnings) or ("Live economy providers returned no usable snapshots.",),
             provider_order=self.provider_order,
             attempted_provider_ids=tuple(attempted),
             cache_dir=self.cache_dir,
+            attempts=tuple(attempts),
         )
+        _log_chain_summary(result)
+        return result
 
 
 @dataclass(frozen=True)
@@ -345,6 +502,7 @@ class _CategorySnapshotResult:
     warnings: tuple[str, ...] = ()
     fetched_count: int = 0
     cache_hit_count: int = 0
+    attempts: tuple[LiveEconomyProviderAttempt, ...] = ()
 
 
 def _overview_url(base_url: str, league: str, category: str) -> str:
@@ -385,6 +543,7 @@ def _with_chain_metadata(
     warnings: tuple[str, ...],
     provider_order: tuple[str, ...],
     attempted_provider_ids: tuple[str, ...],
+    attempts: tuple[LiveEconomyProviderAttempt, ...],
 ) -> LiveEconomyIngestionResult:
     return LiveEconomyIngestionResult(
         repository=result.repository,
@@ -397,12 +556,61 @@ def _with_chain_metadata(
         provider_order=provider_order,
         attempted_provider_ids=attempted_provider_ids,
         cache_dir=result.cache_dir,
+        attempts=attempts,
+    )
+
+
+def _mark_fallback(
+    attempts: tuple[LiveEconomyProviderAttempt, ...],
+    continues: bool,
+) -> tuple[LiveEconomyProviderAttempt, ...]:
+    return tuple(
+        LiveEconomyProviderAttempt(
+            provider_id=attempt.provider_id,
+            league=attempt.league,
+            category=attempt.category,
+            source=attempt.source,
+            status=attempt.status,
+            produced_usable_snapshot=attempt.produced_usable_snapshot,
+            http_status=attempt.http_status,
+            failure_reason=attempt.failure_reason,
+            fallback_continues=continues and not attempt.produced_usable_snapshot,
+        )
+        for attempt in attempts
     )
 
 
 def _result_used_provider_error_cache(result: LiveEconomyIngestionResult) -> bool:
     warnings = " ".join(result.warnings).lower()
     return bool(result.cache_hit_count and ("fetch failed" in warnings or "returned http" in warnings))
+
+
+def _log_provider_attempt(attempt: LiveEconomyProviderAttempt) -> None:
+    LOGGER.info(
+        "live economy provider attempt provider=%s league=%s category=%s source=%s status=%s http_status=%s usable_snapshot=%s fallback_continues=%s failure=%s",
+        attempt.provider_id,
+        attempt.league,
+        attempt.category,
+        attempt.source,
+        attempt.status,
+        attempt.http_status,
+        attempt.produced_usable_snapshot,
+        attempt.fallback_continues,
+        attempt.failure_reason,
+    )
+
+
+def _log_chain_summary(result: LiveEconomyIngestionResult) -> None:
+    LOGGER.info(
+        "live economy chain summary provider_order=%s attempted_providers=%s selected_provider=%s fetched_count=%s cache_hit_count=%s cache_dir=%s warnings=%s",
+        "->".join(result.provider_order),
+        ",".join(result.attempted_provider_ids),
+        result.selected_provider_id or "none",
+        result.fetched_count,
+        result.cache_hit_count,
+        str(result.cache_dir) if result.cache_dir is not None else "",
+        " | ".join(result.warnings),
+    )
 
 
 def _resolve_poe_ninja_league_id(payload: Any, requested_league: str) -> str | None:

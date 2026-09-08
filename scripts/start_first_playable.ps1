@@ -300,7 +300,6 @@ Write-Host "  API: $apiUrl"
 Write-Host "  Web: $webUrl"
 Write-Host "  Logs: $logsRoot"
 if ($LiveEconomy) {
-    New-Item -ItemType Directory -Force -Path $liveEconomyCachePath | Out-Null
     $liveEconomyProviderOrder = if ($env:DCS_LIVE_ECONOMY_PROVIDER_ORDER) { $env:DCS_LIVE_ECONOMY_PROVIDER_ORDER } else { "poe.show,poe.ninja" }
     Write-Host "  Live economy: ENABLED (backend provider order: $liveEconomyProviderOrder)"
     Write-Host "  Live economy cache: $liveEconomyCachePath"
@@ -369,6 +368,8 @@ try {
     if ($LiveEconomy) {
         Write-Host "Live economy cache payloads are written under $liveEconomyCachePath."
         Write-Host "Live economy provider order: $env:DCS_LIVE_ECONOMY_PROVIDER_ORDER."
+        Write-Host "Live economy diagnostics:"
+        Write-Host "  Select-String -Path .dcs\logs\first-playable-api.*.log -Pattern `"poe.show|poe.ninja|522|live economy|provider|failed|timeout|error|HTTP`" -CaseSensitive:`$false"
     }
     else {
         Write-Host "Live economy is disabled. Restart with -LiveEconomy to use runtime poe.show -> poe.ninja quotes."
