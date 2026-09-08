@@ -86,6 +86,14 @@ rates, and never creates a zero price for missing assets. Manual local quote
 evidence remains available as an explicit fallback/override, but stale manual
 placeholder quotes must not mask fresher live provider evidence.
 
+Issue 85 adds live-economy diagnostics without changing source identity or
+pricing behavior. Backend logs record one provider-attempt event per configured
+provider/category request and one chain summary per Advisor analysis. API
+`economy_evidence.source_breakdown` retains provider-specific failed attempts,
+including HTTP failures such as poe.show 522 and downstream poe.ninja fallback
+results. These diagnostics expose provenance and execution order only; they do
+not add aliases, prices, fuzzy matching, or new providers.
+
 Task 6B uses one bounded offline Currency response from poe.show for `Runes of Aldur` captured at `2026-08-11T13:10:57.2395462Z`. Automated tests must use this fixture and must not depend on live network access.
 
 Task 6C adds bounded offline Ritual and Essences responses for the same league captured at `2026-08-11T13:26:14.9830715Z`. These fixtures are sufficient for Omen/Essence normalization tests but are not complete category datasets.

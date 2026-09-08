@@ -48,3 +48,13 @@ provider responses inside that interval are reused without a network request;
 after the interval the provider uses conditional ETag requests where available.
 Cache filenames are provider-scoped, so poe.show cached payloads cannot
 masquerade as poe.ninja evidence.
+
+Live provider attempts and the final provider-chain summary are logged by the
+backend at info level. In First Playable runs, inspect
+`.dcs/logs/first-playable-api.*.log` with:
+
+```powershell
+Select-String -Path .dcs\logs\first-playable-api.*.log `
+  -Pattern "poe.show|poe.ninja|522|live economy|provider|failed|timeout|error|HTTP" `
+  -CaseSensitive:$false
+```

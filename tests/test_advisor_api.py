@@ -9,6 +9,7 @@ from dataclasses import replace
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 from pathlib import Path
+from unittest.mock import patch
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -42,6 +43,12 @@ class AdvisorApiTests(unittest.TestCase):
         self._previous_workspace_path = os.environ.get("DCS_OBSERVATION_WORKSPACE_PATH")
         self._previous_manual_valuation_workspace_path = os.environ.get("DCS_MANUAL_VALUATION_WORKSPACE_PATH")
         self._previous_economy_quote_workspace_path = os.environ.get("DCS_ECONOMY_QUOTE_WORKSPACE_PATH")
+        self._previous_live_economy_enabled = os.environ.get("DCS_LIVE_ECONOMY_ENABLED")
+        self._previous_live_economy_cache_path = os.environ.get("DCS_LIVE_ECONOMY_CACHE_PATH")
+        self._previous_live_economy_provider_order = os.environ.get("DCS_LIVE_ECONOMY_PROVIDER_ORDER")
+        self._previous_live_economy_categories = os.environ.get("DCS_LIVE_ECONOMY_CATEGORIES")
+        self._previous_live_economy_base_url = os.environ.get("DCS_LIVE_ECONOMY_BASE_URL")
+        self._previous_live_economy_poe_ninja_base_url = os.environ.get("DCS_LIVE_ECONOMY_POE_NINJA_BASE_URL")
         os.environ["DCS_EMPIRICAL_REGISTRY_PATH"] = "disabled"
         os.environ["DCS_OBSERVATION_WORKSPACE_PATH"] = "disabled"
         os.environ["DCS_MANUAL_VALUATION_WORKSPACE_PATH"] = "disabled"
@@ -81,6 +88,30 @@ class AdvisorApiTests(unittest.TestCase):
             os.environ.pop("DCS_ECONOMY_QUOTE_WORKSPACE_PATH", None)
         else:
             os.environ["DCS_ECONOMY_QUOTE_WORKSPACE_PATH"] = self._previous_economy_quote_workspace_path
+        if self._previous_live_economy_enabled is None:
+            os.environ.pop("DCS_LIVE_ECONOMY_ENABLED", None)
+        else:
+            os.environ["DCS_LIVE_ECONOMY_ENABLED"] = self._previous_live_economy_enabled
+        if self._previous_live_economy_cache_path is None:
+            os.environ.pop("DCS_LIVE_ECONOMY_CACHE_PATH", None)
+        else:
+            os.environ["DCS_LIVE_ECONOMY_CACHE_PATH"] = self._previous_live_economy_cache_path
+        if self._previous_live_economy_provider_order is None:
+            os.environ.pop("DCS_LIVE_ECONOMY_PROVIDER_ORDER", None)
+        else:
+            os.environ["DCS_LIVE_ECONOMY_PROVIDER_ORDER"] = self._previous_live_economy_provider_order
+        if self._previous_live_economy_categories is None:
+            os.environ.pop("DCS_LIVE_ECONOMY_CATEGORIES", None)
+        else:
+            os.environ["DCS_LIVE_ECONOMY_CATEGORIES"] = self._previous_live_economy_categories
+        if self._previous_live_economy_base_url is None:
+            os.environ.pop("DCS_LIVE_ECONOMY_BASE_URL", None)
+        else:
+            os.environ["DCS_LIVE_ECONOMY_BASE_URL"] = self._previous_live_economy_base_url
+        if self._previous_live_economy_poe_ninja_base_url is None:
+            os.environ.pop("DCS_LIVE_ECONOMY_POE_NINJA_BASE_URL", None)
+        else:
+            os.environ["DCS_LIVE_ECONOMY_POE_NINJA_BASE_URL"] = self._previous_live_economy_poe_ninja_base_url
 
     def test_health(self):
         response = self.client.get("/health")
@@ -512,6 +543,154 @@ class AdvisorApiTests(unittest.TestCase):
         self.assertEqual(len(show_transport.requests), 1)
         self.assertIn("/leagues", ninja_transport.requests[0][0])
         self.assertIn("league=runes-of-aldur", ninja_transport.requests[1][0])
+
+    def test_advisor_production_live_chain_attempts_poe_ninja_after_poe_show_522(self):
+        from packages.shared.donniecraftshell_contracts.live_economy import HttpResponse, UrlLibEconomyHttpTransport
+
+        from services.api.app.dependencies import advisor as advisor_dependencies
+
+        cache_dir = self._configure_production_live_economy(advisor_dependencies)
+        requests: list[str] = []
+
+        def fake_get(_transport, url, headers, timeout_seconds):
+            requests.append(url)
+            if "poe.show" in url:
+                return HttpResponse(status_code=522, headers={}, body="")
+            if url.endswith("/leagues"):
+                return HttpResponse(status_code=200, headers={}, body=json.dumps([{"id": "runes-of-aldur", "text": LEAGUE}]))
+            return HttpResponse(status_code=200, headers={}, body=json.dumps(self._live_annulment_payload()))
+
+        with patch.object(UrlLibEconomyHttpTransport, "get", fake_get):
+            with self.assertLogs("packages.shared.donniecraftshell_contracts.live_economy", level="INFO") as logs:
+                response = self.client.post("/api/v1/advisor/analyze", json=base_request())
+
+        body = response.json()
+        source_breakdown = body["economy_evidence"]["source_breakdown"]
+        failed_show = [
+            source for source in source_breakdown
+            if source["mode"] == "LIVE_ATTEMPT_FAILED" and source["provider"] == "poe.show"
+        ]
+        live_ninja = [
+            source for source in source_breakdown
+            if source["mode"] == "LIVE_FETCHED" and source["provider"] == "poe.ninja"
+        ]
+        annulment = self._action(body, "dc:poe2:craft-action:orb-of-annulment")
+        log_text = "\n".join(logs.output)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(requests[0].split("/poe2/api/economy", 1)[0], "https://poe.show")
+        self.assertIn("/leagues", requests[1])
+        self.assertIn("https://poe.ninja", requests[1])
+        self.assertIn("https://poe.ninja", requests[2])
+        self.assertEqual(body["economy_evidence"]["mode"], "LIVE_FETCHED")
+        self.assertEqual(body["economy_evidence"]["provider"], "poe.ninja")
+        self.assertTrue(failed_show)
+        self.assertIn("HTTP 522", " ".join(failed_show[0]["warnings"]))
+        self.assertIn("fallback continues", " ".join(failed_show[0]["warnings"]))
+        self.assertTrue(live_ninja)
+        self.assertTrue(annulment["material_cost"]["complete"])
+        self.assertEqual(annulment["material_cost"]["lines"][0]["source"], "poe.ninja")
+        self.assertIn("live economy provider attempt provider=poe.show", log_text)
+        self.assertIn("http_status=522", log_text)
+        self.assertIn("live economy provider attempt provider=poe.ninja", log_text)
+        self.assertIn("selected_provider=poe.ninja", log_text)
+        self.assertGreater(len(list(cache_dir.glob("poe-ninja-*.json"))), 0)
+        self.assertEqual(len(list(cache_dir.glob("poe-show-*.json"))), 0)
+
+    def test_advisor_production_live_chain_reports_both_provider_failures(self):
+        from packages.shared.donniecraftshell_contracts.live_economy import HttpResponse, UrlLibEconomyHttpTransport
+
+        from services.api.app.dependencies import advisor as advisor_dependencies
+
+        self._configure_production_live_economy(advisor_dependencies)
+        requests: list[str] = []
+
+        def fake_get(_transport, url, headers, timeout_seconds):
+            requests.append(url)
+            if "poe.show" in url:
+                return HttpResponse(status_code=522, headers={}, body="")
+            if url.endswith("/leagues"):
+                return HttpResponse(status_code=200, headers={}, body=json.dumps([{"id": "runes-of-aldur", "text": LEAGUE}]))
+            return HttpResponse(status_code=503, headers={}, body="")
+
+        with patch.object(UrlLibEconomyHttpTransport, "get", fake_get):
+            with self.assertLogs("packages.shared.donniecraftshell_contracts.live_economy", level="INFO") as logs:
+                response = self.client.post("/api/v1/advisor/analyze", json=base_request())
+
+        body = response.json()
+        failed_providers = {
+            source["provider"]: " ".join(source["warnings"])
+            for source in body["economy_evidence"]["source_breakdown"]
+            if source["mode"] == "LIVE_ATTEMPT_FAILED"
+        }
+        log_text = "\n".join(logs.output)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(body["economy_evidence"]["mode"], "LIVE_UNAVAILABLE")
+        self.assertIsNone(body["economy_evidence"]["provider"])
+        self.assertIn("poe.show", failed_providers)
+        self.assertIn("HTTP 522", failed_providers["poe.show"])
+        self.assertIn("poe.ninja", failed_providers)
+        self.assertIn("HTTP 503", failed_providers["poe.ninja"])
+        self.assertIn("selected_provider=none", log_text)
+        self.assertIn("provider=poe.show", log_text)
+        self.assertIn("provider=poe.ninja", log_text)
+        self.assertEqual(len([url for url in requests if "poe.show" in url]), 1)
+        self.assertEqual(len([url for url in requests if "poe.ninja" in url and not url.endswith("/leagues")]), 1)
+
+    def test_advisor_production_live_chain_stops_after_poe_show_success(self):
+        from packages.shared.donniecraftshell_contracts.live_economy import HttpResponse, UrlLibEconomyHttpTransport
+
+        from services.api.app.dependencies import advisor as advisor_dependencies
+
+        self._configure_production_live_economy(advisor_dependencies)
+        requests: list[str] = []
+
+        def fake_get(_transport, url, headers, timeout_seconds):
+            requests.append(url)
+            if "poe.ninja" in url:
+                self.fail("poe.ninja must not be attempted after a usable poe.show snapshot")
+            return HttpResponse(status_code=200, headers={}, body=json.dumps(self._live_annulment_payload()))
+
+        with patch.object(UrlLibEconomyHttpTransport, "get", fake_get):
+            with self.assertLogs("packages.shared.donniecraftshell_contracts.live_economy", level="INFO") as logs:
+                response = self.client.post("/api/v1/advisor/analyze", json=base_request())
+
+        body = response.json()
+        log_text = "\n".join(logs.output)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(requests), 1)
+        self.assertIn("poe.show", requests[0])
+        self.assertEqual(body["economy_evidence"]["mode"], "LIVE_FETCHED")
+        self.assertEqual(body["economy_evidence"]["provider"], "poe.show")
+        self.assertFalse(
+            any(source["provider"] == "poe.ninja" for source in body["economy_evidence"]["source_breakdown"])
+        )
+        self.assertIn("selected_provider=poe.show", log_text)
+        self.assertNotIn("provider=poe.ninja", log_text)
+
+    def test_advisor_disabled_live_economy_remains_non_networked_and_quiet(self):
+        from packages.shared.donniecraftshell_contracts.live_economy import UrlLibEconomyHttpTransport
+
+        from services.api.app.dependencies import advisor as advisor_dependencies
+
+        os.environ["DCS_LIVE_ECONOMY_ENABLED"] = "false"
+        os.environ["DCS_LIVE_ECONOMY_PROVIDER_ORDER"] = "poe.show,poe.ninja"
+        os.environ["DCS_LIVE_ECONOMY_CATEGORIES"] = "Currency"
+        self._clear_dependency_caches(advisor_dependencies)
+
+        def fake_get(_transport, url, headers, timeout_seconds):
+            self.fail("disabled live economy must not perform network requests")
+
+        with patch.object(UrlLibEconomyHttpTransport, "get", fake_get):
+            response = self.client.post("/api/v1/advisor/analyze", json=base_request())
+
+        body = response.json()
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(body["economy_evidence"]["live_economy_enabled"])
+        self.assertEqual(body["economy_evidence"]["mode"], "OFFLINE_BUNDLED")
+        self.assertFalse(any(source["mode"].startswith("LIVE") for source in body["economy_evidence"]["source_breakdown"]))
 
     def test_advisor_live_economy_reuses_cache_within_refresh_interval(self):
         from packages.shared.donniecraftshell_contracts.live_economy import (
@@ -3031,6 +3210,44 @@ class AdvisorApiTests(unittest.TestCase):
             record["outcome_id"] = outcome_id
         return record
 
+    def _configure_production_live_economy(self, advisor_dependencies) -> Path:
+        cache_dir = ROOT / ".tmp-tests" / "advisor-api-production-live" / f"{os.getpid()}-{self._testMethodName}"
+        cache_dir.mkdir(parents=True, exist_ok=True)
+        for child in cache_dir.glob("*"):
+            if child.is_file():
+                child.unlink()
+        os.environ["DCS_LIVE_ECONOMY_ENABLED"] = "true"
+        os.environ["DCS_LIVE_ECONOMY_CACHE_PATH"] = str(cache_dir)
+        os.environ["DCS_LIVE_ECONOMY_PROVIDER_ORDER"] = "poe.show,poe.ninja"
+        os.environ["DCS_LIVE_ECONOMY_CATEGORIES"] = "Currency"
+        os.environ["DCS_LIVE_ECONOMY_BASE_URL"] = "https://poe.show/poe2/api/economy"
+        os.environ["DCS_LIVE_ECONOMY_POE_NINJA_BASE_URL"] = "https://poe.ninja/poe2/api/economy"
+        self._clear_dependency_caches(advisor_dependencies)
+        return cache_dir
+
+    def _live_annulment_payload(self) -> dict:
+        return {
+            "core": {
+                "primary": "divine",
+                "secondary": "exalted",
+                "rates": {"exalted": "340"},
+                "items": [
+                    {"id": "divine", "name": "Divine Orb", "category": "Currency", "detailsId": "divine-orb"},
+                    {"id": "exalted", "name": "Exalted Orb", "category": "Currency", "detailsId": "exalted-orb"},
+                    {
+                        "id": "provider-specific-annulment-id",
+                        "name": "Orb of Annulment",
+                        "category": "Currency",
+                        "detailsId": "orb-of-annulment",
+                    },
+                ],
+            },
+            "lines": [
+                {"id": "divine", "primaryValue": "1", "volumePrimaryValue": "1000"},
+                {"id": "provider-specific-annulment-id", "primaryValue": "6", "volumePrimaryValue": "33"},
+            ],
+        }
+
     def _clear_dependency_caches(self, advisor_dependencies) -> None:
         advisor_dependencies.get_advisor_orchestrator.cache_clear()
         advisor_dependencies.get_economy_repository.cache_clear()
@@ -3040,6 +3257,7 @@ class AdvisorApiTests(unittest.TestCase):
         advisor_dependencies.get_empirical_probability_registry.cache_clear()
         advisor_dependencies.get_observation_workspace.cache_clear()
         advisor_dependencies.get_manual_valuation_workspace.cache_clear()
+        advisor_dependencies.get_economy_quote_workspace.cache_clear()
         advisor_dependencies.get_cached_settings.cache_clear()
 
     def _install_synthetic_dependencies(self):

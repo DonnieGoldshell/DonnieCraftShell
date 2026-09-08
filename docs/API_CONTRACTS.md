@@ -189,6 +189,15 @@ is still HTTP success; missing quotes remain structured
 `ECONOMY_QUOTE_REQUIRED` requirements rather than zero prices or HTTP errors.
 The endpoint must not fetch PoE2DB, Trade, or frontend network data.
 
+Issue 85 makes failed live provider attempts part of the Advisor transport
+evidence. `economy_evidence.source_breakdown` may include
+`LIVE_ATTEMPT_FAILED` entries even when no quote line was resolved by that
+provider. These entries identify the provider, requested league, cache path,
+and warning text with the category, cache/network source, status or HTTP code,
+usable-snapshot result, and whether fallback continued. When every live
+provider fails, the summary uses `mode = LIVE_UNAVAILABLE` and `provider = null`
+while retaining each failed provider separately.
+
 Live refresh cadence is application configuration, not a transport response
 field. `DCS_LIVE_ECONOMY_REFRESH_INTERVAL_SECONDS` defaults to `3600`. When a
 cached source response is inside that interval, `/api/v1/advisor/analyze` must

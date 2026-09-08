@@ -194,8 +194,15 @@ When live economy is enabled, the backend uses the configured provider order
 without exposing provider payload shapes to the client. The default order is
 `poe.show` then `poe.ninja`. If poe.show fails and poe.ninja provides a usable
 snapshot, `economy_evidence.provider` and the live source breakdown report
-`poe.ninja`; the poe.show failure remains in warnings for auditability. Provider
-caches are isolated by provider-specific filenames.
+`poe.ninja`; the poe.show failure remains in warnings for auditability. Failed
+provider attempts are also preserved in `economy_evidence.source_breakdown` as
+provider-specific `LIVE_ATTEMPT_FAILED` entries, including the provider ID,
+league, category, status or HTTP code, cache/network source, whether fallback
+continued, and warning context. If no live provider produces a usable snapshot,
+`economy_evidence.mode = LIVE_UNAVAILABLE`, `provider = null`, and each failed
+provider remains visible separately instead of being collapsed into a
+comma-separated provider string. Provider caches are isolated by
+provider-specific filenames.
 
 Partial analysis is HTTP 200. `NO_RECOMMENDATION` is also HTTP 200.
 

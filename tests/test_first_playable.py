@@ -112,6 +112,10 @@ class FirstPlayableTests(unittest.TestCase):
         self.assertIn("Live economy: DISABLED", start_script)
         self.assertIn("Live economy cache:", start_script)
         self.assertIn(".dcs\\economy_cache", start_script)
+        self.assertNotIn("New-Item -ItemType Directory -Force -Path $liveEconomyCachePath", start_script)
+        self.assertIn("Live economy diagnostics:", start_script)
+        self.assertIn("Select-String -Path .dcs\\logs\\first-playable-api.*.log", start_script)
+        self.assertIn("poe.show|poe.ninja|522|live economy|provider|failed|timeout|error|HTTP", start_script)
 
     def test_first_playable_launcher_stops_owned_child_process_trees_on_shutdown(self):
         start_script = START_SCRIPT.read_text(encoding="utf-8")
