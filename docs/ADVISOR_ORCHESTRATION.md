@@ -24,6 +24,8 @@ Clipboard
 
 All external data must already be present in local repositories or supplied as input. The orchestrator performs no network calls.
 
+Candidate enumeration uses only actions whose crafting definition is available for the current playable action set. Historical/provisional actions such as `Orb of Annulment + Omen of Greater Annulment` may remain loadable for provenance, but unavailable actions are not priced, do not receive outcome/probability analysis, and do not produce missing evidence-readiness targets.
+
 ## Request Contract
 
 `AdvisorAnalysisRequest` requires:

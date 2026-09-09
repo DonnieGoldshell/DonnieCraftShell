@@ -64,7 +64,7 @@ def get_action_candidates(
 ) -> tuple[CraftActionCandidate, ...]:
     cost_service = CraftActionCostService(economy_repository)
     candidates: list[CraftActionCandidate] = []
-    for action in craft_action_engine.dataset.actions:
+    for action in craft_action_engine.current_actions:
         applicability = craft_action_engine.evaluate_action(action, item, affix_state_resolution)
         material_cost = cost_service.cost_action(action, league, as_of)
         warnings = (*applicability.unknown_preconditions, *material_cost.warnings)

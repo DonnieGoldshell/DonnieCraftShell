@@ -24,8 +24,11 @@ from packages.shared.donniecraftshell_contracts.domain import (
 from packages.shared.donniecraftshell_contracts.economy import (
     ESSENCE_OF_HYSTERIA_ASSET_ID,
     EXALTED_ASSET_ID,
+    OMEN_OF_DEXTRAL_ANNULMENT_ASSET_ID,
     OMEN_OF_DEXTRAL_EXALTATION_ASSET_ID,
+    OMEN_OF_GREATER_ANNULMENT_ASSET_ID,
     OMEN_OF_SINISTRAL_EXALTATION_ASSET_ID,
+    OMEN_OF_SINISTRAL_ANNULMENT_ASSET_ID,
     ORB_OF_ANNULMENT_ASSET_ID,
     PERFECT_EXALTED_ASSET_ID,
 )
@@ -192,12 +195,61 @@ class CraftActionContractTests(unittest.TestCase):
             (EXALTED_ASSET_ID, OMEN_OF_DEXTRAL_EXALTATION_ASSET_ID),
         )
 
+    def test_unavailable_greater_annulment_identity_is_historical_not_current_candidate(self):
+        item = parsed_fixture("quiver_6_crafted_desecrated_advanced.txt")
+        greater = action_by_id(
+            self.dataset,
+            "dc:poe2:craft-action:orb-of-annulment-with-omen-of-greater-annulment",
+        )
+
+        self.assertEqual(greater.required_materials[1].asset_id, OMEN_OF_GREATER_ANNULMENT_ASSET_ID)
+        self.assertFalse(greater.is_currently_available)
+        self.assertNotIn(greater, self.engine.current_actions)
+
+        result = self.engine.evaluate_action(greater, item)
+
+        self.assertEqual(result.status, CraftApplicabilityStatus.NOT_APPLICABLE)
+        self.assertEqual(result.required_materials, ())
+        self.assertTrue(any("unavailable" in reason.lower() or "drop-disabled" in reason.lower() for reason in result.failed_preconditions))
+
+    def test_current_annulment_omen_actions_keep_distinct_material_identities(self):
+        sinistral = action_by_id(
+            self.dataset,
+            "dc:poe2:craft-action:orb-of-annulment-with-omen-of-sinistral-annulment",
+        )
+        dextral = action_by_id(
+            self.dataset,
+            "dc:poe2:craft-action:orb-of-annulment-with-omen-of-dextral-annulment",
+        )
+        greater = action_by_id(
+            self.dataset,
+            "dc:poe2:craft-action:orb-of-annulment-with-omen-of-greater-annulment",
+        )
+
+        self.assertEqual(
+            tuple(material.asset_id for material in sinistral.required_materials),
+            (ORB_OF_ANNULMENT_ASSET_ID, OMEN_OF_SINISTRAL_ANNULMENT_ASSET_ID),
+        )
+        self.assertEqual(
+            tuple(material.asset_id for material in dextral.required_materials),
+            (ORB_OF_ANNULMENT_ASSET_ID, OMEN_OF_DEXTRAL_ANNULMENT_ASSET_ID),
+        )
+        self.assertEqual(
+            tuple(material.asset_id for material in greater.required_materials),
+            (ORB_OF_ANNULMENT_ASSET_ID, OMEN_OF_GREATER_ANNULMENT_ASSET_ID),
+        )
+        self.assertNotEqual(sinistral.required_materials[1].asset_id, dextral.required_materials[1].asset_id)
+        self.assertNotEqual(greater.required_materials[1].asset_id, sinistral.required_materials[1].asset_id)
+        self.assertNotEqual(greater.required_materials[1].asset_id, dextral.required_materials[1].asset_id)
+
     def test_candidate_actions_return_statuses_without_recommendation_logic(self):
         item = parsed_fixture("quiver_1_rare_standard_advanced.txt")
 
         results = self.engine.get_candidate_actions(item)
+        action_ids = {result.action_id for result in results}
         statuses = {result.status for result in results}
 
+        self.assertNotIn("dc:poe2:craft-action:orb-of-annulment-with-omen-of-greater-annulment", action_ids)
         self.assertIn(CraftApplicabilityStatus.APPLICABLE, statuses)
         self.assertIn(CraftApplicabilityStatus.UNKNOWN, statuses)
 

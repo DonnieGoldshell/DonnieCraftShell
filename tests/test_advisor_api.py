@@ -263,6 +263,7 @@ class AdvisorApiTests(unittest.TestCase):
 
     def test_advisor_consumes_matching_local_economy_quote_only_after_rerun(self):
         initial = self.client.post("/api/v1/advisor/analyze", json=base_request()).json()
+        initial_action_ids = {action["action_id"] for action in initial["actions"]}
         economy_targets = [
             target
             for item in initial["evidence_readiness"]["items"]
@@ -270,6 +271,10 @@ class AdvisorApiTests(unittest.TestCase):
             for target in item["targets"]
         ]
         self.assertTrue(any(target["asset_id"] == "dc:poe2:economy-asset:currency:orb-of-annulment" for target in economy_targets))
+        self.assertNotIn("dc:poe2:craft-action:orb-of-annulment-with-omen-of-greater-annulment", initial_action_ids)
+        self.assertFalse(
+            any(target.get("asset_id") == "dc:poe2:economy-asset:ritual:omen-of-greater-annulment" for target in economy_targets)
+        )
 
         save = self.client.post(
             "/api/v1/advisor/economy-quotes/workspace/quotes",

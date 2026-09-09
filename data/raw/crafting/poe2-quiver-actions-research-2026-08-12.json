@@ -7,7 +7,8 @@
   "notes": [
     "Manual source-backed research capture for Task 7A.",
     "PoE2DB and poe2wiki are community sources; mechanics remain PROVISIONAL unless confirmed by official GGG text.",
-    "Outcome probabilities and valuation are intentionally not captured."
+    "Outcome probabilities and valuation are intentionally not captured.",
+    "Issue #87 current-league availability review: Omen of Greater Annulment is retained as a historical/provisional action identity but excluded from current-league candidate generation because current source evidence marks it unavailable/drop-disabled."
   ],
   "sources": [
     {
@@ -41,6 +42,14 @@
       "retrieved_at": "2026-08-12T00:00:00+02:00",
       "verification_status": "PROVISIONAL",
       "notes": "Community item text for Omen of Greater Annulment; lower confidence than wiki/PoE2DB sources."
+    },
+    {
+      "source_id": "poe2wiki-omen-greater-annulment-availability",
+      "source_type": "COMMUNITY",
+      "source_uri": "https://www.poe2wiki.net/wiki/Omen_of_Greater_Annulment",
+      "retrieved_at": "2026-09-09T00:00:00+02:00",
+      "verification_status": "PROVISIONAL",
+      "notes": "Community availability/status evidence: Omen of Greater Annulment is unavailable/drop-disabled in the current playable context."
     },
     {
       "source_id": "poe2db-essence-hysteria",

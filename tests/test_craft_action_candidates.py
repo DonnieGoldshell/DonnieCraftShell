@@ -22,6 +22,7 @@ from packages.shared.donniecraftshell_contracts.domain import AffixState, AffixT
 from packages.shared.donniecraftshell_contracts.economy import (
     EXALTED_ASSET_ID,
     OMEN_OF_CATALYSING_EXALTATION_ASSET_ID,
+    OMEN_OF_GREATER_ANNULMENT_ASSET_ID,
     OMEN_OF_GREATER_EXALTATION_ASSET_ID,
     FreshnessState,
 )
@@ -173,6 +174,19 @@ class CraftActionCandidateTests(unittest.TestCase):
         self.assertEqual(greater.applicability.status, CraftApplicabilityStatus.UNKNOWN)
         self.assertFalse(greater.cost_complete)
         self.assertIn(OMEN_OF_GREATER_EXALTATION_ASSET_ID, tuple(line.asset_id for line in greater.material_cost.lines))
+
+    def test_current_candidates_do_not_price_unavailable_greater_annulment_path(self):
+        item = parsed_fixture("quiver_6_crafted_desecrated_advanced.txt")
+        candidates = self.candidates_for(item)
+        action_ids = {candidate.action.action_id for candidate in candidates}
+        required_assets = {
+            line.asset_id
+            for candidate in candidates
+            for line in candidate.material_cost.lines
+        }
+
+        self.assertNotIn("dc:poe2:craft-action:orb-of-annulment-with-omen-of-greater-annulment", action_ids)
+        self.assertNotIn(OMEN_OF_GREATER_ANNULMENT_ASSET_ID, required_assets)
 
     def test_annul_side_specific_applicability(self):
         item = with_prefix_suffix_counts(parsed_fixture("quiver_1_rare_standard_advanced.txt"), 0, 2)

@@ -151,14 +151,16 @@ class CraftOutcomeEngineTests(unittest.TestCase):
         self.assertEqual(suffix.outcome_definition.selection_rule, OutcomeSelectionRule.SUFFIX_ONLY)
         self.assertTrue(all(state.deltas[0].removed_modifier.affix_type == AffixType.SUFFIX for state in suffix.hypothetical_states))
 
-    def test_greater_annulment_is_partial_and_unknown_probability(self):
+    def test_unavailable_greater_annulment_produces_no_current_outcomes(self):
         item = parsed_fixture("quiver_6_crafted_desecrated_advanced.txt")
 
         outcome_set = self._outcomes(item, "dc:poe2:craft-action:orb-of-annulment-with-omen-of-greater-annulment")
 
-        self.assertEqual(outcome_set.outcome_space_completeness, OutcomeSpaceCompleteness.PARTIAL)
-        self.assertEqual(outcome_set.probability_completeness, OutcomeProbabilityStatus.UNKNOWN)
-        self.assertTrue(any("pairwise" in warning for warning in outcome_set.warnings))
+        self.assertEqual(outcome_set.applicability_status, CraftApplicabilityStatus.NOT_APPLICABLE)
+        self.assertEqual(outcome_set.outcome_space_completeness, OutcomeSpaceCompleteness.NOT_APPLICABLE)
+        self.assertEqual(outcome_set.probability_completeness, OutcomeProbabilityStatus.NOT_APPLICABLE)
+        self.assertEqual(outcome_set.hypothetical_states, ())
+        self.assertTrue(any("unavailable" in warning.lower() or "drop-disabled" in warning.lower() for warning in outcome_set.warnings))
 
     def test_exalted_candidate_pool_respects_open_affix_side(self):
         item = with_prefix_suffix_counts(parsed_fixture("quiver_1_rare_standard_advanced.txt"), 3, 2)
