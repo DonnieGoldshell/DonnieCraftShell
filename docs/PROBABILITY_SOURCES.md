@@ -34,6 +34,13 @@ crafted/desecrated/special-origin eligibility semantics needed to clear the
 First Playable probability blocker. The detailed artifact is
 [ANNULMENT_ANALYTICAL_PROBABILITY_EVIDENCE_2026-08-25.md](data/ANNULMENT_ANALYTICAL_PROBABILITY_EVIDENCE_2026-08-25.md).
 
+Issue #89 repeated the current-game evidence pass on `2026-09-09`. Current
+PoE2DB and wiki sources add Omen of Light / Desecrated eligible-set context, but
+still do not verify uniform selection or ordinary Annulment eligibility for the
+crafted and Desecrated modifiers present in the First Playable Bramble Spike
+pilot. The detailed artifact is
+[ANNULMENT_ANALYTICAL_PROBABILITY_EVIDENCE_2026-09-09.md](data/ANNULMENT_ANALYTICAL_PROBABILITY_EVIDENCE_2026-09-09.md).
+
 ## Exalted Weight Evidence
 
 The Task 8C Quiver pool has source-backed legal candidates, not weights. PoE2DB's Quiver page explicitly notes that modifier weight information cannot be obtained from game files. The official GGG developer docs do not expose PoE2 modifier weights.
