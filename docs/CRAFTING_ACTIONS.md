@@ -20,6 +20,7 @@ Executable contracts live in `packages/shared/donniecraftshell_contracts/craftin
 
 - `CraftingDatasetSnapshot`: explicit versioned action dataset.
 - `CraftActionDefinition`: action ID, source-backed summary, preconditions, required materials, provenance, and `simulation_supported=false`.
+- `CraftActionAvailability`: current-playable availability for candidate generation. Unavailable historical actions may remain in a dataset for identity/provenance, but are not emitted as current craft candidates.
 - `CraftActionPrecondition`: rarity, corruption/state, explicit modifier, open affix slot, and item-class checks.
 - `RequiredMaterial`: references EconomyAsset IDs, not action IDs.
 - `CraftActionApplicability`: status, reasons, failed preconditions, unknown preconditions, materials, confidence, and provenance.
@@ -48,6 +49,8 @@ Source-backed action definitions currently include:
 - Essence of Hysteria
 
 These are `PROVISIONAL` because sources are community references, not official GGG mechanics documentation.
+
+`Orb of Annulment + Omen of Greater Annulment` is retained only as a historical/provisional identity in the dataset. Current source evidence marks Omen of Greater Annulment unavailable/drop-disabled, so its action definition has `availability_status=UNAVAILABLE_CURRENT_LEAGUE`. Current candidate generation excludes it, and it must not create economy, probability, outcome, or Advisor-readiness blockers. Dextral and Sinistral Annulment remain separate current actions and are not aliases or substitutes for Greater Annulment.
 
 ## Applicability Rules
 

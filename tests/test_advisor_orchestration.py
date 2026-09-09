@@ -23,6 +23,7 @@ from packages.shared.donniecraftshell_contracts.crafting_actions import CraftAct
 from packages.shared.donniecraftshell_contracts.domain import DataProvenance, GameContext, SourceType, VerificationStatus
 from packages.shared.donniecraftshell_contracts.economy import (
     EXALTED_ASSET_ID,
+    OMEN_OF_GREATER_ANNULMENT_ASSET_ID,
     ORB_OF_ANNULMENT_ASSET_ID,
     EconomyCategory,
     EconomyQuote,
@@ -128,12 +129,33 @@ class AdvisorOrchestrationTests(unittest.TestCase):
         self.assertEqual(readiness[EvidenceReadinessCategory.OUTCOME_VALUATION].status, EvidenceReadinessStatus.MISSING)
         economy_targets = readiness[EvidenceReadinessCategory.ECONOMY_CRAFTING_COST].targets
         self.assertTrue(any(target.asset_id == ORB_OF_ANNULMENT_ASSET_ID for target in economy_targets))
+        self.assertFalse(any(target.asset_id == OMEN_OF_GREATER_ANNULMENT_ASSET_ID for target in economy_targets))
         probability_targets = readiness[EvidenceReadinessCategory.PROBABILITY].targets
         self.assertTrue(any(target.action_id == "dc:poe2:craft-action:orb-of-annulment" for target in probability_targets))
         self.assertFalse(any(target.action_id == "dc:poe2:craft-action:exalted-orb" for target in probability_targets))
+        self.assertFalse(any(target.action_id == "dc:poe2:craft-action:orb-of-annulment-with-omen-of-greater-annulment" for target in probability_targets))
         outcome_targets = readiness[EvidenceReadinessCategory.OUTCOME_VALUATION].targets
         self.assertEqual(len(outcome_targets[0].outcome_ids), 6)
         self.assertFalse(any(target.action_id == "dc:poe2:craft-action:exalted-orb" for target in outcome_targets))
+        self.assertFalse(any(target.action_id == "dc:poe2:craft-action:orb-of-annulment-with-omen-of-greater-annulment" for target in outcome_targets))
+
+    def test_unavailable_greater_annulment_path_is_not_current_action_or_blocker(self):
+        result = self._orchestrator(parser=self._fixed_parser()).analyze(self._request())
+        action_ids = {action.action_id for action in result.action_results}
+
+        self.assertNotIn("dc:poe2:craft-action:orb-of-annulment-with-omen-of-greater-annulment", action_ids)
+        self.assertFalse(
+            any(
+                requirement.affected_action_id == "dc:poe2:craft-action:orb-of-annulment-with-omen-of-greater-annulment"
+                for requirement in result.missing_requirements
+            )
+        )
+        self.assertFalse(
+            any(
+                OMEN_OF_GREATER_ANNULMENT_ASSET_ID in requirement.reason
+                for requirement in result.missing_requirements
+            )
+        )
 
     def test_real_quiver_6_with_synthetic_valuation_remains_scenario_only(self):
         orchestrator = self._orchestrator(parser=self._fixed_parser())

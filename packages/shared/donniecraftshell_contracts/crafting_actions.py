@@ -39,6 +39,11 @@ class CraftActionKind(str, Enum):
     ESSENCE = "ESSENCE"
 
 
+class CraftActionAvailability(str, Enum):
+    AVAILABLE = "AVAILABLE"
+    UNAVAILABLE_CURRENT_LEAGUE = "UNAVAILABLE_CURRENT_LEAGUE"
+
+
 class PreconditionKind(str, Enum):
     RARITY_IN = "RARITY_IN"
     NOT_CORRUPTED = "NOT_CORRUPTED"
@@ -90,6 +95,8 @@ class CraftActionDefinition:
     provenance: tuple[DataProvenance, ...] = ()
     verification_status: VerificationStatus = VerificationStatus.NEEDS_VERIFICATION
     simulation_supported: bool = False
+    availability_status: CraftActionAvailability = CraftActionAvailability.AVAILABLE
+    availability_notes: tuple[str, ...] = ()
 
     def __post_init__(self) -> None:
         if ":" not in self.action_id:
@@ -98,6 +105,10 @@ class CraftActionDefinition:
             raise ValueError("VERIFIED action definition requires provenance")
         if self.simulation_supported:
             raise ValueError("Task 7A action definitions must not support simulation")
+
+    @property
+    def is_currently_available(self) -> bool:
+        return self.availability_status == CraftActionAvailability.AVAILABLE
 
 
 @dataclass(frozen=True)
@@ -133,7 +144,11 @@ class CraftActionEngine:
         self.dataset = dataset
 
     def get_candidate_actions(self, item: ParsedItem, enrichment: Any | None = None) -> tuple[CraftActionApplicability, ...]:
-        return tuple(self.evaluate_action(action, item, enrichment) for action in self.dataset.actions)
+        return tuple(self.evaluate_action(action, item, enrichment) for action in self.current_actions)
+
+    @property
+    def current_actions(self) -> tuple[CraftActionDefinition, ...]:
+        return tuple(action for action in self.dataset.actions if action.is_currently_available)
 
     def evaluate_action(
         self,
@@ -141,6 +156,22 @@ class CraftActionEngine:
         item: ParsedItem,
         enrichment: Any | None = None,
     ) -> CraftActionApplicability:
+        if not action.is_currently_available:
+            reason = _availability_reason(action)
+            return CraftActionApplicability(
+                action_id=action.action_id,
+                status=CraftApplicabilityStatus.NOT_APPLICABLE,
+                required_materials=(),
+                reasons=(),
+                failed_preconditions=(reason,),
+                unknown_preconditions=(),
+                confidence=Confidence(
+                    level=ConfidenceLevel.HIGH,
+                    reasons=("Action is unavailable in the current playable action set.",),
+                ),
+                provenance=action.provenance,
+            )
+
         reasons: list[str] = []
         failed: list[str] = []
         unknown: list[str] = list(action.unknown_conditions)
@@ -209,6 +240,8 @@ def _action(data: dict[str, Any]) -> CraftActionDefinition:
         provenance=provenance,
         verification_status=VerificationStatus[data.get("verification_status", "NEEDS_VERIFICATION")],
         simulation_supported=data.get("simulation_supported", False),
+        availability_status=CraftActionAvailability[data.get("availability_status", "AVAILABLE")],
+        availability_notes=tuple(data.get("availability_notes", [])),
     )
 
 
@@ -288,6 +321,12 @@ def _evaluate_precondition(
             return CraftApplicabilityStatus.APPLICABLE, f"item class {item.item_class} matched"
         return CraftApplicabilityStatus.NOT_APPLICABLE, f"item class {item.item_class} not in {precondition.values}"
     return CraftApplicabilityStatus.UNKNOWN, f"unsupported precondition {precondition.kind.value}"
+
+
+def _availability_reason(action: CraftActionDefinition) -> str:
+    if action.availability_notes:
+        return " ".join(action.availability_notes)
+    return f"{action.display_name} is unavailable in the current playable action set."
 
 
 def _affix_resolution_from(enrichment: Any | None) -> AffixStateResolution | None:

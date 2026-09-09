@@ -7,7 +7,8 @@
   "notes": [
     "Task 7A normalized crafting-action dataset.",
     "Applicability only; no outcome simulation or probability data.",
-    "Open-affix applicability may be derived with affix-capacity dataset affix-capacity-poe2-2026-08-12-research."
+    "Open-affix applicability may be derived with affix-capacity dataset affix-capacity-poe2-2026-08-12-research.",
+    "Omen of Greater Annulment is retained as a historical/provisional action identity but excluded from current-league candidate generation because current source evidence marks it unavailable/drop-disabled."
   ],
   "provenance": [
     {
@@ -263,6 +264,10 @@
       "mechanic_summary": "The Omen makes the next Orb of Annulment remove two modifiers.",
       "verification_status": "PROVISIONAL",
       "simulation_supported": false,
+      "availability_status": "UNAVAILABLE_CURRENT_LEAGUE",
+      "availability_notes": [
+        "Omen of Greater Annulment is unavailable/drop-disabled in the current playable league context; keep the historical action identity but do not offer it as a current craft path."
+      ],
       "required_materials": [
         {"asset_id": "dc:poe2:economy-asset:currency:orb-of-annulment", "quantity": "1"},
         {"asset_id": "dc:poe2:economy-asset:ritual:omen-of-greater-annulment", "quantity": "1"}
@@ -273,7 +278,10 @@
         {"kind": "MIN_EXPLICIT_MODIFIERS", "values": ["ANY", "2"], "description": "Removing two modifiers requires two eligible explicit modifiers.", "verification_status": "VERIFIED", "provenance": [{"source_id": "game8-omen-greater-annulment", "source_type": "COMMUNITY", "source_uri": "https://game8.co/games/Path-of-Exile-2/archives/491758", "retrieved_at": "2026-08-12T00:00:00+02:00", "verification_status": "PROVISIONAL", "confidence_level": "LOW"}]}
       ],
       "unknown_conditions": [],
-      "provenance": [{"source_id": "game8-omen-greater-annulment", "source_type": "COMMUNITY", "source_uri": "https://game8.co/games/Path-of-Exile-2/archives/491758", "retrieved_at": "2026-08-12T00:00:00+02:00", "verification_status": "PROVISIONAL", "confidence_level": "LOW"}]
+      "provenance": [
+        {"source_id": "game8-omen-greater-annulment", "source_type": "COMMUNITY", "source_uri": "https://game8.co/games/Path-of-Exile-2/archives/491758", "retrieved_at": "2026-08-12T00:00:00+02:00", "verification_status": "PROVISIONAL", "confidence_level": "LOW"},
+        {"source_id": "poe2wiki-omen-greater-annulment-availability", "source_type": "COMMUNITY", "source_uri": "https://www.poe2wiki.net/wiki/Omen_of_Greater_Annulment", "retrieved_at": "2026-09-09T00:00:00+02:00", "verification_status": "PROVISIONAL", "confidence_level": "MEDIUM", "notes": "Availability/status evidence for current-league candidate filtering."}
+      ]
     },
     {
       "action_id": "dc:poe2:craft-action:essence-of-hysteria",
