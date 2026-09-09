@@ -23,6 +23,12 @@ mechanic promotion. The evidence remained insufficient to verify uniform
 selection or special-origin eligibility, so no rule was promoted. See
 [ANNULMENT_ANALYTICAL_PROBABILITY_EVIDENCE_2026-08-25.md](data/ANNULMENT_ANALYTICAL_PROBABILITY_EVIDENCE_2026-08-25.md).
 
+Issue #89 rechecked current-game Annulment evidence, including Omen of Light and
+Desecrated-modifier context. It still did not verify a numeric selection law or
+the special-origin eligibility needed for a production rule, so this registry
+remains empty. See
+[ANNULMENT_ANALYTICAL_PROBABILITY_EVIDENCE_2026-09-09.md](data/ANNULMENT_ANALYTICAL_PROBABILITY_EVIDENCE_2026-09-09.md).
+
 ## Registry Envelope
 
 ```json

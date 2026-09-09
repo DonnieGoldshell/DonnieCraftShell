@@ -40,6 +40,7 @@ EMPTY_PRODUCTION_REGISTRY = (
     / "verified-analytical-mechanics-empty-2026-08-25"
     / "registry.json"
 )
+ISSUE_89_EVIDENCE_ARTIFACT = ROOT / "docs" / "data" / "ANNULMENT_ANALYTICAL_PROBABILITY_EVIDENCE_2026-09-09.md"
 
 
 class AnalyticalProbabilityRegistryTests(unittest.TestCase):
@@ -78,6 +79,22 @@ class AnalyticalProbabilityRegistryTests(unittest.TestCase):
         self.assertEqual(model.probability_completeness, ProbabilityCompleteness.UNKNOWN)
         self.assertTrue(all(item.probability is None for item in model.outcome_probabilities))
         self.assertFalse(can_calculate_expected_value(model))
+
+    def test_issue_89_current_game_recheck_does_not_promote_annulment_rule(self):
+        evidence = ISSUE_89_EVIDENCE_ARTIFACT.read_text(encoding="utf-8")
+        registry = AnalyticalMechanicRegistry.from_json_files((EMPTY_PRODUCTION_REGISTRY,))
+        model = AnalyticalProbabilityProvider(registry.rules, load_warnings=registry.warnings).get_probability_model(
+            self.item,
+            self.outcome_set,
+            self.context,
+        )
+
+        self.assertIn("INSUFFICIENT EVIDENCE — REMAINS UNKNOWN", evidence)
+        self.assertIn("Omen of Light", evidence)
+        self.assertIn("Bramble Spike", evidence)
+        self.assertEqual(registry.rules, ())
+        self.assertEqual(model.probability_completeness, ProbabilityCompleteness.UNKNOWN)
+        self.assertTrue(any(probability.probability is None for probability in model.outcome_probabilities))
 
     def test_valid_synthetic_verified_record_loads_and_maps_to_rule(self):
         registry = analytical_mechanic_registry_from_dict(self._registry_payload((self._valid_rule(),)))

@@ -153,3 +153,27 @@ blockers remain legitimate.
 
 See
 [ANNULMENT_ANALYTICAL_PROBABILITY_EVIDENCE_2026-08-25.md](data/ANNULMENT_ANALYTICAL_PROBABILITY_EVIDENCE_2026-08-25.md).
+
+## Issue 89 Current-Game Annulment Recheck
+
+Issue #89 repeated the Annulment evidence review on `2026-09-09` against the
+current game-facing sources. The decision remains:
+
+```text
+INSUFFICIENT EVIDENCE — REMAINS UNKNOWN
+```
+
+Current PoE2DB evidence supports ordinary Annulment random-removal wording plus
+Sinistral, Dextral, and Omen of Light eligible-set restrictions. Current
+Desecrated-modifier documentation supports treating Desecrated state as relevant
+to affix-slot/targeting analysis. These facts still do not verify that
+selection is uniform within any eligible set, nor do they verify the ordinary
+Annulment treatment of crafted, Desecrated, fractured, locked, or other
+special-origin modifiers in the First Playable Bramble Spike state.
+
+No production analytical rule was promoted. The production registry remains
+empty, real Annulment probability remains `UNKNOWN`, and the Bramble Spike
+probability blocker remains valid.
+
+See
+[ANNULMENT_ANALYTICAL_PROBABILITY_EVIDENCE_2026-09-09.md](data/ANNULMENT_ANALYTICAL_PROBABILITY_EVIDENCE_2026-09-09.md).
