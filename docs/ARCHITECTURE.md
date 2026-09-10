@@ -171,6 +171,8 @@ Issue 65 layers scoped market inference v1 onto that preview model. It scores co
 
 Issue 67 adds a headline valuation presentation boundary to the Advisor manual valuation preview. API clients should use `market_valuation` for player-facing estimated market value semantics and treat the raw aggregation median as diagnostics unless structured inference reaches `INFERRED_MARKET_BAND`.
 
+Issue 93 adds [COMPARABLE_LISTING_ACQUISITION.md](COMPARABLE_LISTING_ACQUISITION.md). The valuation layer now has a deterministic acquisition contract for future real comparable-listing providers, but the current official-source review found no compliant automatic PoE2 rare-item listing source. The implemented official-provider placeholder fails closed with `UNSUPPORTED` status and zero listings; manual comparable evidence remains the production path.
+
 Task 11A adds [SCENARIO_ANALYSIS.md](SCENARIO_ANALYSIS.md) and [DECISION_READINESS.md](DECISION_READINESS.md). Scenario analysis is allowed when EV is not; `EV_READY` is a strict gate for future EV work and does not calculate EV.
 
 Task 11B adds [EXPECTED_VALUE.md](EXPECTED_VALUE.md). EV results retain contribution breakdowns, evidence references, economy snapshots, dataset versions, and algorithm version `dc-ev-v1`, but still produce no Advisor recommendation.
