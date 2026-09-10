@@ -25,7 +25,7 @@ from .modifier_resolver import enrich_item
 from .parser import ParseResult, parse_clipboard_item
 from .probability import CurrentResearchProbabilityProvider, OutcomeProbabilityModel, ProbabilityContext, ProbabilityProvider
 from .scenario_analysis import OutcomeValuation, ScenarioAnalysis, ScenarioAnalysisService
-from .valuation import ValuationResult
+from .valuation import ComparableEvidenceSet, OutcomeValuationInferenceResult, OutcomeValuationInferenceService, ValuationResult
 
 
 class AdvisorAnalysisStatus(str, Enum):
@@ -109,6 +109,7 @@ class AdvisorAnalysisRequest:
     current_valuation: ValuationResult | None = None
     current_market_valuation: CurrentMarketValuation | None = None
     outcome_valuations_by_outcome_id: Mapping[str, ValuationResult] | None = None
+    outcome_valuation_inference_evidence_set: ComparableEvidenceSet | None = None
     risk_context: AdvisorRiskContext | None = None
     as_of: datetime | None = None
 
@@ -131,6 +132,7 @@ class ActionAnalysisResult:
     probability_model: OutcomeProbabilityModel | None = None
     scenario_analysis: ScenarioAnalysis | None = None
     expected_value_result: ExpectedValueResult | None = None
+    outcome_valuation_inferences: tuple[OutcomeValuationInferenceResult, ...] = ()
     missing_requirements: tuple[MissingAnalysisRequirement, ...] = ()
     warnings: tuple[str, ...] = ()
 
@@ -174,6 +176,7 @@ class CraftAdvisorOrchestrator:
         advisor_decision_engine: AdvisorDecisionEngine | None = None,
         risk_policy_engine: AdvisorRiskPolicyEngine | None = None,
         stop_continue_engine: StopContinueDecisionEconomicsEngine | None = None,
+        outcome_valuation_inference_service: OutcomeValuationInferenceService | None = None,
         parser=parse_clipboard_item,
     ):
         self.game_data_repository = game_data_repository
@@ -187,6 +190,7 @@ class CraftAdvisorOrchestrator:
         self.advisor_decision_engine = advisor_decision_engine or AdvisorDecisionEngine()
         self.risk_policy_engine = risk_policy_engine or AdvisorRiskPolicyEngine()
         self.stop_continue_engine = stop_continue_engine or StopContinueDecisionEconomicsEngine()
+        self.outcome_valuation_inference_service = outcome_valuation_inference_service or OutcomeValuationInferenceService()
         self.parser = parser or parse_clipboard_item
 
     def with_economy_repository(self, economy_repository: EconomyRepository) -> "CraftAdvisorOrchestrator":
@@ -203,6 +207,7 @@ class CraftAdvisorOrchestrator:
             advisor_decision_engine=self.advisor_decision_engine,
             risk_policy_engine=self.risk_policy_engine,
             stop_continue_engine=self.stop_continue_engine,
+            outcome_valuation_inference_service=self.outcome_valuation_inference_service,
             parser=self.parser,
         )
 
@@ -375,13 +380,28 @@ class CraftAdvisorOrchestrator:
                     "Expected Value",
                 )
             )
-        outcome_valuations = _outcome_valuations(outcome_set, request.outcome_valuations_by_outcome_id or {})
-        if len(outcome_valuations) < len(outcome_set.hypothetical_states):
+        outcome_inferences = self.outcome_valuation_inference_service.infer(
+            item,
+            outcome_set,
+            request.outcome_valuation_inference_evidence_set,
+            as_of,
+        )
+        outcome_valuations = _outcome_valuations(
+            outcome_set,
+            request.outcome_valuations_by_outcome_id or {},
+            outcome_inferences,
+        )
+        covered_outcome_valuation_count = _covered_outcome_valuation_count(
+            outcome_set,
+            request.outcome_valuations_by_outcome_id or {},
+            outcome_inferences,
+        )
+        if covered_outcome_valuation_count < len(outcome_set.hypothetical_states):
             missing.append(
                 MissingAnalysisRequirement(
                     MissingRequirementKind.OUTCOME_VALUATION_EVIDENCE_REQUIRED,
                     candidate.action.action_id,
-                    f"Outcome valuation coverage is {len(outcome_valuations)}/{len(outcome_set.hypothetical_states)}.",
+                    f"Outcome valuation coverage is {covered_outcome_valuation_count}/{len(outcome_set.hypothetical_states)}.",
                     "Scenario/Expected Value",
                 )
             )
@@ -415,8 +435,16 @@ class CraftAdvisorOrchestrator:
             probability_model=probability_model,
             scenario_analysis=scenario,
             expected_value_result=ev,
+            outcome_valuation_inferences=outcome_inferences,
             missing_requirements=tuple(missing),
-            warnings=(*candidate.warnings, *outcome_set.warnings, *probability_model.warnings, *scenario.warnings, *ev.warnings),
+            warnings=(
+                *candidate.warnings,
+                *outcome_set.warnings,
+                *probability_model.warnings,
+                *(warning for inference in outcome_inferences for warning in inference.warnings),
+                *scenario.warnings,
+                *ev.warnings,
+            ),
         )
 
 
@@ -452,11 +480,39 @@ def _cost_missing(candidate: CraftActionCandidate) -> tuple[MissingAnalysisRequi
 def _outcome_valuations(
     outcome_set: CraftOutcomeSet,
     supplied: Mapping[str, ValuationResult],
+    inferred: tuple[OutcomeValuationInferenceResult, ...] = (),
 ) -> tuple[OutcomeValuation, ...]:
-    return tuple(
-        OutcomeValuation(state.outcome_id, supplied[state.outcome_id])
-        for state in outcome_set.hypothetical_states
-        if state.outcome_id in supplied
+    inferred_by_id = {item.outcome_id: item for item in inferred}
+    valuations = []
+    for state in outcome_set.hypothetical_states:
+        if state.outcome_id in supplied:
+            valuations.append(OutcomeValuation(state.outcome_id, supplied[state.outcome_id], ("Manual outcome valuation evidence takes precedence over inferred comparable evidence.",)))
+            continue
+        inference = inferred_by_id.get(state.outcome_id)
+        if inference is not None and inference.valuation is not None:
+            valuations.append(OutcomeValuation(state.outcome_id, inference.valuation, inference.warnings))
+    return tuple(valuations)
+
+
+def _covered_outcome_valuation_count(
+    outcome_set: CraftOutcomeSet,
+    supplied: Mapping[str, ValuationResult],
+    inferred: tuple[OutcomeValuationInferenceResult, ...],
+) -> int:
+    covered = set(supplied)
+    inferred_by_id = {item.outcome_id: item for item in inferred}
+    for state in outcome_set.hypothetical_states:
+        inference = inferred_by_id.get(state.outcome_id)
+        if inference is not None and inference.valuation is not None and _valuation_is_usable_for_outcome(inference.valuation):
+            covered.add(state.outcome_id)
+    return len(covered)
+
+
+def _valuation_is_usable_for_outcome(valuation: ValuationResult) -> bool:
+    return (
+        valuation.estimated_value is not None
+        and valuation.estimate_type.value == "LISTING_DERIVED"
+        and valuation.readiness.value in {"READY", "PARTIAL"}
     )
 
 
@@ -715,8 +771,9 @@ def _outcome_valuation_readiness(
             )
             continue
         outcome_ids = tuple(state.outcome_id for state in result.outcome_set.hypothetical_states)
-        missing_outcomes = tuple(outcome_id for outcome_id in outcome_ids if outcome_id not in supplied)
-        any_valued = any_valued or len(missing_outcomes) < len(outcome_ids)
+        covered_outcomes = _covered_outcome_valuation_ids(result, supplied)
+        missing_outcomes = tuple(outcome_id for outcome_id in outcome_ids if outcome_id not in covered_outcomes)
+        any_valued = any_valued or bool(covered_outcomes)
         targets.append(
             EvidenceReadinessTarget(
                 target_type="OUTCOME_VALUATION",
@@ -726,7 +783,7 @@ def _outcome_valuation_readiness(
                 outcome_ids=missing_outcomes,
                 reason=(
                     f"{result.candidate.action.display_name} has valuation coverage "
-                    f"{len(outcome_ids) - len(missing_outcomes)}/{len(outcome_ids)}."
+                    f"{len(covered_outcomes)}/{len(outcome_ids)}."
                 ),
                 blocks=_blocks_for(action_diagnostics),
             )
@@ -755,6 +812,18 @@ def _outcome_valuation_readiness(
         evidence_tool="manual-outcome-valuation",
         diagnostics=diagnostics,
     )
+
+
+def _covered_outcome_valuation_ids(result: ActionAnalysisResult, supplied: Mapping[str, ValuationResult]) -> set[str]:
+    ids: set[str] = set(supplied)
+    if result.outcome_set is None:
+        return ids
+    inferred_by_id = {item.outcome_id: item for item in result.outcome_valuation_inferences}
+    for state in result.outcome_set.hypothetical_states:
+        inference = inferred_by_id.get(state.outcome_id)
+        if inference is not None and inference.valuation is not None and _valuation_is_usable_for_outcome(inference.valuation):
+            ids.add(state.outcome_id)
+    return ids
 
 
 def _verified_mechanics_readiness(
@@ -880,4 +949,11 @@ def _valuation_evidence_ids(
     for result in action_results:
         if result.scenario_analysis is not None:
             ids.update(result.scenario_analysis.valuation_evidence_ids)
+        for inference in result.outcome_valuation_inferences:
+            if inference.evidence_set_id:
+                ids.add(inference.evidence_set_id)
+            if inference.source_evidence_set_id:
+                ids.add(inference.source_evidence_set_id)
+            if inference.valuation is not None:
+                ids.update(inference.valuation.source_evidence_ids)
     return tuple(sorted(ids))

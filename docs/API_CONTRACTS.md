@@ -168,6 +168,14 @@ player-readable display strings, inference confidence, and
 not fall back to preview `estimated_value` when `market_valuation.status` is
 not `ESTIMATED_MARKET_VALUE`.
 
+Issue 91 adds per-action `outcome_valuation_inferences` to
+`POST /api/v1/advisor/analyze` action responses. Each item reports the outcome
+ID, materialized hypothetical item identity, inference status, source/rescored
+evidence IDs, supporting comparable IDs, optional point value, optional
+supported range, and warnings. These diagnostics are controlled by Comparable
+Valuation Model market inference status. `BROAD_BRACKET_ONLY` must not be
+displayed as an outcome point valuation or used to clear EV readiness.
+
 Issue 69 adds craft investment transport contracts. Ledger preview accepts
 operator-entered realized cost entries plus the current `market_valuation`
 object and returns cost basis and current profit-position status. Point

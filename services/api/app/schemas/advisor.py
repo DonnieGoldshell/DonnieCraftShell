@@ -665,6 +665,21 @@ class ProbabilitySummaryDto(ApiModel):
     warnings: list[str] = []
 
 
+class OutcomeValuationInferenceDto(ApiModel):
+    outcome_id: str
+    action_id: str
+    hypothetical_item_analysis_id: str
+    status: str
+    evidence_set_id: str | None = None
+    source_evidence_set_id: str | None = None
+    supporting_comparable_ids: list[str] = []
+    estimated_value: EconomicValueDto | None = None
+    supported_low: EconomicValueDto | None = None
+    supported_high: EconomicValueDto | None = None
+    inference_status: str | None = None
+    warnings: list[str] = []
+
+
 class ActionAnalysisDto(ApiModel):
     action_id: str
     display_name: str
@@ -679,6 +694,7 @@ class ActionAnalysisDto(ApiModel):
     outcome_space_completeness: str | None = None
     probability_completeness: str | None = None
     probability: ProbabilitySummaryDto | None = None
+    outcome_valuation_inferences: list[OutcomeValuationInferenceDto] = []
     scenario: ScenarioSummaryDto | None = None
     expected_value: ExpectedValueSummaryDto | None = None
     advisor_candidate_status: str | None = None

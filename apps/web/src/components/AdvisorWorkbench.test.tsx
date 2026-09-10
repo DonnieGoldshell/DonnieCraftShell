@@ -102,6 +102,7 @@ const quiverResponse: AdvisorAnalyzeResponse = {
       outcome_ids: ["outcome-1", "outcome-2", "outcome-3", "outcome-4", "outcome-5", "outcome-6"],
       outcome_space_completeness: "COMPLETE",
       probability_completeness: "UNKNOWN",
+      outcome_valuation_inferences: [],
       scenario: {
         readiness: "INSUFFICIENT_DATA",
         outcome_count: 6,
@@ -157,6 +158,7 @@ const quiverResponse: AdvisorAnalyzeResponse = {
       outcome_ids: [],
       outcome_space_completeness: null,
       probability_completeness: "UNKNOWN",
+      outcome_valuation_inferences: [],
       scenario: null,
       expected_value: null,
       advisor_candidate_status: "NON_RANKABLE",

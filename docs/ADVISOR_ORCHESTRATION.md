@@ -16,6 +16,7 @@ Clipboard
 -> enumerate craft outcomes
 -> attach probability model
 -> attach supplied valuation evidence
+-> infer outcome valuations from structured comparable evidence where defensible
 -> run scenario analysis
 -> calculate EV only when ScenarioAnalysis is EV_READY
 -> run raw AdvisorDecisionEngine
@@ -39,6 +40,7 @@ Candidate enumeration uses only actions whose crafting definition is available f
 - optional game context,
 - optional current item `ValuationResult`,
 - optional mapping of `outcome_id -> ValuationResult`,
+- optional current/manual `ComparableEvidenceSet` used for outcome valuation inference,
 - optional `AdvisorRiskContext`,
 - optional `as_of` timestamp.
 
@@ -148,6 +150,14 @@ The current vertical pipeline supports Rare Quivers. Normal, Magic, Unique, and 
 ## Valuation And Probability
 
 The orchestrator never invents valuation evidence. If current valuation or outcome valuations are missing, the item can still be parsed, enriched, priced, and have outcomes enumerated, but scenario/EV/Advisor readiness reflects the missing input.
+
+Issue 91 adds outcome valuation inference as an orchestration step. The
+orchestrator may pass an existing structured comparable evidence set to
+`OutcomeValuationInferenceService`, which materializes every hypothetical
+outcome state and rescores comparables independently. Only inferred market bands
+become usable point outcome valuations. Broad brackets and insufficient evidence
+remain diagnostics and do not clear missing outcome valuation requirements. See
+[OUTCOME_VALUATION_INFERENCE.md](OUTCOME_VALUATION_INFERENCE.md).
 
 The orchestrator uses the injected probability provider. Probability context
 includes league, game version when supplied, crafting dataset version, modifier

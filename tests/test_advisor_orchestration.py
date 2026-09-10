@@ -22,6 +22,7 @@ from packages.shared.donniecraftshell_contracts.craft_outcomes import CraftOutco
 from packages.shared.donniecraftshell_contracts.crafting_actions import CraftActionEngine, load_crafting_dataset
 from packages.shared.donniecraftshell_contracts.domain import DataProvenance, GameContext, SourceType, VerificationStatus
 from packages.shared.donniecraftshell_contracts.economy import (
+    DIVINE_ASSET_ID,
     EXALTED_ASSET_ID,
     OMEN_OF_GREATER_ANNULMENT_ASSET_ID,
     ORB_OF_ANNULMENT_ASSET_ID,
@@ -46,7 +47,19 @@ from packages.shared.donniecraftshell_contracts.probability import (
     ProbabilityCompleteness,
 )
 from packages.shared.donniecraftshell_contracts.scenario_analysis import DecisionReadiness
-from packages.shared.donniecraftshell_contracts.valuation import ValuationEstimateType, ValuationReadiness, ValuationResult
+from packages.shared.donniecraftshell_contracts.valuation import (
+    ComparableQuery,
+    ComparableStrategy,
+    ManualListingObservation,
+    ManualTradeProvider,
+    OutcomeValuationInferenceStatus,
+    StructuredComparableItem,
+    ValuationEstimateType,
+    ValuationReadiness,
+    ValuationResult,
+    evidence_set_from_results,
+    materialize_hypothetical_item_state,
+)
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -177,8 +190,129 @@ class AdvisorOrchestrationTests(unittest.TestCase):
         self.assertEqual(result.raw_advisor_decision.decision_type, AdvisorDecisionType.NO_RECOMMENDATION)
         readiness = self._readiness(result)
         self.assertEqual(readiness[EvidenceReadinessCategory.CURRENT_ITEM_VALUATION].status, EvidenceReadinessStatus.READY)
-        self.assertEqual(readiness[EvidenceReadinessCategory.OUTCOME_VALUATION].status, EvidenceReadinessStatus.PARTIAL)
+        self.assertEqual(readiness[EvidenceReadinessCategory.OUTCOME_VALUATION].status, EvidenceReadinessStatus.READY)
         self.assertEqual(readiness[EvidenceReadinessCategory.PROBABILITY].status, EvidenceReadinessStatus.MISSING)
+
+    def test_hypothetical_annulment_states_materialize_distinct_removed_modifiers(self):
+        orchestrator = self._orchestrator(parser=self._fixed_parser())
+        initial = orchestrator.analyze(self._request())
+        states = self._action(initial, "dc:poe2:craft-action:orb-of-annulment").outcome_set.hypothetical_states
+
+        first_item, first_warnings = materialize_hypothetical_item_state(self.fixed_parse.item, states[0])
+        second_item, second_warnings = materialize_hypothetical_item_state(self.fixed_parse.item, states[1])
+
+        self.assertEqual(first_warnings, ())
+        self.assertEqual(second_warnings, ())
+        self.assertEqual(len(first_item.explicit_modifiers), 5)
+        self.assertEqual(len(second_item.explicit_modifiers), 5)
+        self.assertNotEqual(
+            {modifier.raw_text for modifier in first_item.explicit_modifiers},
+            {modifier.raw_text for modifier in second_item.explicit_modifiers},
+        )
+        self.assertEqual(len(self.fixed_parse.item.explicit_modifiers), 6)
+
+    def test_outcome_valuation_inference_rescores_comparable_against_hypothetical_state(self):
+        orchestrator = self._orchestrator(parser=self._fixed_parser())
+        initial = orchestrator.analyze(self._request())
+        annulment = self._action(initial, "dc:poe2:craft-action:orb-of-annulment")
+        evidence = self._evidence_set(
+            (
+                ("exact-current-a", "100", self.raw_quiver_6),
+                ("exact-current-b", "101", self.raw_quiver_6),
+                ("exact-current-c", "102", self.raw_quiver_6),
+            )
+        )
+
+        result = orchestrator.analyze(self._request(current=self._valuation("current", "100"), inference_evidence=evidence))
+        inferred_annulment = self._action(result, "dc:poe2:craft-action:orb-of-annulment")
+        first_inference = inferred_annulment.outcome_valuation_inferences[0]
+
+        self.assertEqual(len(inferred_annulment.outcome_valuation_inferences), len(annulment.outcome_set.hypothetical_states))
+        self.assertEqual(first_inference.status, OutcomeValuationInferenceStatus.SUPPORTED_RANGE_ONLY)
+        self.assertIsNone(first_inference.valuation.estimated_value)
+        self.assertTrue(any("Rescored for hypothetical outcome" in warning for warning in first_inference.warnings))
+        self.assertTrue(all(anchor.comparable_id.startswith("outcome-inference:") for anchor in first_inference.comparable_valuation.anchor_results))
+
+    def test_inferred_market_band_can_make_one_outcome_valuation_ready_without_siblings(self):
+        orchestrator = self._orchestrator(
+            economy_repository=self._economy_with_annulment_quote(),
+            parser=self._fixed_parser(),
+            probability_provider=CompleteSyntheticProbabilityProvider(),
+        )
+        initial = orchestrator.analyze(self._request())
+        annulment = self._action(initial, "dc:poe2:craft-action:orb-of-annulment")
+        first_state = annulment.outcome_set.hypothetical_states[0]
+        hypothetical_item, warnings = materialize_hypothetical_item_state(self.fixed_parse.item, first_state)
+        self.assertEqual(warnings, ())
+        evidence = self._evidence_set(
+            (
+                ("hypothetical-a", "100", hypothetical_item.raw_clipboard_text, hypothetical_item),
+                ("hypothetical-b", "101", hypothetical_item.raw_clipboard_text, hypothetical_item),
+                ("hypothetical-c", "102", hypothetical_item.raw_clipboard_text, hypothetical_item),
+            )
+        )
+
+        result = orchestrator.analyze(self._request(current=self._valuation("current", "90"), inference_evidence=evidence))
+        inferred_annulment = self._action(result, "dc:poe2:craft-action:orb-of-annulment")
+        ready = [
+            inference
+            for inference in inferred_annulment.outcome_valuation_inferences
+            if inference.status == OutcomeValuationInferenceStatus.ESTIMATED_VALUE
+        ]
+
+        self.assertEqual(len(ready), 1)
+        self.assertEqual(ready[0].outcome_id, first_state.outcome_id)
+        self.assertEqual(inferred_annulment.scenario_analysis.valued_outcome_count, 1)
+        self.assertEqual(inferred_annulment.scenario_analysis.decision_readiness, DecisionReadiness.SCENARIO_ONLY)
+
+    def test_manual_outcome_valuation_takes_precedence_over_inference(self):
+        orchestrator = self._orchestrator(
+            economy_repository=self._economy_with_annulment_quote(),
+            parser=self._fixed_parser(),
+            probability_provider=CompleteSyntheticProbabilityProvider(),
+        )
+        initial = orchestrator.analyze(self._request())
+        annulment = self._action(initial, "dc:poe2:craft-action:orb-of-annulment")
+        first_state = annulment.outcome_set.hypothetical_states[0]
+        hypothetical_item, _ = materialize_hypothetical_item_state(self.fixed_parse.item, first_state)
+        evidence = self._evidence_set(
+            (
+                ("hypothetical-a", "100", hypothetical_item.raw_clipboard_text, hypothetical_item),
+                ("hypothetical-b", "101", hypothetical_item.raw_clipboard_text, hypothetical_item),
+                ("hypothetical-c", "102", hypothetical_item.raw_clipboard_text, hypothetical_item),
+            )
+        )
+        manual = {first_state.outcome_id: self._valuation(first_state.outcome_id, "999")}
+
+        result = orchestrator.analyze(
+            self._request(current=self._valuation("current", "90"), outcome_vals=manual, inference_evidence=evidence)
+        )
+        inferred_annulment = self._action(result, "dc:poe2:craft-action:orb-of-annulment")
+
+        self.assertEqual(inferred_annulment.scenario_analysis.best_valuated_outcome.gross_value.amount, Decimal("999"))
+        self.assertTrue(any("Manual outcome valuation evidence takes precedence" in warning for warning in inferred_annulment.scenario_analysis.warnings))
+
+    def test_bramble_spike_broad_comparable_pilot_remains_zero_of_six_outcome_point_valuations(self):
+        evidence = self._evidence_set(
+            (
+                ("gloom-barb-450-divine", "450", (FIXTURE_DIR / "gloom_barb_visceral_quiver_comparable_advanced.txt").read_text(encoding="utf-8")),
+                ("bramble-barb-450-divine", "450", (FIXTURE_DIR / "gloom_barb_visceral_quiver_comparable_advanced.txt").read_text(encoding="utf-8")),
+                ("skull-quill-45-divine", "45", (FIXTURE_DIR / "skull_quill_primed_quiver_comparable_advanced.txt").read_text(encoding="utf-8")),
+            ),
+            currency_asset_id=DIVINE_ASSET_ID,
+        )
+
+        result = self._orchestrator(parser=self._fixed_parser()).analyze(
+            self._request(current=self._valuation("current", "100"), inference_evidence=evidence)
+        )
+        annulment = self._action(result, "dc:poe2:craft-action:orb-of-annulment")
+
+        self.assertEqual(len(annulment.outcome_valuation_inferences), 6)
+        self.assertEqual(annulment.scenario_analysis.valued_outcome_count, 0)
+        self.assertTrue(
+            all(inference.status != OutcomeValuationInferenceStatus.ESTIMATED_VALUE for inference in annulment.outcome_valuation_inferences)
+        )
+        self.assertTrue(any(item.kind == MissingRequirementKind.OUTCOME_VALUATION_EVIDENCE_REQUIRED for item in annulment.missing_requirements))
 
     def test_fully_synthetic_ev_ready_vertical_pipeline_produces_advisor_and_risk_results(self):
         orchestrator = self._orchestrator(
@@ -387,7 +521,7 @@ class AdvisorOrchestrationTests(unittest.TestCase):
             parser=parser,
         )
 
-    def _request(self, raw=None, current=None, outcome_vals=None, risk=None, game_context=None):
+    def _request(self, raw=None, current=None, outcome_vals=None, risk=None, game_context=None, inference_evidence=None):
         return AdvisorAnalysisRequest(
             raw_clipboard_text=raw or self.raw_quiver_6,
             game_context=game_context,
@@ -397,6 +531,7 @@ class AdvisorOrchestrationTests(unittest.TestCase):
             affix_capacity_dataset_version=AFFIX_CAPACITY_DATASET_ID,
             current_valuation=current,
             outcome_valuations_by_outcome_id=outcome_vals,
+            outcome_valuation_inference_evidence_set=inference_evidence,
             risk_context=risk,
             as_of=AS_OF,
         )
@@ -456,6 +591,47 @@ class AdvisorOrchestrationTests(unittest.TestCase):
             observed_at=AS_OF,
             warnings=("synthetic test-only valuation; not production market evidence",),
         )
+
+    def _evidence_set(self, rows, currency_asset_id=EXALTED_ASSET_ID):
+        query = ComparableQuery(
+            query_id="synthetic-outcome-inference-source-query",
+            valuation_subject_id="synthetic-current-subject",
+            strategy=ComparableStrategy.STRICT,
+            item_class="Quivers",
+            league=LEAGUE,
+            generated_at=AS_OF,
+            warnings=("synthetic test-only comparable evidence set",),
+        )
+        provider = ManualTradeProvider()
+        results = []
+        for index, row in enumerate(rows):
+            listing_id, amount, raw = row[:3]
+            parsed_item = row[3] if len(row) > 3 else parse_clipboard_item(raw).item
+            self.assertIsNotNone(parsed_item)
+            comparable = StructuredComparableItem(
+                raw_clipboard_text=raw,
+                parsed_item=parsed_item,
+                detected_format="ADVANCED",
+            )
+            results.append(
+                provider.result_from_observation(
+                    ManualListingObservation(
+                        observation_id=f"synthetic-observation:{index}",
+                        query_id=query.query_id,
+                        amount=Decimal(amount),
+                        currency_asset_id=currency_asset_id,
+                        league=LEAGUE,
+                        observed_at=AS_OF,
+                        external_listing_id=listing_id,
+                        item_summary="synthetic test-only manual comparable",
+                        comparable_item=comparable,
+                        warnings=("synthetic test-only listing observation",),
+                    ),
+                    self._default_economy(),
+                    AS_OF,
+                )
+            )
+        return evidence_set_from_results(query, provider.provider_name, tuple(results))
 
     def _action(self, result, action_id):
         return next(item for item in result.action_results if item.action_id == action_id)

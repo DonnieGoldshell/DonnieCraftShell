@@ -37,6 +37,7 @@ from packages.shared.donniecraftshell_contracts.parser import parse_clipboard_it
 from packages.shared.donniecraftshell_contracts.valuation import (
     ComparableQualityDelta,
     ComparableQualityDeltaAssessor,
+    ComparableEvidenceSet,
     ComparableQuery,
     ComparableRelevance,
     ComparableRelevanceAssessor,
@@ -48,13 +49,13 @@ from packages.shared.donniecraftshell_contracts.valuation import (
     ManualListingObservation,
     ManualTradeProvider,
     ModifierQualityDelta,
+    OutcomeValuationInferenceResult,
     StructuredComparableItem,
     ValuationAggregator,
     ValuationEvidencePolicy,
-    ValuationEstimateType,
-    ValuationReadiness,
     ValuationResult,
     evidence_set_from_results,
+    valuation_result_with_market_authority,
 )
 
 from services.api.app.mappers.common import economic_value_to_dto, to_jsonable
@@ -93,6 +94,7 @@ from services.api.app.schemas.advisor import (
     ModifierQualityDeltaDto,
     ModifierDto,
     OutcomeProbabilitySummaryDto,
+    OutcomeValuationInferenceDto,
     ProbabilityEvidenceSummaryDto,
     ProbabilityIntervalDto,
     ProbabilitySummaryDto,
@@ -109,7 +111,7 @@ def advisor_request_to_domain(
     economy_repository: EconomyRepository,
 ) -> AdvisorAnalysisRequest:
     as_of = request.as_of or datetime.now(timezone.utc)
-    current_valuation, current_market_valuation = _current_valuation_from_evidence(
+    current_valuation, current_market_valuation, current_evidence_set = _current_valuation_from_evidence(
         request.current_valuation_evidence,
         "current",
         request.league,
@@ -152,6 +154,7 @@ def advisor_request_to_domain(
         current_valuation=current_valuation,
         current_market_valuation=current_market_valuation,
         outcome_valuations_by_outcome_id=outcome_valuations,
+        outcome_valuation_inference_evidence_set=current_evidence_set,
         risk_context=_risk_context(request),
         as_of=as_of,
     )
@@ -337,50 +340,15 @@ def _current_valuation_from_evidence(
     economy_repository: EconomyRepository,
     as_of: datetime,
     subject_clipboard_text: str | None = None,
-) -> tuple[ValuationResult | None, CurrentMarketValuation | None]:
+) -> tuple[ValuationResult | None, CurrentMarketValuation | None, ComparableEvidenceSet | None]:
     if evidence is None:
-        return None, None
+        return None, None, None
     evidence_set = _manual_evidence_set(evidence, subject_id, league, economy_repository, as_of, subject_clipboard_text)
     aggregate = ValuationAggregator().aggregate(evidence_set)
     comparable = ComparableValuationModel().estimate(evidence_set)
     presentation = _market_valuation_presentation_to_dto(aggregate, comparable)
     market = _market_valuation_from_dto(presentation)
-    return _valuation_result_with_market_authority(aggregate, comparable), market
-
-
-def _valuation_result_with_market_authority(
-    aggregate: ValuationResult,
-    comparable: ComparableValuationEstimate,
-) -> ValuationResult:
-    warnings = (
-        *aggregate.warnings,
-        *comparable.warnings,
-        "Current item sell-now baseline is controlled by Comparable Valuation Model inference status.",
-    )
-    if comparable.inference_status == ComparableMarketInferenceStatus.INFERRED_MARKET_BAND:
-        return replace(
-            aggregate,
-            readiness=ValuationReadiness.READY if comparable.status.value == "READY" else ValuationReadiness.PARTIAL,
-            estimate_type=ValuationEstimateType.LISTING_DERIVED,
-            estimated_value=comparable.inferred_market_central,
-            plausible_low=comparable.inferred_market_low,
-            plausible_high=comparable.inferred_market_high,
-            confidence=comparable.confidence,
-            warnings=warnings,
-        )
-    return replace(
-        aggregate,
-        readiness=ValuationReadiness.INSUFFICIENT_DATA,
-        estimate_type=ValuationEstimateType.NONE,
-        estimated_value=None,
-        plausible_low=None,
-        plausible_high=None,
-        confidence=comparable.confidence or aggregate.confidence,
-        warnings=(
-            *warnings,
-            "Current item comparable evidence does not support a point sell-now baseline.",
-        ),
-    )
+    return valuation_result_with_market_authority(aggregate, comparable), market, evidence_set
 
 
 def _craft_investment_entry_from_dto(
@@ -999,11 +967,37 @@ def _action_result_to_dto(action_result, advisor_status: str | None) -> ActionAn
             else None
         ),
         probability=_probability_to_dto(action_result.probability_model),
+        outcome_valuation_inferences=[
+            _outcome_valuation_inference_to_dto(inference)
+            for inference in action_result.outcome_valuation_inferences
+        ],
         scenario=_scenario_to_dto(scenario),
         expected_value=_ev_to_dto(ev),
         advisor_candidate_status=advisor_status,
         warnings=list(action_result.warnings),
         missing_requirements=[_missing_to_dto(item) for item in action_result.missing_requirements],
+    )
+
+
+def _outcome_valuation_inference_to_dto(inference: OutcomeValuationInferenceResult) -> OutcomeValuationInferenceDto:
+    comparable = inference.comparable_valuation
+    return OutcomeValuationInferenceDto(
+        outcome_id=inference.outcome_id,
+        action_id=inference.action_id,
+        hypothetical_item_analysis_id=inference.hypothetical_item_analysis_id,
+        status=inference.status.value,
+        evidence_set_id=inference.evidence_set_id,
+        source_evidence_set_id=inference.source_evidence_set_id,
+        supporting_comparable_ids=list(inference.supporting_comparable_ids),
+        estimated_value=economic_value_to_dto(inference.valuation.estimated_value if inference.valuation else None),
+        supported_low=economic_value_to_dto(
+            comparable.inferred_market_low if comparable and comparable.inferred_market_low else comparable.plausible_low if comparable else None
+        ),
+        supported_high=economic_value_to_dto(
+            comparable.inferred_market_high if comparable and comparable.inferred_market_high else comparable.plausible_high if comparable else None
+        ),
+        inference_status=comparable.inference_status.value if comparable else None,
+        warnings=list(inference.warnings),
     )
 
 

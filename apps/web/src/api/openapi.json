@@ -87,6 +87,14 @@
             ],
             "title": "Outcome Space Completeness"
           },
+          "outcome_valuation_inferences": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/OutcomeValuationInferenceDto"
+            },
+            "title": "Outcome Valuation Inferences",
+            "type": "array"
+          },
           "probability": {
             "anyOf": [
               {
@@ -5640,6 +5648,113 @@
           "outcome_id"
         ],
         "title": "OutcomeProbabilitySummaryDto",
+        "type": "object"
+      },
+      "OutcomeValuationInferenceDto": {
+        "properties": {
+          "action_id": {
+            "title": "Action Id",
+            "type": "string"
+          },
+          "estimated_value": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/EconomicValueDto"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "evidence_set_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Evidence Set Id"
+          },
+          "hypothetical_item_analysis_id": {
+            "title": "Hypothetical Item Analysis Id",
+            "type": "string"
+          },
+          "inference_status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Inference Status"
+          },
+          "outcome_id": {
+            "title": "Outcome Id",
+            "type": "string"
+          },
+          "source_evidence_set_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Evidence Set Id"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "supported_high": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/EconomicValueDto"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "supported_low": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/EconomicValueDto"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "supporting_comparable_ids": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Supporting Comparable Ids",
+            "type": "array"
+          },
+          "warnings": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Warnings",
+            "type": "array"
+          }
+        },
+        "required": [
+          "outcome_id",
+          "action_id",
+          "hypothetical_item_analysis_id",
+          "status"
+        ],
+        "title": "OutcomeValuationInferenceDto",
         "type": "object"
       },
       "ParseItemRequestDto": {
