@@ -1315,8 +1315,8 @@ class AdvisorApiTests(unittest.TestCase):
                     "currency_asset_id": "dc:poe2:economy-asset:currency:divine-orb",
                     "external_listing_id": "bramble-barb-450-divine",
                     "observed_at": AS_OF,
-                    "item_summary": "synthetic test-only second upper anchor using same parsed fixture shape",
-                    "comparable_clipboard_text": fixture("gloom_barb_visceral_quiver_comparable_advanced.txt"),
+                    "item_summary": "synthetic test-only upper anchor using the captured Bramble Barb observation",
+                    "comparable_clipboard_text": fixture("bramble_barb_visceral_quiver_comparable_observation.txt"),
                 },
                 {
                     "amount": "45",
@@ -1428,6 +1428,26 @@ class AdvisorApiTests(unittest.TestCase):
         self.assertEqual(current_readiness["status"], "PARTIAL")
         self.assertIn("market range only", current_readiness["summary"])
         self.assertEqual(current_readiness["targets"], [])
+        annulment = next(
+            action
+            for action in body["actions"]
+            if action["action_id"] == "dc:poe2:craft-action:orb-of-annulment"
+        )
+        self.assertEqual(len(annulment["outcome_valuation_inferences"]), 6)
+        self.assertEqual(annulment["scenario"]["valued_outcome_count"], 0)
+        self.assertTrue(
+            all(
+                inference["status"] != "ESTIMATED_VALUE"
+                and inference["estimated_value"] is None
+                for inference in annulment["outcome_valuation_inferences"]
+            )
+        )
+        self.assertTrue(
+            any(
+                requirement["type"] == "OUTCOME_VALUATION_EVIDENCE_REQUIRED"
+                for requirement in annulment["missing_requirements"]
+            )
+        )
 
     def test_manual_valuation_preview_insufficient_evidence_has_no_headline_estimate(self):
         response = self.client.post(

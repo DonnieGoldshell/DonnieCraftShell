@@ -102,6 +102,7 @@ const quiverResponse: AdvisorAnalyzeResponse = {
       outcome_ids: ["outcome-1", "outcome-2", "outcome-3", "outcome-4", "outcome-5", "outcome-6"],
       outcome_space_completeness: "COMPLETE",
       probability_completeness: "UNKNOWN",
+      outcome_valuation_inferences: [],
       scenario: {
         readiness: "INSUFFICIENT_DATA",
         outcome_count: 6,
@@ -157,6 +158,7 @@ const quiverResponse: AdvisorAnalyzeResponse = {
       outcome_ids: [],
       outcome_space_completeness: null,
       probability_completeness: "UNKNOWN",
+      outcome_valuation_inferences: [],
       scenario: null,
       expected_value: null,
       advisor_candidate_status: "NON_RANKABLE",
@@ -2274,11 +2276,51 @@ describe("AdvisorWorkbench", () => {
   });
 
   it("targets outcome valuation readiness blockers without auto-submitting saved evidence", async () => {
+    const responseWithInferenceDiagnostics: AdvisorAnalyzeResponse = {
+      ...quiverResponse,
+      actions: quiverResponse.actions.map((action) =>
+        action.action_id === "dc:poe2:craft-action:orb-of-annulment"
+          ? {
+              ...action,
+              outcome_valuation_inferences: [
+                {
+                  outcome_id: "outcome-1",
+                  action_id: action.action_id,
+                  hypothetical_item_analysis_id: "hypothetical-outcome-1",
+                  status: "SUPPORTED_RANGE_ONLY",
+                  evidence_set_id: "inferred-range",
+                  source_evidence_set_id: "manual-range",
+                  supporting_comparable_ids: ["gloom-450", "skull-45"],
+                  estimated_value: null,
+                  supported_low: { amount: "15219", unit: "EXALTED_ECONOMIC_UNIT" },
+                  supported_high: { amount: "152190", unit: "EXALTED_ECONOMIC_UNIT" },
+                  inference_status: "BROAD_BRACKET_ONLY",
+                  warnings: ["Market evidence supports only a broad bracket for this outcome."]
+                },
+                {
+                  outcome_id: "outcome-2",
+                  action_id: action.action_id,
+                  hypothetical_item_analysis_id: "hypothetical-outcome-2",
+                  status: "INSUFFICIENT_EVIDENCE",
+                  evidence_set_id: null,
+                  source_evidence_set_id: "manual-range",
+                  supporting_comparable_ids: [],
+                  estimated_value: null,
+                  supported_low: null,
+                  supported_high: null,
+                  inference_status: "INSUFFICIENT_EVIDENCE",
+                  warnings: ["No defensible outcome valuation can be inferred for this outcome."]
+                }
+              ]
+            }
+          : action
+      )
+    };
     const fetchMock = vi
       .fn()
       .mockResolvedValueOnce({
         ok: true,
-        json: async () => quiverResponse
+        json: async () => responseWithInferenceDiagnostics
       })
       .mockResolvedValueOnce({
         ok: true,
@@ -2357,6 +2399,12 @@ describe("AdvisorWorkbench", () => {
     expect(screen.getByLabelText("Targeted outcome valuation progress")).toHaveTextContent(
       "Current item valuation: Missing"
     );
+    const diagnostics = screen.getByLabelText("Outcome valuation inference diagnostics");
+    expect(diagnostics).toHaveTextContent("outcome outcome-1 - Supported Range Only");
+    expect(diagnostics).toHaveTextContent("Market inference: Broad Bracket Only");
+    expect(diagnostics).toHaveTextContent("Source evidence: manual-range");
+    expect(diagnostics).toHaveTextContent("Supporting comparables: gloom-450, skull-45");
+    expect(diagnostics).toHaveTextContent("outcome outcome-2 - Insufficient Evidence");
 
     await user.clear(screen.getByLabelText(/listing amount/i));
     await user.type(screen.getByLabelText(/listing amount/i), "110");

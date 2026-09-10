@@ -8,12 +8,12 @@ trade sites, calculate EV, or recommend.
 from __future__ import annotations
 
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import datetime, timezone
 from decimal import ROUND_FLOOR, Decimal
 from enum import Enum
 
-from .craft_outcomes import HypotheticalItemState
+from .craft_outcomes import CraftOutcomeOperation, CraftOutcomeSet, HypotheticalItemState
 from .domain import (
     AffixType,
     ComparableStrategy,
@@ -137,6 +137,12 @@ class ComparableMarketInferenceStatus(str, Enum):
     INSUFFICIENT_EVIDENCE = "INSUFFICIENT_EVIDENCE"
     BROAD_BRACKET_ONLY = "BROAD_BRACKET_ONLY"
     INFERRED_MARKET_BAND = "INFERRED_MARKET_BAND"
+
+
+class OutcomeValuationInferenceStatus(str, Enum):
+    INSUFFICIENT_EVIDENCE = "INSUFFICIENT_EVIDENCE"
+    SUPPORTED_RANGE_ONLY = "SUPPORTED_RANGE_ONLY"
+    ESTIMATED_VALUE = "ESTIMATED_VALUE"
 
 
 @dataclass(frozen=True)
@@ -642,6 +648,21 @@ class ValuationResult:
         )
 
 
+@dataclass(frozen=True)
+class OutcomeValuationInferenceResult:
+    outcome_id: str
+    action_id: str
+    hypothetical_state_id: str
+    hypothetical_item_analysis_id: str
+    status: OutcomeValuationInferenceStatus
+    valuation: ValuationResult | None
+    comparable_valuation: ComparableValuationEstimate | None
+    evidence_set_id: str | None = None
+    source_evidence_set_id: str | None = None
+    supporting_comparable_ids: tuple[str, ...] = ()
+    warnings: tuple[str, ...] = ()
+
+
 class ValuationAggregator:
     def __init__(self, policy: ValuationAggregationPolicy | None = None):
         self.policy = policy or ValuationAggregationPolicy()
@@ -858,6 +879,196 @@ class ComparableValuationModel:
             warnings=tuple(warnings),
             policy_id=self.policy.policy_id,
         )
+
+
+class OutcomeValuationInferenceService:
+    """Infer outcome valuations by rescoring real comparables against hypothetical item states."""
+
+    def __init__(
+        self,
+        aggregator: ValuationAggregator | None = None,
+        comparable_model: ComparableValuationModel | None = None,
+    ):
+        self.aggregator = aggregator or ValuationAggregator()
+        self.comparable_model = comparable_model or ComparableValuationModel()
+        self.relevance_assessor = ComparableRelevanceAssessor()
+        self.quality_assessor = ComparableQualityDeltaAssessor()
+
+    def infer(
+        self,
+        source_item: ParsedItem,
+        outcome_set: CraftOutcomeSet,
+        source_evidence_set: ComparableEvidenceSet | None,
+        generated_at: datetime,
+    ) -> tuple[OutcomeValuationInferenceResult, ...]:
+        if source_evidence_set is None:
+            return ()
+        results: list[OutcomeValuationInferenceResult] = []
+        for state in outcome_set.hypothetical_states:
+            hypothetical_item, materialization_warnings = materialize_hypothetical_item_state(source_item, state)
+            rescored_evidence = self._rescored_evidence_set(source_evidence_set, state, hypothetical_item)
+            aggregate = self.aggregator.aggregate(rescored_evidence)
+            comparable = self.comparable_model.estimate(rescored_evidence)
+            valuation = valuation_result_with_market_authority(
+                aggregate,
+                comparable,
+                authority_note="Outcome valuation inference is controlled by Comparable Valuation Model inference status.",
+                no_point_warning="Outcome comparable evidence does not support a point valuation for this hypothetical state.",
+            )
+            status = _outcome_inference_status(comparable, valuation)
+            results.append(
+                OutcomeValuationInferenceResult(
+                    outcome_id=state.outcome_id,
+                    action_id=outcome_set.action_id,
+                    hypothetical_state_id=state.outcome_id,
+                    hypothetical_item_analysis_id=hypothetical_item.analysis_id,
+                    status=status,
+                    valuation=valuation,
+                    comparable_valuation=comparable,
+                    evidence_set_id=rescored_evidence.evidence_set_id,
+                    source_evidence_set_id=source_evidence_set.evidence_set_id,
+                    supporting_comparable_ids=comparable.influential_observation_ids or comparable.included_observation_ids,
+                    warnings=tuple((*materialization_warnings, *rescored_evidence.warnings, *valuation.warnings)),
+                )
+            )
+        return tuple(results)
+
+    def _rescored_evidence_set(
+        self,
+        source_evidence_set: ComparableEvidenceSet,
+        state: HypotheticalItemState,
+        hypothetical_item: ParsedItem,
+    ) -> ComparableEvidenceSet:
+        query = replace(
+            source_evidence_set.query,
+            query_id=f"outcome-inference:{state.outcome_id}:{source_evidence_set.query.query_id}",
+            valuation_subject_id=f"valuation-subject:hypothetical:{state.outcome_id}",
+            warnings=(
+                *source_evidence_set.query.warnings,
+                "Outcome valuation inference rescored these comparables against the materialized hypothetical item state.",
+            ),
+        )
+        results = tuple(
+            replace(
+                result,
+                comparable_id=f"outcome-inference:{state.outcome_id}:{result.comparable_id}",
+                query_id=query.query_id,
+                comparable_relevance=self.relevance_assessor.assess(hypothetical_item, result.comparable_item),
+                comparable_quality_delta=self.quality_assessor.assess(hypothetical_item, result.comparable_item),
+                warnings=(
+                    *result.warnings,
+                    f"Rescored for hypothetical outcome {state.outcome_id}; current-item relevance was not reused.",
+                ),
+            )
+            for result in source_evidence_set.results
+        )
+        return evidence_set_from_results(query, source_evidence_set.provider, results, source_evidence_set.policy)
+
+
+def valuation_result_with_market_authority(
+    aggregate: ValuationResult,
+    comparable: ComparableValuationEstimate,
+    authority_note: str = "Current item sell-now baseline is controlled by Comparable Valuation Model inference status.",
+    no_point_warning: str = "Current item comparable evidence does not support a point sell-now baseline.",
+) -> ValuationResult:
+    warnings = (
+        *aggregate.warnings,
+        *comparable.warnings,
+        authority_note,
+    )
+    if comparable.inference_status == ComparableMarketInferenceStatus.INFERRED_MARKET_BAND:
+        return replace(
+            aggregate,
+            readiness=ValuationReadiness.READY if comparable.status == ComparableValuationStatus.READY else ValuationReadiness.PARTIAL,
+            estimate_type=ValuationEstimateType.LISTING_DERIVED,
+            estimated_value=comparable.inferred_market_central,
+            plausible_low=comparable.inferred_market_low,
+            plausible_high=comparable.inferred_market_high,
+            confidence=comparable.confidence,
+            warnings=warnings,
+        )
+    return replace(
+        aggregate,
+        readiness=ValuationReadiness.INSUFFICIENT_DATA,
+        estimate_type=ValuationEstimateType.NONE,
+        estimated_value=None,
+        plausible_low=None,
+        plausible_high=None,
+        confidence=comparable.confidence or aggregate.confidence,
+        warnings=(*warnings, no_point_warning),
+    )
+
+
+def materialize_hypothetical_item_state(
+    source_item: ParsedItem,
+    hypothetical_state: HypotheticalItemState,
+) -> tuple[ParsedItem, tuple[str, ...]]:
+    modifiers = tuple(source_item.modifiers)
+    explicit = tuple(source_item.explicit_modifiers)
+    warnings: list[str] = []
+    for delta in hypothetical_state.deltas:
+        if delta.operation == CraftOutcomeOperation.REMOVE_MODIFIER and delta.removed_modifier is not None:
+            modifiers, removed_from_all = _remove_one_modifier(modifiers, delta.removed_modifier)
+            explicit, removed_from_explicit = _remove_one_modifier(explicit, delta.removed_modifier)
+            if not removed_from_all or not removed_from_explicit:
+                warnings.append(
+                    f"Hypothetical removal for {hypothetical_state.outcome_id} could not be matched exactly in source item modifiers."
+                )
+            continue
+        warnings.append(
+            f"Hypothetical operation {delta.operation.value} is not fully materialized for valuation inference."
+        )
+    return (
+        replace(
+            source_item,
+            analysis_id=f"hypothetical-item:{hypothetical_state.outcome_id}",
+            modifiers=modifiers,
+            explicit_modifiers=explicit,
+            warnings=(
+                *source_item.warnings,
+                "This ParsedItem is a derived hypothetical state for valuation inference; the source ParsedItem was not mutated.",
+                *warnings,
+            ),
+        ),
+        tuple(warnings),
+    )
+
+
+def _remove_one_modifier(
+    modifiers: tuple[ItemModifier, ...],
+    target: ItemModifier,
+) -> tuple[tuple[ItemModifier, ...], bool]:
+    remaining: list[ItemModifier] = []
+    removed = False
+    for modifier in modifiers:
+        if not removed and _same_modifier_instance(modifier, target):
+            removed = True
+            continue
+        remaining.append(modifier)
+    return tuple(remaining), removed
+
+
+def _same_modifier_instance(first: ItemModifier, second: ItemModifier) -> bool:
+    return (
+        first == second
+        or (
+            first.raw_text == second.raw_text
+            and first.affix_type == second.affix_type
+            and first.origin == second.origin
+            and first.tier == second.tier
+        )
+    )
+
+
+def _outcome_inference_status(
+    comparable: ComparableValuationEstimate,
+    valuation: ValuationResult,
+) -> OutcomeValuationInferenceStatus:
+    if comparable.inference_status == ComparableMarketInferenceStatus.INFERRED_MARKET_BAND and valuation.estimated_value is not None:
+        return OutcomeValuationInferenceStatus.ESTIMATED_VALUE
+    if comparable.inference_status == ComparableMarketInferenceStatus.BROAD_BRACKET_ONLY:
+        return OutcomeValuationInferenceStatus.SUPPORTED_RANGE_ONLY
+    return OutcomeValuationInferenceStatus.INSUFFICIENT_EVIDENCE
 
 
 def _anchor_from_result(
@@ -1521,18 +1732,22 @@ def subject_from_hypothetical_state(
     hypothetical_state: HypotheticalItemState,
     dataset_versions: tuple[str, ...] = (),
 ) -> ValuationSubject:
+    hypothetical_item, materialization_warnings = materialize_hypothetical_item_state(source_item, hypothetical_state)
     return ValuationSubject(
         subject_id=f"valuation-subject:hypothetical:{hypothetical_state.outcome_id}",
-        item_class=source_item.item_class,
-        base_type=source_item.base_type,
-        item_level=source_item.item_level,
-        rarity=source_item.rarity,
-        modifiers=source_item.modifiers,
+        item_class=hypothetical_item.item_class,
+        base_type=hypothetical_item.base_type,
+        item_level=hypothetical_item.item_level,
+        rarity=hypothetical_item.rarity,
+        modifiers=hypothetical_item.modifiers,
         source_item_analysis_id=source_item.analysis_id,
         hypothetical_state_id=hypothetical_state.outcome_id,
         dataset_versions=dataset_versions,
-        provenance=source_item.provenance,
-        warnings=("Hypothetical state deltas are retained by identity; Task 10B does not materialize final item modifiers.",),
+        provenance=hypothetical_item.provenance,
+        warnings=(
+            "Hypothetical state deltas were materialized for valuation subject construction.",
+            *materialization_warnings,
+        ),
     )
 
 

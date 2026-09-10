@@ -159,6 +159,13 @@ brackets display as supported ranges, and insufficient evidence displays no
 point value. Aggregator medians remain diagnostic listing statistics unless
 confirmed by structured market inference.
 
+Issue 91 applies the same market-authority rule to hypothetical craft outcomes.
+Outcome valuation inference materializes each `HypotheticalItemState`, rescores
+the existing structured comparable evidence against that outcome item, and then
+uses `ComparableValuationModel` to decide whether a point outcome valuation is
+defensible. `BROAD_BRACKET_ONLY` remains range diagnostics and does not clear EV
+valuation readiness. See [OUTCOME_VALUATION_INFERENCE.md](OUTCOME_VALUATION_INFERENCE.md).
+
 ## Confidence And Liquidity
 
 Confidence inputs:

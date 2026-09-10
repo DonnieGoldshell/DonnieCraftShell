@@ -59,6 +59,7 @@ describe("advisor API client", () => {
           outcome_ids: [],
           outcome_space_completeness: null,
           probability_completeness: "UNKNOWN",
+          outcome_valuation_inferences: [],
           scenario: null,
           expected_value: null,
           advisor_candidate_status: "NON_RANKABLE",

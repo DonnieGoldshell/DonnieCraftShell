@@ -496,6 +496,11 @@ export interface components {
             outcome_ids: string[];
             /** Outcome Space Completeness */
             outcome_space_completeness?: string | null;
+            /**
+             * Outcome Valuation Inferences
+             * @default []
+             */
+            outcome_valuation_inferences: components["schemas"]["OutcomeValuationInferenceDto"][];
             probability?: components["schemas"]["ProbabilitySummaryDto"] | null;
             /** Probability Completeness */
             probability_completeness?: string | null;
@@ -2507,6 +2512,36 @@ export interface components {
             outcome_id: string;
             /** Probability */
             probability?: string | null;
+            /**
+             * Warnings
+             * @default []
+             */
+            warnings: string[];
+        };
+        /** OutcomeValuationInferenceDto */
+        OutcomeValuationInferenceDto: {
+            /** Action Id */
+            action_id: string;
+            estimated_value?: components["schemas"]["EconomicValueDto"] | null;
+            /** Evidence Set Id */
+            evidence_set_id?: string | null;
+            /** Hypothetical Item Analysis Id */
+            hypothetical_item_analysis_id: string;
+            /** Inference Status */
+            inference_status?: string | null;
+            /** Outcome Id */
+            outcome_id: string;
+            /** Source Evidence Set Id */
+            source_evidence_set_id?: string | null;
+            /** Status */
+            status: string;
+            supported_high?: components["schemas"]["EconomicValueDto"] | null;
+            supported_low?: components["schemas"]["EconomicValueDto"] | null;
+            /**
+             * Supporting Comparable Ids
+             * @default []
+             */
+            supporting_comparable_ids: string[];
             /**
              * Warnings
              * @default []
