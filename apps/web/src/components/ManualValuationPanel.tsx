@@ -116,6 +116,10 @@ export const ManualValuationPanel = forwardRef<HTMLElement, Props>(function Manu
     () => buildOutcomeProgress(outcomeValuationTarget, outcomeObservations),
     [outcomeValuationTarget, outcomeObservations]
   );
+  const targetedOutcomeInferenceDiagnostics = useMemo(
+    () => buildOutcomeInferenceDiagnostics(actions, outcomeValuationTarget),
+    [actions, outcomeValuationTarget]
+  );
 
   useEffect(() => {
     if (targetedOutcomeIsAvailable && outcomeValuationTarget?.outcomeId) {
@@ -317,6 +321,32 @@ export const ManualValuationPanel = forwardRef<HTMLElement, Props>(function Manu
               The selected readiness target is no longer present in the current analysis. Re-run analysis before saving
               outcome evidence for it.
             </p>
+          )}
+          {targetedOutcomeInferenceDiagnostics.length > 0 && (
+            <div className="outcome-inference-diagnostics" aria-label="Outcome valuation inference diagnostics">
+              <strong>Inference diagnostics</strong>
+              <ul>
+                {targetedOutcomeInferenceDiagnostics.map(({ actionName, inference }) => (
+                  <li key={`${inference.action_id}:${inference.outcome_id}`}>
+                    <span>
+                      {actionName}: outcome {shortId(inference.outcome_id)} - {titleCase(inference.status)}
+                    </span>
+                    {inference.inference_status && (
+                      <small>Market inference: {titleCase(inference.inference_status)}</small>
+                    )}
+                    {inference.source_evidence_set_id && (
+                      <small>Source evidence: {shortId(inference.source_evidence_set_id)}</small>
+                    )}
+                    {inference.supporting_comparable_ids.length > 0 && (
+                      <small>
+                        Supporting comparables: {inference.supporting_comparable_ids.map(shortId).join(", ")}
+                      </small>
+                    )}
+                    {inference.warnings[0] && <small>{inference.warnings[0]}</small>}
+                  </li>
+                ))}
+              </ul>
+            </div>
           )}
           <small>
             Preview and save are explicit steps. Saved manual evidence is still inactive until it is submitted with a
@@ -1140,4 +1170,28 @@ function buildOutcomeProgress(
     saved,
     missing: Math.max(outcomeIds.length - saved, 0)
   };
+}
+
+function buildOutcomeInferenceDiagnostics(
+  actions: ActionAnalysis[],
+  target:
+    | {
+        actionId: string | null;
+        outcomeIds: string[];
+      }
+    | null
+    | undefined
+): { actionName: string; inference: ActionAnalysis["outcome_valuation_inferences"][number] }[] {
+  const outcomeIds = new Set(target?.outcomeIds ?? []);
+  if (!outcomeIds.size) {
+    return [];
+  }
+  return actions.flatMap((action) => {
+    if (target?.actionId && action.action_id !== target.actionId) {
+      return [];
+    }
+    return action.outcome_valuation_inferences
+      .filter((inference) => outcomeIds.has(inference.outcome_id))
+      .map((inference) => ({ actionName: action.display_name, inference }));
+  });
 }

@@ -296,7 +296,7 @@ class AdvisorOrchestrationTests(unittest.TestCase):
         evidence = self._evidence_set(
             (
                 ("gloom-barb-450-divine", "450", (FIXTURE_DIR / "gloom_barb_visceral_quiver_comparable_advanced.txt").read_text(encoding="utf-8")),
-                ("bramble-barb-450-divine", "450", (FIXTURE_DIR / "gloom_barb_visceral_quiver_comparable_advanced.txt").read_text(encoding="utf-8")),
+                ("bramble-barb-450-divine", "450", (FIXTURE_DIR / "bramble_barb_visceral_quiver_comparable_observation.txt").read_text(encoding="utf-8")),
                 ("skull-quill-45-divine", "45", (FIXTURE_DIR / "skull_quill_primed_quiver_comparable_advanced.txt").read_text(encoding="utf-8")),
             ),
             currency_asset_id=DIVINE_ASSET_ID,

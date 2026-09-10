@@ -1315,8 +1315,8 @@ class AdvisorApiTests(unittest.TestCase):
                     "currency_asset_id": "dc:poe2:economy-asset:currency:divine-orb",
                     "external_listing_id": "bramble-barb-450-divine",
                     "observed_at": AS_OF,
-                    "item_summary": "synthetic test-only second upper anchor using same parsed fixture shape",
-                    "comparable_clipboard_text": fixture("gloom_barb_visceral_quiver_comparable_advanced.txt"),
+                    "item_summary": "synthetic test-only upper anchor using the captured Bramble Barb observation",
+                    "comparable_clipboard_text": fixture("bramble_barb_visceral_quiver_comparable_observation.txt"),
                 },
                 {
                     "amount": "45",

@@ -1,0 +1,4 @@
+Item Class: Quivers
+Rarity: Rare
+Bramble Barb
+Visceral Quiver

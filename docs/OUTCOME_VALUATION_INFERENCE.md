@@ -49,6 +49,7 @@ Outcome valuation inference must not:
 ## Bramble Spike Pilot
 
 The current Gloom Barb / Bramble Barb / Skull Quill pilot evidence supports a broad current-item bracket of roughly `45-450 Divine`.
+The committed pilot fixtures include full Advanced Copy evidence for Gloom Barb and Skull Quill, plus the recovered Bramble Barb name/base observation from the earlier manual comparable evidence. No Gloom Barb modifier text is reused as Bramble Barb evidence.
 
 For the six Bramble Spike Annulment outcomes, the same evidence is rescored per hypothetical state. It does not produce any `INFERRED_MARKET_BAND` point outcome valuations, so the honest result remains:
 
