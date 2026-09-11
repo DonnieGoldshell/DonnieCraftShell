@@ -18,12 +18,16 @@ from packages.shared.donniecraftshell_contracts.valuation import (
     ComparableQualityDeltaAssessor,
     ComparableExclusionReason,
     ComparableMarketInferenceStatus,
+    ComparableListingAcquisitionResult,
+    ComparableListingProviderCapabilities,
     ComparableRelevanceAssessor,
     ComparableRelevanceBand,
     ComparableResult,
     ComparableUsefulnessBand,
     ComparableValuationModel,
     ComparableValuationStatus,
+    ListingAcquisitionFailureReason,
+    ListingAcquisitionStatus,
     ListingStatus,
     LiquidityStatus,
     ManualListingObservation,
@@ -40,11 +44,15 @@ from packages.shared.donniecraftshell_contracts.valuation import (
     ValuationEstimateType,
     ValuationReadiness,
     build_comparable_query,
+    build_comparable_listing_acquisition_request,
     decimal_median,
     decimal_quantile,
+    evidence_set_from_listing_acquisition,
     evidence_set_from_results,
+    merge_manual_and_acquired_evidence_sets,
     subject_from_hypothetical_state,
     subject_from_parsed_item,
+    UnsupportedOfficialTradeListingProvider,
 )
 
 
@@ -492,6 +500,148 @@ class ValuationContractTests(unittest.TestCase):
         self.assertTrue(workflow.capabilities.supports_manual_observations)
         self.assertIn("no network calls", workflow.warnings[0])
         self.assertIn("Open the official Path of Exile Trade site manually.", workflow.instructions)
+
+    def test_listing_acquisition_request_is_deterministic_for_same_structured_subject(self):
+        subject = subject_from_parsed_item(self.item)
+        query = build_comparable_query(subject, quiver_6_roles(self.item), ComparableStrategy.STRICT, LEAGUE, AS_OF)
+
+        first = build_comparable_listing_acquisition_request(subject, query, "future-official-provider", AS_OF)
+        second = build_comparable_listing_acquisition_request(subject, query, "future-official-provider", AS_OF)
+
+        self.assertEqual(first.request_id, second.request_id)
+        self.assertEqual(first.subject_type.value, "CURRENT_ITEM")
+        self.assertEqual(first.league, LEAGUE)
+        self.assertIn("not price heuristics", first.warnings[0])
+
+    def test_listing_acquisition_request_separates_current_and_hypothetical_subject_identity(self):
+        state = self._first_annulment_state()
+        current_subject = subject_from_parsed_item(self.item)
+        hypothetical_subject = subject_from_hypothetical_state(self.item, state)
+        current_query = build_comparable_query(current_subject, quiver_6_roles(self.item), ComparableStrategy.STRICT, LEAGUE, AS_OF)
+        hypothetical_query = build_comparable_query(hypothetical_subject, quiver_6_roles(self.item), ComparableStrategy.STRICT, LEAGUE, AS_OF)
+
+        current_request = build_comparable_listing_acquisition_request(current_subject, current_query, "future-official-provider", AS_OF)
+        hypothetical_request = build_comparable_listing_acquisition_request(hypothetical_subject, hypothetical_query, "future-official-provider", AS_OF)
+
+        self.assertNotEqual(current_request.request_id, hypothetical_request.request_id)
+        self.assertEqual(hypothetical_request.subject_type.value, "HYPOTHETICAL_OUTCOME")
+
+    def test_unsupported_official_listing_provider_fails_closed_without_listings(self):
+        subject = subject_from_parsed_item(self.item)
+        query = build_comparable_query(subject, quiver_6_roles(self.item), ComparableStrategy.STRICT, LEAGUE, AS_OF)
+        request = build_comparable_listing_acquisition_request(subject, query, "official-ggg-trade-listing-unavailable", AS_OF)
+        provider = UnsupportedOfficialTradeListingProvider()
+
+        result = provider.acquire_listings(request, retrieved_at=AS_OF)
+
+        self.assertFalse(provider.capabilities.supports_machine_readable_listing_search)
+        self.assertFalse(provider.capabilities.uses_poesessid)
+        self.assertFalse(provider.capabilities.uses_undocumented_trade_endpoint)
+        self.assertFalse(provider.capabilities.uses_html_scraping)
+        self.assertEqual(result.status, ListingAcquisitionStatus.UNSUPPORTED)
+        self.assertEqual(result.failure_reason, ListingAcquisitionFailureReason.UNSUPPORTED_OFFICIAL_API)
+        self.assertEqual(result.listings, ())
+        self.assertTrue(any("does not expose" in warning for warning in result.warnings))
+        self.assertGreaterEqual(len(result.provenance), 3)
+
+    def test_prohibited_listing_provider_capabilities_are_rejected(self):
+        with self.assertRaises(ValueError):
+            ComparableListingProviderCapabilities(
+                supports_machine_readable_listing_search=True,
+                supports_current_item_subjects=True,
+                supports_hypothetical_outcome_subjects=True,
+                uses_poesessid=True,
+            )
+        with self.assertRaises(ValueError):
+            ComparableListingProviderCapabilities(
+                supports_machine_readable_listing_search=True,
+                supports_current_item_subjects=True,
+                supports_hypothetical_outcome_subjects=True,
+                uses_undocumented_trade_endpoint=True,
+            )
+        with self.assertRaises(ValueError):
+            ComparableListingProviderCapabilities(
+                supports_machine_readable_listing_search=True,
+                supports_current_item_subjects=True,
+                supports_hypothetical_outcome_subjects=True,
+                uses_html_scraping=True,
+            )
+
+    def test_provider_failure_cannot_create_listing_observations(self):
+        subject = subject_from_parsed_item(self.item)
+        query = build_comparable_query(subject, quiver_6_roles(self.item), ComparableStrategy.STRICT, LEAGUE, AS_OF)
+        request = build_comparable_listing_acquisition_request(subject, query, "future-provider", AS_OF)
+        listing = self.provider.result_from_observation(
+            replace(self._observation(Decimal("5"), DIVINE_ASSET_ID), query_id=query.query_id),
+            self.economy_repo,
+            AS_OF,
+        )
+
+        with self.assertRaises(ValueError):
+            ComparableListingAcquisitionResult(
+                request=request,
+                provider_id="future-provider",
+                status=ListingAcquisitionStatus.FAILED,
+                listings=(listing,),
+                failure_reason=ListingAcquisitionFailureReason.TRANSPORT_FAILURE,
+            )
+
+    def test_acquired_listing_league_mismatch_is_rejected(self):
+        subject = subject_from_parsed_item(self.item)
+        query = build_comparable_query(subject, quiver_6_roles(self.item), ComparableStrategy.STRICT, LEAGUE, AS_OF)
+        request = build_comparable_listing_acquisition_request(subject, query, "future-provider", AS_OF)
+        listing = self.provider.result_from_observation(
+            replace(self._observation(Decimal("5"), DIVINE_ASSET_ID), query_id=query.query_id, league="Other League"),
+            self.economy_repo,
+            AS_OF,
+        )
+
+        with self.assertRaises(ValueError):
+            ComparableListingAcquisitionResult(
+                request=request,
+                provider_id="future-provider",
+                status=ListingAcquisitionStatus.LISTINGS_AVAILABLE,
+                listings=(listing,),
+            )
+
+    def test_acquired_listing_duplicate_source_ids_are_deduplicated(self):
+        subject = subject_from_parsed_item(self.item)
+        query = build_comparable_query(subject, quiver_6_roles(self.item), ComparableStrategy.STRICT, LEAGUE, AS_OF)
+        request = build_comparable_listing_acquisition_request(subject, query, "future-provider", AS_OF)
+        first = self.provider.result_from_observation(
+            replace(self._observation(Decimal("5"), DIVINE_ASSET_ID, listing_id="listing-1"), query_id=query.query_id),
+            self.economy_repo,
+            AS_OF,
+        )
+        duplicate = self.provider.result_from_observation(
+            replace(self._observation(Decimal("5.5"), DIVINE_ASSET_ID, listing_id="listing-1"), query_id=query.query_id),
+            self.economy_repo,
+            AS_OF,
+        )
+        acquisition = ComparableListingAcquisitionResult(
+            request=request,
+            provider_id="future-provider",
+            status=ListingAcquisitionStatus.LISTINGS_AVAILABLE,
+            listings=(first, duplicate),
+        )
+
+        evidence = evidence_set_from_listing_acquisition(acquisition)
+
+        self.assertEqual(len(evidence.results), 1)
+        self.assertTrue(any("Duplicate acquired source listing ID listing-1" in warning for warning in evidence.warnings))
+
+    def test_manual_listing_evidence_precedence_is_explicit_for_future_acquisition(self):
+        subject = subject_from_parsed_item(self.item)
+        query = build_comparable_query(subject, quiver_6_roles(self.item), ComparableStrategy.STRICT, LEAGUE, AS_OF)
+        manual = evidence_set_from_results(query, self.provider.provider_name, ())
+        request = build_comparable_listing_acquisition_request(subject, query, "official-ggg-trade-listing-unavailable", AS_OF)
+        acquisition = UnsupportedOfficialTradeListingProvider().acquire_listings(request, retrieved_at=AS_OF)
+        acquired = evidence_set_from_listing_acquisition(acquisition)
+
+        evidence_sets, rule = merge_manual_and_acquired_evidence_sets(manual, acquired)
+
+        self.assertEqual(evidence_sets, (manual, acquired))
+        self.assertIn("Manual comparable evidence remains explicit", rule)
 
     def test_manual_listing_observation_accepts_decimal(self):
         observation = self._observation(Decimal("5"), DIVINE_ASSET_ID)

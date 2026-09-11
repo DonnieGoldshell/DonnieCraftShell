@@ -1,6 +1,7 @@
 # Valuation Sources
 
 Task 10A research date: `2026-08-12`.
+Issue 93 compliant acquisition review date: `2026-09-10`.
 
 ## Source Policy
 
@@ -16,8 +17,11 @@ Findings:
 - The docs state that supported resources are those defined in API reference or data exports.
 - Requests for internal website APIs or in-game resources outside documentation are denied, and reverse-engineering endpoints outside documentation is against Terms guidance.
 - No documented PoE2 rare-item Trade search/listing valuation API was found in Task 10A.
+- Issue 93 rechecked the official Developer Docs and API Reference. The current reference still does not expose a documented PoE2 rare-item Trade search/listing endpoint; `Public Stashes` remain documented as PoE1-only and `Currency Exchange` is aggregate currency-pair history.
 
 Implication: DonnieCraftShell must not implement production rare-item trade scraping or undocumented Trade API calls.
+
+See [COMPARABLE_LISTING_ACQUISITION.md](COMPARABLE_LISTING_ACQUISITION.md) for the executable fail-closed acquisition contract.
 
 ## Official Trade Website
 

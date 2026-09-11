@@ -7,6 +7,7 @@ trade sites, calculate EV, or recommend.
 
 from __future__ import annotations
 
+import hashlib
 import re
 from dataclasses import dataclass, replace
 from datetime import datetime, timezone
@@ -25,7 +26,9 @@ from .domain import (
     ParsedItem,
     Rarity,
     RollValue,
+    SourceType,
     Valuation,
+    VerificationStatus,
 )
 from .economy import DIVINE_ASSET_ID, EXALTED_ASSET_ID, FreshnessState, normalized_exalted_value
 from .economy_repository import EconomyRepository
@@ -145,6 +148,28 @@ class OutcomeValuationInferenceStatus(str, Enum):
     ESTIMATED_VALUE = "ESTIMATED_VALUE"
 
 
+class ListingAcquisitionSubjectType(str, Enum):
+    CURRENT_ITEM = "CURRENT_ITEM"
+    HYPOTHETICAL_OUTCOME = "HYPOTHETICAL_OUTCOME"
+
+
+class ListingAcquisitionStatus(str, Enum):
+    LISTINGS_AVAILABLE = "LISTINGS_AVAILABLE"
+    ZERO_LISTINGS = "ZERO_LISTINGS"
+    UNSUPPORTED = "UNSUPPORTED"
+    FAILED = "FAILED"
+
+
+class ListingAcquisitionFailureReason(str, Enum):
+    UNSUPPORTED_OFFICIAL_API = "UNSUPPORTED_OFFICIAL_API"
+    PROVIDER_UNCONFIGURED = "PROVIDER_UNCONFIGURED"
+    AUTHENTICATION_UNAVAILABLE = "AUTHENTICATION_UNAVAILABLE"
+    RATE_LIMITED = "RATE_LIMITED"
+    TRANSPORT_FAILURE = "TRANSPORT_FAILURE"
+    LEAGUE_MISMATCH = "LEAGUE_MISMATCH"
+    MALFORMED_RESPONSE = "MALFORMED_RESPONSE"
+
+
 @dataclass(frozen=True)
 class ValuationSubject:
     subject_id: str
@@ -210,6 +235,113 @@ class ComparableQuery:
             raise ValueError("min_item_level cannot be negative")
         if self.max_item_level is not None and self.max_item_level < 0:
             raise ValueError("max_item_level cannot be negative")
+
+
+@dataclass(frozen=True)
+class ComparableListingProviderCapabilities:
+    supports_machine_readable_listing_search: bool
+    supports_current_item_subjects: bool
+    supports_hypothetical_outcome_subjects: bool
+    requires_oauth: bool = False
+    uses_poesessid: bool = False
+    uses_undocumented_trade_endpoint: bool = False
+    uses_html_scraping: bool = False
+    supports_cache_metadata: bool = False
+    supports_stable_listing_identity: bool = False
+
+    def __post_init__(self) -> None:
+        if self.uses_poesessid:
+            raise ValueError("Comparable listing providers must not use POESESSID")
+        if self.uses_undocumented_trade_endpoint:
+            raise ValueError("Comparable listing providers must not use undocumented Trade endpoints")
+        if self.uses_html_scraping:
+            raise ValueError("Comparable listing providers must not scrape HTML trade results")
+
+
+@dataclass(frozen=True)
+class ComparableListingAcquisitionRequest:
+    request_id: str
+    query: ComparableQuery
+    subject_type: ListingAcquisitionSubjectType
+    provider_id: str
+    league: str
+    generated_at: datetime
+    provenance: tuple[DataProvenance, ...] = ()
+    warnings: tuple[str, ...] = ()
+
+    def __post_init__(self) -> None:
+        if not self.request_id:
+            raise ValueError("listing acquisition request_id is required")
+        if not self.provider_id:
+            raise ValueError("listing acquisition provider_id is required")
+        if not self.league:
+            raise ValueError("listing acquisition league is required")
+        if self.query.league and self.query.league != self.league:
+            raise ValueError("listing acquisition request league must match comparable query league")
+
+
+@dataclass(frozen=True)
+class ComparableListingAcquisitionResult:
+    request: ComparableListingAcquisitionRequest
+    provider_id: str
+    status: ListingAcquisitionStatus
+    listings: tuple[ComparableResult, ...] = ()
+    retrieved_at: datetime | None = None
+    cache_key: str | None = None
+    cache_hit: bool = False
+    source_payload_checksum: str | None = None
+    failure_reason: ListingAcquisitionFailureReason | None = None
+    provenance: tuple[DataProvenance, ...] = ()
+    warnings: tuple[str, ...] = ()
+
+    def __post_init__(self) -> None:
+        if not self.provider_id:
+            raise ValueError("listing acquisition result provider_id is required")
+        if self.status in (ListingAcquisitionStatus.UNSUPPORTED, ListingAcquisitionStatus.FAILED) and self.listings:
+            raise ValueError("unsupported or failed listing acquisition cannot return listings")
+        if self.status == ListingAcquisitionStatus.LISTINGS_AVAILABLE and not self.listings:
+            raise ValueError("LISTINGS_AVAILABLE requires at least one listing")
+        if self.status == ListingAcquisitionStatus.ZERO_LISTINGS and self.listings:
+            raise ValueError("ZERO_LISTINGS cannot return listings")
+        for listing in self.listings:
+            if listing.league != self.request.league:
+                raise ValueError("acquired listing league must match acquisition request league")
+
+
+class UnsupportedOfficialTradeListingProvider:
+    """Fail-closed placeholder for a future documented official listing API."""
+
+    provider_name = "official-ggg-trade-listing-unavailable"
+    capabilities = ComparableListingProviderCapabilities(
+        supports_machine_readable_listing_search=False,
+        supports_current_item_subjects=True,
+        supports_hypothetical_outcome_subjects=True,
+        requires_oauth=False,
+        uses_poesessid=False,
+        uses_undocumented_trade_endpoint=False,
+        uses_html_scraping=False,
+        supports_cache_metadata=False,
+        supports_stable_listing_identity=False,
+    )
+
+    def acquire_listings(
+        self,
+        request: ComparableListingAcquisitionRequest,
+        retrieved_at: datetime | None = None,
+    ) -> ComparableListingAcquisitionResult:
+        retrieved = retrieved_at or datetime.now(timezone.utc)
+        return ComparableListingAcquisitionResult(
+            request=request,
+            provider_id=self.provider_name,
+            status=ListingAcquisitionStatus.UNSUPPORTED,
+            retrieved_at=retrieved,
+            failure_reason=ListingAcquisitionFailureReason.UNSUPPORTED_OFFICIAL_API,
+            provenance=official_trade_listing_research_provenance(retrieved),
+            warnings=(
+                "GGG's documented API reference does not expose a machine-readable PoE2 rare-item trade-search/listing endpoint.",
+                "Manual comparable listing evidence remains the compliant production acquisition path.",
+            ),
+        )
 
 
 @dataclass(frozen=True)
@@ -1502,6 +1634,24 @@ def _methodology_summary(policy: ValuationAggregationPolicy) -> str:
     )
 
 
+def _dedupe_acquired_listings(
+    listings: tuple[ComparableResult, ...],
+) -> tuple[tuple[ComparableResult, ...], list[str]]:
+    selected: list[ComparableResult] = []
+    seen_listing_ids: set[str] = set()
+    warnings: list[str] = []
+    for listing in listings:
+        if listing.external_listing_id:
+            if listing.external_listing_id in seen_listing_ids:
+                warnings.append(
+                    f"Duplicate acquired source listing ID {listing.external_listing_id} was retained in provenance but not counted as independent evidence."
+                )
+                continue
+            seen_listing_ids.add(listing.external_listing_id)
+        selected.append(listing)
+    return tuple(selected), warnings
+
+
 class ManualTradeProvider:
     provider_name = "manual-trade-provider"
     capabilities = TradeProviderCapabilities(
@@ -1805,6 +1955,116 @@ def build_comparable_query(
         league=league,
         generated_at=generated_at,
         warnings=tuple(warnings),
+    )
+
+
+def build_comparable_listing_acquisition_request(
+    subject: ValuationSubject,
+    query: ComparableQuery,
+    provider_id: str,
+    generated_at: datetime,
+) -> ComparableListingAcquisitionRequest:
+    if query.valuation_subject_id != subject.subject_id:
+        raise ValueError("listing acquisition query subject must match valuation subject")
+    if not query.league:
+        raise ValueError("listing acquisition requires an explicit query league")
+    subject_type = (
+        ListingAcquisitionSubjectType.HYPOTHETICAL_OUTCOME
+        if subject.hypothetical_state_id
+        else ListingAcquisitionSubjectType.CURRENT_ITEM
+    )
+    stable_key = "|".join(
+        (
+            provider_id,
+            query.query_id,
+            subject.subject_id,
+            subject.hypothetical_state_id or "",
+            query.league,
+            query.strategy.value,
+        )
+    )
+    digest = hashlib.sha256(stable_key.encode("utf-8")).hexdigest()[:24]
+    return ComparableListingAcquisitionRequest(
+        request_id=f"listing-acquisition:{digest}",
+        query=query,
+        subject_type=subject_type,
+        provider_id=provider_id,
+        league=query.league,
+        generated_at=generated_at,
+        provenance=subject.provenance + query.provenance,
+        warnings=(
+            "Listing acquisition requests are query plans for real listing evidence, not price heuristics.",
+        ),
+    )
+
+
+def evidence_set_from_listing_acquisition(
+    result: ComparableListingAcquisitionResult,
+    policy: ValuationEvidencePolicy = ValuationEvidencePolicy(),
+) -> ComparableEvidenceSet:
+    selected, warnings = _dedupe_acquired_listings(result.listings)
+    warnings.extend(result.warnings)
+    if result.status in (ListingAcquisitionStatus.UNSUPPORTED, ListingAcquisitionStatus.FAILED):
+        warnings.append("Automatic comparable listing acquisition failed closed and produced no listing observations.")
+    evidence = evidence_set_from_results(
+        result.request.query,
+        result.provider_id,
+        selected,
+        policy,
+    )
+    return ComparableEvidenceSet(
+        evidence_set_id=f"comparable-evidence:acquired:{result.request.request_id}",
+        query=result.request.query,
+        provider=result.provider_id,
+        results=selected,
+        policy=policy,
+        economy_snapshot_ids=evidence.economy_snapshot_ids,
+        warnings=evidence.warnings + tuple(warnings),
+    )
+
+
+def merge_manual_and_acquired_evidence_sets(
+    manual_evidence: ComparableEvidenceSet | None,
+    acquired_evidence: ComparableEvidenceSet | None,
+) -> tuple[tuple[ComparableEvidenceSet, ...], str]:
+    if manual_evidence and acquired_evidence:
+        return (
+            (manual_evidence, acquired_evidence),
+            "Manual comparable evidence remains explicit and is evaluated before acquired provider evidence; acquired evidence never overrides manual observations.",
+        )
+    if manual_evidence:
+        return ((manual_evidence,), "Manual comparable evidence is the active production listing evidence path.")
+    if acquired_evidence:
+        return ((acquired_evidence,), "Acquired comparable evidence is retained only when it comes from a compliant provider.")
+    return ((), "No comparable listing evidence is available.")
+
+
+def official_trade_listing_research_provenance(retrieved_at: datetime) -> tuple[DataProvenance, ...]:
+    return (
+        DataProvenance(
+            source_id="ggg-developer-docs-overview",
+            source_type=SourceType.OFFICIAL,
+            source_uri="https://www.pathofexile.com/developer/docs",
+            retrieved_at=retrieved_at,
+            verification_status=VerificationStatus.VERIFIED,
+            notes="GGG states that only API Reference and Data Export resources are supported; reverse-engineered internal endpoints are outside policy.",
+        ),
+        DataProvenance(
+            source_id="ggg-developer-docs-reference",
+            source_type=SourceType.OFFICIAL,
+            source_uri="https://www.pathofexile.com/developer/docs/reference",
+            retrieved_at=retrieved_at,
+            verification_status=VerificationStatus.VERIFIED,
+            notes="Current reference documents limited PoE2 resources, Public Stashes as PoE1-only, and Currency Exchange as aggregate currency history rather than rare-item listing search.",
+        ),
+        DataProvenance(
+            source_id="ggg-poesessid-warning",
+            source_type=SourceType.OFFICIAL,
+            source_uri="https://www.pathofexile.com/forum/view-thread/3328601",
+            retrieved_at=retrieved_at,
+            verification_status=VerificationStatus.VERIFIED,
+            notes="GGG warns users not to share POESESSID values and points supported access toward OAuth.",
+        ),
     )
 
 

@@ -5,6 +5,9 @@ Task 10B introduces `ManualTradeProvider` as the MVP-safe valuation evidence wor
 ## Why Manual First
 
 Official developer documentation does not provide a documented PoE2 rare-item Trade search/listing API for third-party valuation. DonnieCraftShell therefore must not automate undocumented Trade endpoint access.
+Issue 93 revalidated this boundary and added a fail-closed comparable-listing
+acquisition contract. Until a compliant listing source exists, the manual
+workflow remains the production path.
 
 Manual workflow keeps the user in control:
 

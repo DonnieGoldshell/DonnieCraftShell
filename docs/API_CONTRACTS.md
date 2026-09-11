@@ -176,6 +176,13 @@ supported range, and warnings. These diagnostics are controlled by Comparable
 Valuation Model market inference status. `BROAD_BRACKET_ONLY` must not be
 displayed as an outcome point valuation or used to clear EV readiness.
 
+Issue 93 adds a framework-independent comparable-listing acquisition contract
+but no public HTTP endpoint and no live Trade integration. Automatic rare-item
+listing acquisition remains `UNSUPPORTED` until a compliant machine-readable
+source exists. Current API valuation flows continue to use explicit manual
+listing observations; no request may rely on POESESSID, undocumented Trade
+endpoints, HTML scraping, or synthetic listing generation.
+
 Issue 69 adds craft investment transport contracts. Ledger preview accepts
 operator-entered realized cost entries plus the current `market_valuation`
 object and returns cost basis and current profit-position status. Point

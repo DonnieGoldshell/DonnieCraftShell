@@ -105,6 +105,12 @@ Implement providers behind a replaceable interface:
 
 No runtime code should depend on undocumented trade-site endpoints.
 
+Issue 93 adds [COMPARABLE_LISTING_ACQUISITION.md](COMPARABLE_LISTING_ACQUISITION.md).
+The current verified result is that no compliant automatic PoE2 rare-item
+listing source exists for DonnieCraftShell today. The code therefore provides a
+fail-closed acquisition contract and an unsupported official-provider placeholder
+instead of a live Trade integration.
+
 ## MVP Workflow
 
 Recommended MVP 0.1 valuation workflow:
