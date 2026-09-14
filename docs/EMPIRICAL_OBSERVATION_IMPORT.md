@@ -7,7 +7,7 @@ This workflow does not create gameplay observations, scrape data, infer outcomes
 ## Pipeline
 
 ```text
-JSON/CSV observation files
+Guided trial confirmation or JSON/CSV observation files
 -> EmpiricalCraftingObservation validation
 -> duplicate raw record filtering
 -> context partitioning
@@ -42,6 +42,13 @@ Recommended context/provenance fields:
 - `notes`
 
 Unclassified records must not include `outcome_id`. DonnieCraftShell never infers an outcome for them.
+
+The guided real-trial API writes the same raw-record shape after a separate
+preview and explicit operator confirmation. Guided audit fields such as
+`guided_session_id`, `guided_trial_id`, before/after raw SHA-256 hashes, and
+modifier diff summaries may be present; they are provenance metadata, not
+probability counts. The importer still counts only accepted, valid,
+deduplicated observations and preserves unclassified trials in the denominator.
 
 For non-synthetic observations, Task #95 makes source/context provenance
 mandatory rather than merely recommended. A production-shaped record must

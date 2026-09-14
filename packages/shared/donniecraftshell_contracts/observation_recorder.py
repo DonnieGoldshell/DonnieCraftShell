@@ -7,6 +7,7 @@ valuation, EV, or Advisor recommendations.
 from __future__ import annotations
 
 import hashlib
+from collections import Counter
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from enum import Enum
@@ -180,8 +181,8 @@ class CraftObservationRecorder:
     ) -> ObservationClassification:
         before = tuple(modifier.raw_text for modifier in before_item.explicit_modifiers)
         after = tuple(modifier.raw_text for modifier in after_item.explicit_modifiers)
-        removed = sorted(set(before) - set(after))
-        added = sorted(set(after) - set(before))
+        removed = sorted((Counter(before) - Counter(after)).elements())
+        added = sorted((Counter(after) - Counter(before)).elements())
         if len(removed) != 1 or added:
             return ObservationClassification(
                 method=ObservationClassificationMethod.UNCLASSIFIED,

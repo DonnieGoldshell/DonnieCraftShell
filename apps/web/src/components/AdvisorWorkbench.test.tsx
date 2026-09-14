@@ -2557,71 +2557,133 @@ describe("AdvisorWorkbench", () => {
       .mockResolvedValueOnce({
         ok: true,
         json: async () => ({
-          raw_record_id: "manual-craft-observation-test",
-          classification: {
-            method: "MANUAL",
-            outcome_id: "outcome-1",
-            reason: "User explicitly selected the outcome.",
-            warnings: []
-          },
+          capture_version: "dc-guided-observation-capture-v1",
+          session_id: "guided-session-test",
+          trial_id: "guided-trial-test",
+          status: "PROPOSED_OUTCOME",
+          action_id: "dc:poe2:craft-action:orb-of-annulment",
+          source_outcome_set_id: "manual-recorder:dc:poe2:craft-action:orb-of-annulment",
+          proposed_outcome_id: "outcome-1",
+          classification_reason: "Exactly one removed explicit modifier matched one trusted outcome candidate.",
+          requires_operator_confirmation: true,
           before_item_fingerprint: "before-fingerprint",
           after_item_fingerprint: "after-fingerprint",
-          export_record: {
-            raw_record_id: "manual-craft-observation-test",
-            action_id: "dc:poe2:craft-action:orb-of-annulment",
-            source_outcome_set_id: "manual-recorder:dc:poe2:craft-action:orb-of-annulment",
-            item_class: "Quivers",
-            league: DEFAULT_LEAGUE,
-            observed_at: "2026-08-13T10:00:00Z",
-            source_id: "browser-manual-recorder-session",
-            source_type: "MANUAL_RESEARCH",
-            outcome_id: "outcome-1",
-            unclassified: false,
-            classification_method: "MANUAL"
+          before_raw_sha256: "before-raw-sha",
+          after_raw_sha256: "after-raw-sha",
+          diff: {
+            removed_modifiers: [
+              {
+                raw_text: "Adds 1 to 2 Cold Damage to Attacks",
+                affix_type: "PREFIX",
+                origin: "EXPLICIT",
+                display_name: "Glaciated",
+                tier: "T1"
+              }
+            ],
+            added_modifiers: []
           },
-          warnings: ["Observation does not make probability evidence complete by itself."]
+          warnings: ["Operator confirmation is required before this guided capture can become classified evidence."]
         })
       })
       .mockResolvedValueOnce({
         ok: true,
         json: async () => ({
-          workspace_version: "dc-observation-workspace-v1",
-          status: "SAVED",
-          raw_record_id: "manual-craft-observation-test",
-          entry: {
+          preview: {
+            capture_version: "dc-guided-observation-capture-v1",
+            session_id: "guided-session-test",
+            trial_id: "guided-trial-test",
+            status: "PROPOSED_OUTCOME",
+            action_id: "dc:poe2:craft-action:orb-of-annulment",
+            source_outcome_set_id: "manual-recorder:dc:poe2:craft-action:orb-of-annulment",
+            proposed_outcome_id: "outcome-1",
+            classification_reason: "Exactly one removed explicit modifier matched one trusted outcome candidate.",
+            requires_operator_confirmation: true,
+            before_item_fingerprint: "before-fingerprint",
+            after_item_fingerprint: "after-fingerprint",
+            before_raw_sha256: "before-raw-sha",
+            after_raw_sha256: "after-raw-sha",
+            diff: {
+              removed_modifiers: [
+                {
+                  raw_text: "Adds 1 to 2 Cold Damage to Attacks",
+                  affix_type: "PREFIX",
+                  origin: "EXPLICIT",
+                  display_name: "Glaciated",
+                  tier: "T1"
+                }
+              ],
+              added_modifiers: []
+            },
+            warnings: ["Operator confirmation is required before this guided capture can become classified evidence."]
+          },
+          recorded: {
             raw_record_id: "manual-craft-observation-test",
-            record: {
-              raw_record_id: "manual-craft-observation-test",
+            classification: {
+              method: "MANUAL",
               outcome_id: "outcome-1",
-              classification_method: "MANUAL"
+              reason: "Operator confirmed guided preview outcome.",
+              warnings: []
             },
-            decision: {
+            before_item_fingerprint: "before-fingerprint",
+            after_item_fingerprint: "after-fingerprint",
+            export_record: {
               raw_record_id: "manual-craft-observation-test",
-              status: "PENDING",
-              reviewed_at: null,
-              note: null,
-              reviewer_id: null
-            },
-            summary: {
-              raw_record_id: "manual-craft-observation-test",
-              review_status: "PENDING",
+              action_id: "dc:poe2:craft-action:orb-of-annulment",
+              source_outcome_set_id: "manual-recorder:dc:poe2:craft-action:orb-of-annulment",
+              item_class: "Quivers",
+              league: DEFAULT_LEAGUE,
+              observed_at: "2026-08-13T10:00:00Z",
+              source_id: "browser-guided-real-trial-session",
+              source_type: "MANUAL_RESEARCH",
               outcome_id: "outcome-1",
               unclassified: false,
-              synthetic: false,
               classification_method: "MANUAL",
+              guided_capture_version: "dc-guided-observation-capture-v1",
+              guided_session_id: "guided-session-test",
+              guided_trial_id: "guided-trial-test"
+            },
+            warnings: ["Observation does not make probability evidence complete by itself."]
+          },
+          workspace: {
+            workspace_version: "dc-observation-workspace-v1",
+            status: "SAVED",
+            raw_record_id: "manual-craft-observation-test",
+            entry: {
+              raw_record_id: "manual-craft-observation-test",
+              record: {
+                raw_record_id: "manual-craft-observation-test",
+                outcome_id: "outcome-1",
+                classification_method: "MANUAL"
+              },
+              decision: {
+                raw_record_id: "manual-craft-observation-test",
+                status: "PENDING",
+                reviewed_at: null,
+                note: null,
+                reviewer_id: null
+              },
+              summary: {
+                raw_record_id: "manual-craft-observation-test",
+                review_status: "PENDING",
+                outcome_id: "outcome-1",
+                unclassified: false,
+                synthetic: false,
+                classification_method: "MANUAL",
+                warnings: []
+              }
+            },
+            persistence: {
+              storage_version: "dc-observation-workspace-storage-v1",
+              storage_mode: "FILE",
+              persistence_enabled: true,
+              loaded_record_count: 1,
+              loaded_decision_count: 1,
+              skipped_entry_count: 0,
               warnings: []
-            }
+            },
+            warnings: ["Stored observation remains pending until explicitly reviewed."]
           },
-          persistence: {
-            storage_version: "dc-observation-workspace-storage-v1",
-            storage_mode: "FILE",
-            persistence_enabled: true,
-            loaded_record_count: 1,
-            loaded_decision_count: 1,
-            skipped_entry_count: 0,
-            warnings: []
-          },
-          warnings: ["Stored observation remains pending until explicitly reviewed."]
+          warnings: []
         })
       })
       .mockResolvedValueOnce({
@@ -2832,10 +2894,17 @@ describe("AdvisorWorkbench", () => {
     expect((screen.getByLabelText(/craft action/i) as HTMLSelectElement).value).toBe(
       "dc:poe2:craft-action:orb-of-annulment"
     );
-    await user.selectOptions(screen.getByLabelText(/manual outcome id/i), "outcome-1");
-    await user.type(screen.getByLabelText(/manual classification reason/i), "observed after craft");
+    await user.type(screen.getByLabelText(/game \/ patch version/i), "0.3.0-test");
+    await user.clear(screen.getByLabelText(/source uri/i));
+    await user.type(screen.getByLabelText(/source uri/i), "local://tests/browser-guided-trial");
+    await user.type(screen.getByLabelText(/operator confirmation note/i), "observed after craft");
     await user.type(screen.getByLabelText(/after craft clipboard text/i), "Item Class: Quivers\nRarity: Rare\nafter");
-    await user.click(screen.getByRole("button", { name: /record observation/i }));
+    await user.click(screen.getByRole("button", { name: /preview trial diff/i }));
+
+    expect(await screen.findByText("Guided Trial Preview")).toBeInTheDocument();
+    expect(screen.getByText(/PROPOSED_OUTCOME/i)).toBeInTheDocument();
+    expect(screen.getByText(/Glaciated/i)).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: /confirm proposed outcome/i }));
 
     expect(await screen.findByText("MANUAL")).toBeInTheDocument();
     expect(screen.getAllByText(/manual-cra.*n-test/i).length).toBeGreaterThan(0);
@@ -2843,10 +2912,13 @@ describe("AdvisorWorkbench", () => {
 
     await user.click(screen.getByRole("button", { name: /export json/i }));
     await screen.findByText(/dc-observation-recorder-v1/i);
-    const recordBody = JSON.parse(fetchMock.mock.calls[1][1].body as string);
-    expect(recordBody.manual_outcome_id).toBe("outcome-1");
-    expect(recordBody.manual_reason).toBe("observed after craft");
-    expect(fetchMock.mock.calls[2][0]).toContain("/api/v1/observations/workspace/records");
+    const previewBody = JSON.parse(fetchMock.mock.calls[1][1].body as string);
+    expect(previewBody.session.game_version).toBe("0.3.0-test");
+    expect(previewBody.session.source_uri).toBe("local://tests/browser-guided-trial");
+    const confirmBody = JSON.parse(fetchMock.mock.calls[2][1].body as string);
+    expect(confirmBody.operator_confirmed).toBe(true);
+    expect(confirmBody.confirmed_outcome_id).toBe("outcome-1");
+    expect(confirmBody.confirmation_note).toBe("observed after craft");
     const exportBody = JSON.parse(fetchMock.mock.calls[3][1].body as string);
     expect(exportBody.observations).toEqual([
       expect.objectContaining({

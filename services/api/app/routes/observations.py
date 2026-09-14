@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import hashlib
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -16,6 +15,12 @@ from packages.shared.donniecraftshell_contracts.empirical_probability import (
     EMPIRICAL_DATASET_REGISTRY_VERSION,
     EmpiricalDatasetRegistrationStatus,
     EmpiricalProbabilityDatasetRegistry,
+)
+from packages.shared.donniecraftshell_contracts.guided_observation_capture import (
+    GuidedCaptureSessionContext,
+    confirmed_guided_classification,
+    outcome_set_source_id,
+    preview_guided_trial,
 )
 from packages.shared.donniecraftshell_contracts.observation_recorder import (
     CraftObservationRecorder,
@@ -53,6 +58,13 @@ from services.api.app.schemas.observations import (
     EmpiricalDatasetRegisterResponseDto,
     EmpiricalDatasetSummaryDto,
     EmpiricalRegistryPersistenceStatusDto,
+    GuidedObservationSessionDto,
+    GuidedTrialConfirmRequestDto,
+    GuidedTrialConfirmResponseDto,
+    GuidedTrialDiffDto,
+    GuidedTrialModifierDiffDto,
+    GuidedTrialPreviewRequestDto,
+    GuidedTrialPreviewResponseDto,
     ObservationReviewRecordDto,
     ObservationReviewRequestDto,
     ObservationReviewResponseDto,
@@ -152,6 +164,103 @@ def record_observation(
         after_item_fingerprint=recorded.after_item_fingerprint,
         export_record=recorded.to_export_record(),
         warnings=list(recorded.warnings),
+    )
+
+
+@router.post("/guided-trials/preview", response_model=GuidedTrialPreviewResponseDto)
+def preview_guided_observation_trial(
+    request: GuidedTrialPreviewRequestDto,
+    orchestrator: CraftAdvisorOrchestrator = Depends(get_advisor_orchestrator),
+) -> GuidedTrialPreviewResponseDto:
+    preview, _, _, _ = _guided_preview(request, orchestrator)
+    return _guided_preview_to_dto(preview)
+
+
+@router.post("/guided-trials/confirm", response_model=GuidedTrialConfirmResponseDto)
+def confirm_guided_observation_trial(
+    request: GuidedTrialConfirmRequestDto,
+    orchestrator: CraftAdvisorOrchestrator = Depends(get_advisor_orchestrator),
+    workspace: ObservationWorkspaceRepository = Depends(get_observation_workspace),
+) -> GuidedTrialConfirmResponseDto:
+    preview, before_item, after_item, session = _guided_preview(request, orchestrator)
+    try:
+        classification = confirmed_guided_classification(
+            preview,
+            operator_confirmed=request.operator_confirmed,
+            confirmed_outcome_id=request.confirmed_outcome_id,
+            confirm_unclassified=request.confirm_unclassified,
+            reason=request.confirmation_note,
+        )
+    except ValueError as exc:
+        _bad_request(str(exc))
+    recorder = CraftObservationRecorder()
+    recorded = recorder.record(
+        ObservationDraft(
+            action_id=session.action_id,
+            source_outcome_set_id=preview.source_outcome_set_id,
+            item_class=before_item.item_class or "",
+            league=session.league,
+            before_item=before_item,
+            after_item=after_item,
+            observed_at=request.observed_at,
+            source_id=session.source_id,
+            game=session.game,
+            game_version=session.game_version,
+            crafting_dataset_version=session.crafting_dataset_version,
+            modifier_dataset_version=session.modifier_dataset_version,
+            source_uri=session.source_uri,
+            synthetic=False,
+            notes=_guided_notes(session, preview, request.confirmation_note),
+        ),
+        classification,
+    )
+    export_record = recorded.to_export_record()
+    export_record["guided_capture_version"] = preview.capture_version
+    export_record["guided_session_id"] = preview.session_id
+    export_record["guided_trial_id"] = preview.trial_id
+    export_record["before_raw_sha256"] = preview.before_raw_sha256
+    export_record["after_raw_sha256"] = preview.after_raw_sha256
+    export_record["diff_removed_modifiers"] = [modifier.raw_text for modifier in preview.diff.removed_modifiers]
+    export_record["diff_added_modifiers"] = [modifier.raw_text for modifier in preview.diff.added_modifiers]
+    result = workspace.save_record(export_record)
+    if result.status == ObservationWorkspaceSaveStatus.REJECTED:
+        raise HTTPException(
+            status_code=400,
+            detail={
+                "code": "VALIDATION_ERROR",
+                "message": "Guided observation workspace record was rejected.",
+                "recoverable": True,
+                "reliable_no_result": True,
+                "warnings": list(result.warnings),
+            },
+        )
+    recorded_response = CraftObservationRecordResponseDto(
+        raw_record_id=recorded.raw_record_id,
+        classification=ObservationClassificationDto(
+            method=classification.method.value,
+            outcome_id=classification.outcome_id,
+            reason=classification.reason,
+            warnings=list(classification.warnings),
+        ),
+        before_item_fingerprint=recorded.before_item_fingerprint,
+        after_item_fingerprint=recorded.after_item_fingerprint,
+        export_record=export_record,
+        warnings=list(recorded.warnings),
+    )
+    return GuidedTrialConfirmResponseDto(
+        preview=_guided_preview_to_dto(preview),
+        recorded=recorded_response,
+        workspace=ObservationWorkspaceSaveResponseDto(
+            workspace_version=OBSERVATION_WORKSPACE_VERSION,
+            status=result.status.value,
+            raw_record_id=result.raw_record_id,
+            entry=_workspace_entry_to_dto(result.entry),
+            persistence=_workspace_persistence_to_dto(workspace.persistence_status()),
+            warnings=list(result.warnings),
+        ),
+        warnings=(
+            "Confirmed guided trials remain excluded from empirical counts until reviewed, built, registered, and explicitly selected.",
+        ),
     )
 
 
@@ -499,15 +608,138 @@ def _trusted_modifier_dataset_version(
 
 
 def _trusted_source_outcome_set_id(outcome_set) -> str:
-    payload = "|".join(
-        (
-            outcome_set.action_id,
-            outcome_set.outcome_space_completeness.value,
-            *(state.outcome_id for state in sorted(outcome_set.hypothetical_states, key=lambda item: item.outcome_id)),
+    return outcome_set_source_id(outcome_set)
+
+
+def _guided_preview(
+    request: GuidedTrialPreviewRequestDto,
+    orchestrator: CraftAdvisorOrchestrator,
+):
+    if not request.before_clipboard_text.strip() or not request.after_clipboard_text.strip():
+        _bad_request("before_clipboard_text and after_clipboard_text are required.")
+    try:
+        session = _guided_session_from_dto(request.session)
+    except ValueError as exc:
+        _bad_request(str(exc))
+    game_context = GameContext(game=session.game, league=session.league, game_version=session.game_version)
+    before = parse_clipboard_item(request.before_clipboard_text, game_context)
+    after = parse_clipboard_item(request.after_clipboard_text, game_context)
+    if before.item is None or after.item is None:
+        raise HTTPException(
+            status_code=400,
+            detail={
+                "code": "PARSE_FAILURE",
+                "message": "before and after clipboard text must both parse as supported items.",
+                "recoverable": True,
+                "reliable_no_result": True,
+            },
         )
+    shim_request = CraftObservationRecordRequestDto(
+        before_clipboard_text=request.before_clipboard_text,
+        after_clipboard_text=request.after_clipboard_text,
+        action_id=session.action_id,
+        source_outcome_set_id="guided-preview-client-untrusted",
+        item_class=session.item_class,
+        league=session.league,
+        observed_at=request.observed_at,
+        source_id=session.source_id,
+        game=session.game,
+        game_version=session.game_version,
+        crafting_dataset_version=session.crafting_dataset_version,
+        modifier_dataset_version=session.modifier_dataset_version,
+        source_uri=session.source_uri,
+        synthetic=False,
     )
-    digest = hashlib.sha256(payload.encode("utf-8")).hexdigest()[:24]
-    return f"backend-outcome-set:{outcome_set.action_id}:{digest}"
+    _validate_item_context(shim_request, before.item, after.item)
+    crafting_dataset_version = _trusted_crafting_dataset_version(shim_request, orchestrator)
+    modifier_dataset_version = _trusted_modifier_dataset_version(shim_request, orchestrator)
+    normalized_session = GuidedCaptureSessionContext(
+        action_id=session.action_id,
+        item_class=session.item_class,
+        league=session.league,
+        game=session.game,
+        game_version=session.game_version,
+        crafting_dataset_version=crafting_dataset_version,
+        modifier_dataset_version=modifier_dataset_version,
+        source_id=session.source_id,
+        source_uri=session.source_uri,
+        collection_method=session.collection_method,
+        notes=session.notes,
+    )
+    outcome_set = _trusted_outcome_set(shim_request, before.item, orchestrator, modifier_dataset_version)
+    preview = preview_guided_trial(normalized_session, before.item, after.item, outcome_set, request.observed_at)
+    return preview, before.item, after.item, normalized_session
+
+
+def _guided_session_from_dto(dto: GuidedObservationSessionDto) -> GuidedCaptureSessionContext:
+    return GuidedCaptureSessionContext(
+        action_id=dto.action_id,
+        item_class=dto.item_class,
+        league=dto.league,
+        game=dto.game,
+        game_version=dto.game_version,
+        crafting_dataset_version=dto.crafting_dataset_version,
+        modifier_dataset_version=dto.modifier_dataset_version,
+        source_id=dto.source_id,
+        source_uri=dto.source_uri,
+        collection_method=dto.collection_method,
+        notes=dto.notes,
+    )
+
+
+def _guided_preview_to_dto(preview) -> GuidedTrialPreviewResponseDto:
+    return GuidedTrialPreviewResponseDto(
+        capture_version=preview.capture_version,
+        session_id=preview.session_id,
+        trial_id=preview.trial_id,
+        status=preview.status.value,
+        action_id=preview.action_id,
+        source_outcome_set_id=preview.source_outcome_set_id,
+        proposed_outcome_id=preview.proposed_outcome_id,
+        classification_reason=preview.classification_reason,
+        requires_operator_confirmation=preview.requires_operator_confirmation,
+        before_item_fingerprint=preview.before_item_fingerprint,
+        after_item_fingerprint=preview.after_item_fingerprint,
+        before_raw_sha256=preview.before_raw_sha256,
+        after_raw_sha256=preview.after_raw_sha256,
+        diff=GuidedTrialDiffDto(
+            removed_modifiers=[
+                GuidedTrialModifierDiffDto(
+                    raw_text=modifier.raw_text,
+                    affix_type=modifier.affix_type,
+                    origin=modifier.origin,
+                    display_name=modifier.display_name,
+                    tier=modifier.tier,
+                )
+                for modifier in preview.diff.removed_modifiers
+            ],
+            added_modifiers=[
+                GuidedTrialModifierDiffDto(
+                    raw_text=modifier.raw_text,
+                    affix_type=modifier.affix_type,
+                    origin=modifier.origin,
+                    display_name=modifier.display_name,
+                    tier=modifier.tier,
+                )
+                for modifier in preview.diff.added_modifiers
+            ],
+        ),
+        warnings=list(preview.warnings),
+    )
+
+
+def _guided_notes(session: GuidedCaptureSessionContext, preview, confirmation_note: str | None) -> str:
+    parts = [
+        f"guided_capture_version={preview.capture_version}",
+        f"guided_session_id={preview.session_id}",
+        f"guided_trial_id={preview.trial_id}",
+        f"collection_method={session.collection_method}",
+    ]
+    if session.notes:
+        parts.append(f"session_notes={session.notes}")
+    if confirmation_note:
+        parts.append(f"confirmation_note={confirmation_note}")
+    return "; ".join(parts)
 
 
 def _bad_request(message: str) -> None:

@@ -12,26 +12,50 @@ or Advisor recommendations.
 2. Paste the item clipboard text before the craft.
 3. Perform the craft manually in Path of Exile 2.
 4. Paste the resulting item clipboard text after the craft.
-5. Record the observation as:
-   - `AUTOMATIC` only when before/after state maps uniquely to one existing
-     outcome ID.
-   - `MANUAL` when the user explicitly chooses an outcome ID.
-   - `UNCLASSIFIED` when the result cannot be mapped safely.
-6. Review saved observations in the local browser session.
-7. Export JSON compatible with the empirical observation import workflow.
+5. Preview the before/after diff against the backend-derived outcome set.
+6. Record the observation only after explicit operator confirmation:
+   - `MANUAL` when the operator confirms the proposed outcome ID.
+   - `UNCLASSIFIED` when the result cannot be mapped safely or the operator
+     chooses to preserve an ambiguous trial without an outcome ID.
+   - Legacy `AUTOMATIC` remains a domain classification method, but the guided
+     real-trial workflow does not save it without operator confirmation.
+7. Review saved observations in the local browser session.
+8. Export JSON compatible with the empirical observation import workflow.
 
 ## Classification Semantics
 
-The first automatic classifier is intentionally conservative. It supports only a
+The first diff classifier is intentionally conservative. It supports only a
 single explicit modifier removal that matches exactly one backend-derived
 `CraftOutcomeSet` state. Client-supplied candidate IDs or modifier text are not
-authoritative for `AUTOMATIC` classification. Ambiguous, unsupported,
-added-modifier, special-origin, corrupted, or otherwise unclear transitions are
-recorded as `UNCLASSIFIED`.
+authoritative for classification. Ambiguous, unsupported, added-modifier,
+special-origin, corrupted, duplicate-sensitive, or otherwise unclear transitions
+are preserved as `UNCLASSIFIED`.
 
-Manual classification is allowed, but it is preserved as `MANUAL` and requires
-an explicit outcome ID from the backend-derived current outcome set.
-DonnieCraftShell never silently invents or guesses an outcome ID.
+Guided capture may propose an outcome, but the proposal is only a preview. A
+classified record requires explicit operator confirmation of the exact proposed
+outcome ID. Manual classification is preserved as `MANUAL`; DonnieCraftShell
+never silently invents, guesses, or accepts an outcome ID.
+
+## Guided Real-Trial Capture
+
+Issue #97 adds `dc-guided-observation-capture-v1` for real operator-run trials.
+It reuses the existing item parser for both pasted clipboard states, derives a
+trusted action outcome set server-side, previews the explicit modifier diff, and
+then saves to the observation workspace only through a separate confirmation
+request.
+
+Guided session context must include action ID, item class, league, game/patch
+version, crafting dataset version, modifier dataset version, source ID, source
+URI, collection method, and optional notes. Confirmed records include the guided
+session ID, guided trial ID, before/after raw SHA-256 fingerprints, and removed
+or added modifier diff details as audit metadata.
+
+Duplicate inflation is prevented in two places: guided trial identity is
+deterministic for the same session and before/after evidence, and the existing
+workspace/import layers keep `raw_record_id` duplicates from counting twice.
+Saving a guided trial still leaves it pending review; it is not empirical
+probability evidence until accepted, built into a dataset, registered, selected,
+and accepted by the probability readiness gates.
 
 ## Item Context Validation
 
@@ -76,6 +100,8 @@ Recorder exports preserve:
 - crafting and modifier dataset versions
 - source outcome-set identity
 - source ID and source type
+- source URI where supplied
+- guided capture session/trial IDs when collected through guided capture
 - observed timestamp
 - classification method, reason, and warnings
 - verification status
@@ -122,7 +148,7 @@ is selected and passes all context checks.
 
 ## Current Limitations
 
-- Automatic classification only handles single explicit removals.
+- Guided classification only proposes single explicit removals.
 - Browser storage is local React session state; no database exists yet.
 - Export review/curation is still external to the recorder.
 - No complete real empirical PoE2 sample is included.

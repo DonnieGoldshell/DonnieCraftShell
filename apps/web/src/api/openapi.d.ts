@@ -300,6 +300,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/observations/guided-trials/confirm": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Confirm Guided Observation Trial */
+        post: operations["confirm_guided_observation_trial_api_v1_observations_guided_trials_confirm_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/observations/guided-trials/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Preview Guided Observation Trial */
+        post: operations["preview_guided_observation_trial_api_v1_observations_guided_trials_preview_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/observations/record": {
         parameters: {
             query?: never;
@@ -1757,6 +1791,145 @@ export interface components {
             league?: string | null;
             /** Locale */
             locale?: string | null;
+        };
+        /** GuidedObservationSessionDto */
+        GuidedObservationSessionDto: {
+            /** Action Id */
+            action_id: string;
+            /**
+             * Collection Method
+             * @default MANUAL_BEFORE_AFTER_PASTE
+             */
+            collection_method: string;
+            /** Crafting Dataset Version */
+            crafting_dataset_version: string;
+            /**
+             * Game
+             * @default Path of Exile 2
+             */
+            game: string;
+            /** Game Version */
+            game_version: string;
+            /**
+             * Item Class
+             * @default Quivers
+             */
+            item_class: string;
+            /** League */
+            league: string;
+            /** Modifier Dataset Version */
+            modifier_dataset_version: string;
+            /** Notes */
+            notes?: string | null;
+            /** Source Id */
+            source_id: string;
+            /** Source Uri */
+            source_uri: string;
+        };
+        /** GuidedTrialConfirmRequestDto */
+        GuidedTrialConfirmRequestDto: {
+            /** After Clipboard Text */
+            after_clipboard_text: string;
+            /** Before Clipboard Text */
+            before_clipboard_text: string;
+            /**
+             * Confirm Unclassified
+             * @default false
+             */
+            confirm_unclassified: boolean;
+            /** Confirmation Note */
+            confirmation_note?: string | null;
+            /** Confirmed Outcome Id */
+            confirmed_outcome_id?: string | null;
+            /**
+             * Observed At
+             * Format: date-time
+             */
+            observed_at: string;
+            /** Operator Confirmed */
+            operator_confirmed: boolean;
+            /** Reviewer Id */
+            reviewer_id?: string | null;
+            session: components["schemas"]["GuidedObservationSessionDto"];
+        };
+        /** GuidedTrialConfirmResponseDto */
+        GuidedTrialConfirmResponseDto: {
+            preview: components["schemas"]["GuidedTrialPreviewResponseDto"];
+            recorded: components["schemas"]["CraftObservationRecordResponseDto"];
+            /**
+             * Warnings
+             * @default []
+             */
+            warnings: string[];
+            workspace: components["schemas"]["ObservationWorkspaceSaveResponseDto"];
+        };
+        /** GuidedTrialDiffDto */
+        GuidedTrialDiffDto: {
+            /** Added Modifiers */
+            added_modifiers: components["schemas"]["GuidedTrialModifierDiffDto"][];
+            /** Removed Modifiers */
+            removed_modifiers: components["schemas"]["GuidedTrialModifierDiffDto"][];
+        };
+        /** GuidedTrialModifierDiffDto */
+        GuidedTrialModifierDiffDto: {
+            /** Affix Type */
+            affix_type: string;
+            /** Display Name */
+            display_name?: string | null;
+            /** Origin */
+            origin: string;
+            /** Raw Text */
+            raw_text: string;
+            /** Tier */
+            tier?: string | null;
+        };
+        /** GuidedTrialPreviewRequestDto */
+        GuidedTrialPreviewRequestDto: {
+            /** After Clipboard Text */
+            after_clipboard_text: string;
+            /** Before Clipboard Text */
+            before_clipboard_text: string;
+            /**
+             * Observed At
+             * Format: date-time
+             */
+            observed_at: string;
+            session: components["schemas"]["GuidedObservationSessionDto"];
+        };
+        /** GuidedTrialPreviewResponseDto */
+        GuidedTrialPreviewResponseDto: {
+            /** Action Id */
+            action_id: string;
+            /** After Item Fingerprint */
+            after_item_fingerprint: string;
+            /** After Raw Sha256 */
+            after_raw_sha256: string;
+            /** Before Item Fingerprint */
+            before_item_fingerprint: string;
+            /** Before Raw Sha256 */
+            before_raw_sha256: string;
+            /** Capture Version */
+            capture_version: string;
+            /** Classification Reason */
+            classification_reason: string;
+            diff: components["schemas"]["GuidedTrialDiffDto"];
+            /** Proposed Outcome Id */
+            proposed_outcome_id?: string | null;
+            /** Requires Operator Confirmation */
+            requires_operator_confirmation: boolean;
+            /** Session Id */
+            session_id: string;
+            /** Source Outcome Set Id */
+            source_outcome_set_id: string;
+            /** Status */
+            status: string;
+            /** Trial Id */
+            trial_id: string;
+            /**
+             * Warnings
+             * @default []
+             */
+            warnings: string[];
         };
         /** HTTPValidationError */
         HTTPValidationError: {
@@ -3548,6 +3721,72 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["CraftObservationExportResponseDto"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    confirm_guided_observation_trial_api_v1_observations_guided_trials_confirm_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["GuidedTrialConfirmRequestDto"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GuidedTrialConfirmResponseDto"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    preview_guided_observation_trial_api_v1_observations_guided_trials_preview_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["GuidedTrialPreviewRequestDto"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GuidedTrialPreviewResponseDto"];
                 };
             };
             /** @description Validation Error */

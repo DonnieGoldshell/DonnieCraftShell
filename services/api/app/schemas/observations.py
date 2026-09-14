@@ -50,6 +50,73 @@ class CraftObservationRecordResponseDto(ApiModel):
     warnings: list[str] = []
 
 
+class GuidedObservationSessionDto(ApiModel):
+    action_id: str
+    item_class: str = "Quivers"
+    league: str
+    game: str = "Path of Exile 2"
+    game_version: str
+    crafting_dataset_version: str
+    modifier_dataset_version: str
+    source_id: str
+    source_uri: str
+    collection_method: str = "MANUAL_BEFORE_AFTER_PASTE"
+    notes: str | None = None
+
+
+class GuidedTrialPreviewRequestDto(ApiModel):
+    session: GuidedObservationSessionDto
+    before_clipboard_text: str
+    after_clipboard_text: str
+    observed_at: datetime
+
+
+class GuidedTrialModifierDiffDto(ApiModel):
+    raw_text: str
+    affix_type: str
+    origin: str
+    display_name: str | None = None
+    tier: str | None = None
+
+
+class GuidedTrialDiffDto(ApiModel):
+    removed_modifiers: list[GuidedTrialModifierDiffDto]
+    added_modifiers: list[GuidedTrialModifierDiffDto]
+
+
+class GuidedTrialPreviewResponseDto(ApiModel):
+    capture_version: str
+    session_id: str
+    trial_id: str
+    status: str
+    action_id: str
+    source_outcome_set_id: str
+    proposed_outcome_id: str | None = None
+    classification_reason: str
+    requires_operator_confirmation: bool
+    before_item_fingerprint: str
+    after_item_fingerprint: str
+    before_raw_sha256: str
+    after_raw_sha256: str
+    diff: GuidedTrialDiffDto
+    warnings: list[str] = []
+
+
+class GuidedTrialConfirmRequestDto(GuidedTrialPreviewRequestDto):
+    operator_confirmed: bool
+    confirmed_outcome_id: str | None = None
+    confirm_unclassified: bool = False
+    confirmation_note: str | None = None
+    reviewer_id: str | None = None
+
+
+class GuidedTrialConfirmResponseDto(ApiModel):
+    preview: GuidedTrialPreviewResponseDto
+    recorded: CraftObservationRecordResponseDto
+    workspace: ObservationWorkspaceSaveResponseDto
+    warnings: list[str] = []
+
+
 class CraftObservationExportRequestDto(ApiModel):
     observations: list[dict]
 

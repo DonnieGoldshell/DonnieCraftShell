@@ -166,6 +166,13 @@ class AdvisorApiTests(unittest.TestCase):
         self.assertIn("EconomyEvidenceSourceDto", schema_names)
         self.assertIn("ProbabilitySummaryDto", schema_names)
         self.assertIn("CraftObservationRecordRequestDto", schema_names)
+        self.assertIn("/api/v1/observations/guided-trials/preview", openapi["paths"])
+        self.assertIn("/api/v1/observations/guided-trials/confirm", openapi["paths"])
+        self.assertIn("GuidedObservationSessionDto", schema_names)
+        self.assertIn("GuidedTrialPreviewRequestDto", schema_names)
+        self.assertIn("GuidedTrialPreviewResponseDto", schema_names)
+        self.assertIn("GuidedTrialConfirmRequestDto", schema_names)
+        self.assertIn("GuidedTrialConfirmResponseDto", schema_names)
         self.assertIn("/api/v1/observations/review", openapi["paths"])
         self.assertIn("/api/v1/observations/build-empirical-datasets", openapi["paths"])
         self.assertIn("/api/v1/observations/empirical-datasets", openapi["paths"])
@@ -2098,6 +2105,150 @@ class AdvisorApiTests(unittest.TestCase):
         result = aggregate_observations(ObservationImportBatch((observation,)))
         self.assertEqual(result.accepted_record_count, 1)
 
+    def test_guided_trial_preview_suggests_without_saving_to_workspace(self):
+        self._install_registry_backed_deterministic_dependencies()
+        self._install_empty_observation_workspace()
+        before = fixture("quiver_6_crafted_desecrated_advanced.txt")
+        removed_raw = (
+            '{ Prefix Modifier "Entombing" (Tier: 1) — Damage, Elemental, Cold, Attack }\n'
+            "Adds 22(21-24) to 37(32-37) Cold damage to Attacks"
+        )
+        payload = self._guided_trial_payload(before, before.replace(removed_raw + "\n", ""))
+
+        response = self.client.post("/api/v1/observations/guided-trials/preview", json=payload)
+        workspace = self.client.get("/api/v1/observations/workspace")
+
+        self.assertEqual(response.status_code, 200)
+        body = response.json()
+        self.assertEqual(body["status"], "PROPOSED_OUTCOME")
+        self.assertTrue(body["requires_operator_confirmation"])
+        self.assertTrue(body["proposed_outcome_id"].startswith("outcome-"))
+        self.assertEqual(body["diff"]["removed_modifiers"][0]["display_name"], "Entombing")
+        self.assertEqual(body["diff"]["added_modifiers"], [])
+        self.assertEqual(workspace.json()["entries"], [])
+
+    def test_guided_trial_confirm_requires_explicit_operator_confirmation(self):
+        self._install_registry_backed_deterministic_dependencies()
+        self._install_empty_observation_workspace()
+        before = fixture("quiver_6_crafted_desecrated_advanced.txt")
+        removed_raw = (
+            '{ Prefix Modifier "Entombing" (Tier: 1) — Damage, Elemental, Cold, Attack }\n'
+            "Adds 22(21-24) to 37(32-37) Cold damage to Attacks"
+        )
+        preview_payload = self._guided_trial_payload(before, before.replace(removed_raw + "\n", ""))
+        proposed = self.client.post("/api/v1/observations/guided-trials/preview", json=preview_payload).json()
+        confirm_payload = {
+            **preview_payload,
+            "operator_confirmed": False,
+            "confirmed_outcome_id": proposed["proposed_outcome_id"],
+            "confirmation_note": "attempted without confirmation",
+        }
+
+        response = self.client.post("/api/v1/observations/guided-trials/confirm", json=confirm_payload)
+
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("operator confirmation", response.json()["detail"]["message"])
+
+    def test_guided_trial_confirm_saves_real_observation_with_context_and_dedupes(self):
+        self._install_registry_backed_deterministic_dependencies()
+        self._install_empty_observation_workspace()
+        before = fixture("quiver_6_crafted_desecrated_advanced.txt")
+        removed_raw = (
+            '{ Prefix Modifier "Entombing" (Tier: 1) — Damage, Elemental, Cold, Attack }\n'
+            "Adds 22(21-24) to 37(32-37) Cold damage to Attacks"
+        )
+        preview_payload = self._guided_trial_payload(before, before.replace(removed_raw + "\n", ""))
+        proposed = self.client.post("/api/v1/observations/guided-trials/preview", json=preview_payload).json()
+        confirm_payload = {
+            **preview_payload,
+            "operator_confirmed": True,
+            "confirmed_outcome_id": proposed["proposed_outcome_id"],
+            "confirmation_note": "operator confirmed the removed Entombing modifier",
+        }
+
+        first = self.client.post("/api/v1/observations/guided-trials/confirm", json=confirm_payload)
+        second = self.client.post("/api/v1/observations/guided-trials/confirm", json=confirm_payload)
+        exported = self.client.get("/api/v1/observations/workspace/accepted-export")
+        reviewed = self.client.post(
+            "/api/v1/observations/workspace/reviews",
+            json={
+                "decisions": [
+                    {
+                        "raw_record_id": first.json()["recorded"]["raw_record_id"],
+                        "status": "ACCEPTED",
+                        "reviewed_at": AS_OF,
+                        "reviewer_id": "api-test-reviewer",
+                    }
+                ]
+            },
+        )
+        accepted_export = self.client.get("/api/v1/observations/workspace/accepted-export")
+        built = self.client.post(
+            "/api/v1/observations/build-empirical-datasets",
+            json={"accepted_export": accepted_export.json()["accepted_export"], "dataset_id_prefix": "guided-trial-api"},
+        )
+
+        self.assertEqual(first.status_code, 200)
+        self.assertEqual(first.json()["recorded"]["classification"]["method"], "MANUAL")
+        self.assertEqual(first.json()["recorded"]["export_record"]["synthetic"], False)
+        self.assertEqual(first.json()["recorded"]["export_record"]["game_version"], "0.3.0-test")
+        self.assertEqual(first.json()["recorded"]["export_record"]["source_uri"], "local://tests/guided-trial-api")
+        self.assertEqual(first.json()["recorded"]["export_record"]["guided_trial_id"], proposed["trial_id"])
+        self.assertEqual(second.status_code, 200)
+        self.assertEqual(second.json()["workspace"]["status"], "ALREADY_EXISTS")
+        self.assertEqual(exported.status_code, 200)
+        self.assertEqual(exported.json()["accepted_export"]["observations"], [])
+        self.assertEqual(reviewed.status_code, 200)
+        self.assertEqual(accepted_export.json()["accepted_export"]["observations"][0]["raw_record_id"], first.json()["recorded"]["raw_record_id"])
+        self.assertEqual(built.status_code, 200)
+        self.assertEqual(built.json()["accepted_record_count"], 1)
+        self.assertEqual(built.json()["datasets"][0]["game_version"], "0.3.0-test")
+
+    def test_guided_trial_ambiguous_diff_fails_closed_and_can_be_confirmed_unclassified(self):
+        self._install_registry_backed_deterministic_dependencies()
+        self._install_empty_observation_workspace()
+        before = fixture("quiver_6_crafted_desecrated_advanced.txt")
+        removed_a = (
+            '{ Prefix Modifier "Entombing" (Tier: 1) — Damage, Elemental, Cold, Attack }\n'
+            "Adds 22(21-24) to 37(32-37) Cold damage to Attacks"
+        )
+        removed_b = '{ Prefix Modifier "Nimble" (Tier: 1) — Speed }\n42(42-46)% increased Projectile Speed'
+        payload = self._guided_trial_payload(before, before.replace(removed_a + "\n", "").replace(removed_b + "\n", ""))
+
+        preview = self.client.post("/api/v1/observations/guided-trials/preview", json=payload)
+        confirm = self.client.post(
+            "/api/v1/observations/guided-trials/confirm",
+            json={**payload, "operator_confirmed": True, "confirm_unclassified": True},
+        )
+
+        self.assertEqual(preview.status_code, 200)
+        self.assertEqual(preview.json()["status"], "UNCLASSIFIED")
+        self.assertIsNone(preview.json()["proposed_outcome_id"])
+        self.assertEqual(len(preview.json()["diff"]["removed_modifiers"]), 2)
+        self.assertEqual(confirm.status_code, 200)
+        self.assertEqual(confirm.json()["recorded"]["classification"]["method"], "UNCLASSIFIED")
+        self.assertTrue(confirm.json()["recorded"]["export_record"]["unclassified"])
+
+    def test_guided_trial_incompatible_action_semantics_fails_closed(self):
+        self._install_registry_backed_deterministic_dependencies()
+        self._install_empty_observation_workspace()
+        before = fixture("quiver_6_crafted_desecrated_advanced.txt")
+        removed_raw = (
+            '{ Prefix Modifier "Entombing" (Tier: 1) — Damage, Elemental, Cold, Attack }\n'
+            "Adds 22(21-24) to 37(32-37) Cold damage to Attacks"
+        )
+        payload = self._guided_trial_payload(
+            before,
+            before.replace(removed_raw + "\n", ""),
+            action_id="dc:poe2:craft-action:exalted-orb",
+        )
+
+        response = self.client.post("/api/v1/observations/guided-trials/preview", json=payload)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["status"], "UNCLASSIFIED")
+        self.assertIsNone(response.json()["proposed_outcome_id"])
+
     def test_fabricated_client_outcome_candidate_cannot_create_automatic_classification(self):
         before = fixture("quiver_6_crafted_desecrated_advanced.txt")
         removed_raw = (
@@ -3552,6 +3703,33 @@ class AdvisorApiTests(unittest.TestCase):
             "item_summary": record.get("item_summary"),
             "notes": record.get("notes"),
         }
+
+    def _guided_trial_payload(self, before: str, after: str, action_id: str = "dc:poe2:craft-action:orb-of-annulment") -> dict:
+        return {
+            "session": {
+                "action_id": action_id,
+                "item_class": "Quivers",
+                "league": LEAGUE,
+                "game": "Path of Exile 2",
+                "game_version": "0.3.0-test",
+                "crafting_dataset_version": CRAFTING_DATASET_ID,
+                "modifier_dataset_version": GAME_DATASET_ID,
+                "source_id": "guided-trial-api-test",
+                "source_uri": "local://tests/guided-trial-api",
+                "collection_method": "MANUAL_BEFORE_AFTER_PASTE",
+            },
+            "before_clipboard_text": before,
+            "after_clipboard_text": after,
+            "observed_at": AS_OF,
+        }
+
+    def _install_empty_observation_workspace(self):
+        from packages.shared.donniecraftshell_contracts.observation_workspace import ObservationWorkspaceRepository
+        from services.api.app.dependencies.advisor import get_observation_workspace
+
+        workspace = ObservationWorkspaceRepository()
+        self.app.dependency_overrides[get_observation_workspace] = lambda: workspace
+        return workspace
 
     def _registered_empirical_dataset_payload(self, analysis_body: dict) -> dict:
         annulment = self._action(analysis_body, "dc:poe2:craft-action:orb-of-annulment")
