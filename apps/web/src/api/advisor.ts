@@ -33,6 +33,10 @@ export type CraftInvestmentPreviewResponse = components["schemas"]["CraftInvestm
 export type OutcomeManualValuationEvidence = components["schemas"]["OutcomeManualValuationEvidenceDto"];
 export type CraftObservationRecordRequest = components["schemas"]["CraftObservationRecordRequestDto"];
 export type CraftObservationRecordResponse = components["schemas"]["CraftObservationRecordResponseDto"];
+export type GuidedTrialPreviewRequest = components["schemas"]["GuidedTrialPreviewRequestDto"];
+export type GuidedTrialPreviewResponse = components["schemas"]["GuidedTrialPreviewResponseDto"];
+export type GuidedTrialConfirmRequest = components["schemas"]["GuidedTrialConfirmRequestDto"];
+export type GuidedTrialConfirmResponse = components["schemas"]["GuidedTrialConfirmResponseDto"];
 export type CraftObservationExportRequest = components["schemas"]["CraftObservationExportRequestDto"];
 export type CraftObservationExportResponse = components["schemas"]["CraftObservationExportResponseDto"];
 export type ObservationReviewDecision = components["schemas"]["ObservationReviewDecisionDto"];
@@ -460,6 +464,56 @@ export async function recordCraftObservation(
   }
 
   return response.json() as Promise<CraftObservationRecordResponse>;
+}
+
+export async function previewGuidedCraftObservation(
+  request: GuidedTrialPreviewRequest
+): Promise<GuidedTrialPreviewResponse> {
+  const response = await fetch(`${API_BASE_URL}/api/v1/observations/guided-trials/preview`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(request)
+  });
+
+  if (!response.ok) {
+    let message = `Guided observation preview API returned ${response.status}`;
+    try {
+      const payload = await response.json();
+      message = payload?.detail?.message ?? payload?.detail ?? message;
+    } catch {
+      // Keep the status-based message.
+    }
+    throw new Error(message);
+  }
+
+  return response.json() as Promise<GuidedTrialPreviewResponse>;
+}
+
+export async function confirmGuidedCraftObservation(
+  request: GuidedTrialConfirmRequest
+): Promise<GuidedTrialConfirmResponse> {
+  const response = await fetch(`${API_BASE_URL}/api/v1/observations/guided-trials/confirm`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(request)
+  });
+
+  if (!response.ok) {
+    let message = `Guided observation confirm API returned ${response.status}`;
+    try {
+      const payload = await response.json();
+      message = payload?.detail?.message ?? payload?.detail ?? message;
+    } catch {
+      // Keep the status-based message.
+    }
+    throw new Error(message);
+  }
+
+  return response.json() as Promise<GuidedTrialConfirmResponse>;
 }
 
 export async function exportCraftObservations(

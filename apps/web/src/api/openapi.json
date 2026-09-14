@@ -3500,6 +3500,362 @@
         "title": "GameContextDto",
         "type": "object"
       },
+      "GuidedObservationSessionDto": {
+        "properties": {
+          "action_id": {
+            "title": "Action Id",
+            "type": "string"
+          },
+          "collection_method": {
+            "default": "MANUAL_BEFORE_AFTER_PASTE",
+            "title": "Collection Method",
+            "type": "string"
+          },
+          "crafting_dataset_version": {
+            "title": "Crafting Dataset Version",
+            "type": "string"
+          },
+          "game": {
+            "default": "Path of Exile 2",
+            "title": "Game",
+            "type": "string"
+          },
+          "game_version": {
+            "title": "Game Version",
+            "type": "string"
+          },
+          "item_class": {
+            "default": "Quivers",
+            "title": "Item Class",
+            "type": "string"
+          },
+          "league": {
+            "title": "League",
+            "type": "string"
+          },
+          "modifier_dataset_version": {
+            "title": "Modifier Dataset Version",
+            "type": "string"
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notes"
+          },
+          "source_id": {
+            "title": "Source Id",
+            "type": "string"
+          },
+          "source_uri": {
+            "title": "Source Uri",
+            "type": "string"
+          }
+        },
+        "required": [
+          "action_id",
+          "league",
+          "game_version",
+          "crafting_dataset_version",
+          "modifier_dataset_version",
+          "source_id",
+          "source_uri"
+        ],
+        "title": "GuidedObservationSessionDto",
+        "type": "object"
+      },
+      "GuidedTrialConfirmRequestDto": {
+        "properties": {
+          "after_clipboard_text": {
+            "title": "After Clipboard Text",
+            "type": "string"
+          },
+          "before_clipboard_text": {
+            "title": "Before Clipboard Text",
+            "type": "string"
+          },
+          "confirm_unclassified": {
+            "default": false,
+            "title": "Confirm Unclassified",
+            "type": "boolean"
+          },
+          "confirmation_note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Confirmation Note"
+          },
+          "confirmed_outcome_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Confirmed Outcome Id"
+          },
+          "observed_at": {
+            "format": "date-time",
+            "title": "Observed At",
+            "type": "string"
+          },
+          "operator_confirmed": {
+            "title": "Operator Confirmed",
+            "type": "boolean"
+          },
+          "reviewer_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reviewer Id"
+          },
+          "session": {
+            "$ref": "#/components/schemas/GuidedObservationSessionDto"
+          }
+        },
+        "required": [
+          "session",
+          "before_clipboard_text",
+          "after_clipboard_text",
+          "observed_at",
+          "operator_confirmed"
+        ],
+        "title": "GuidedTrialConfirmRequestDto",
+        "type": "object"
+      },
+      "GuidedTrialConfirmResponseDto": {
+        "properties": {
+          "preview": {
+            "$ref": "#/components/schemas/GuidedTrialPreviewResponseDto"
+          },
+          "recorded": {
+            "$ref": "#/components/schemas/CraftObservationRecordResponseDto"
+          },
+          "warnings": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Warnings",
+            "type": "array"
+          },
+          "workspace": {
+            "$ref": "#/components/schemas/ObservationWorkspaceSaveResponseDto"
+          }
+        },
+        "required": [
+          "preview",
+          "recorded",
+          "workspace"
+        ],
+        "title": "GuidedTrialConfirmResponseDto",
+        "type": "object"
+      },
+      "GuidedTrialDiffDto": {
+        "properties": {
+          "added_modifiers": {
+            "items": {
+              "$ref": "#/components/schemas/GuidedTrialModifierDiffDto"
+            },
+            "title": "Added Modifiers",
+            "type": "array"
+          },
+          "removed_modifiers": {
+            "items": {
+              "$ref": "#/components/schemas/GuidedTrialModifierDiffDto"
+            },
+            "title": "Removed Modifiers",
+            "type": "array"
+          }
+        },
+        "required": [
+          "removed_modifiers",
+          "added_modifiers"
+        ],
+        "title": "GuidedTrialDiffDto",
+        "type": "object"
+      },
+      "GuidedTrialModifierDiffDto": {
+        "properties": {
+          "affix_type": {
+            "title": "Affix Type",
+            "type": "string"
+          },
+          "display_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Display Name"
+          },
+          "origin": {
+            "title": "Origin",
+            "type": "string"
+          },
+          "raw_text": {
+            "title": "Raw Text",
+            "type": "string"
+          },
+          "tier": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tier"
+          }
+        },
+        "required": [
+          "raw_text",
+          "affix_type",
+          "origin"
+        ],
+        "title": "GuidedTrialModifierDiffDto",
+        "type": "object"
+      },
+      "GuidedTrialPreviewRequestDto": {
+        "properties": {
+          "after_clipboard_text": {
+            "title": "After Clipboard Text",
+            "type": "string"
+          },
+          "before_clipboard_text": {
+            "title": "Before Clipboard Text",
+            "type": "string"
+          },
+          "observed_at": {
+            "format": "date-time",
+            "title": "Observed At",
+            "type": "string"
+          },
+          "session": {
+            "$ref": "#/components/schemas/GuidedObservationSessionDto"
+          }
+        },
+        "required": [
+          "session",
+          "before_clipboard_text",
+          "after_clipboard_text",
+          "observed_at"
+        ],
+        "title": "GuidedTrialPreviewRequestDto",
+        "type": "object"
+      },
+      "GuidedTrialPreviewResponseDto": {
+        "properties": {
+          "action_id": {
+            "title": "Action Id",
+            "type": "string"
+          },
+          "after_item_fingerprint": {
+            "title": "After Item Fingerprint",
+            "type": "string"
+          },
+          "after_raw_sha256": {
+            "title": "After Raw Sha256",
+            "type": "string"
+          },
+          "before_item_fingerprint": {
+            "title": "Before Item Fingerprint",
+            "type": "string"
+          },
+          "before_raw_sha256": {
+            "title": "Before Raw Sha256",
+            "type": "string"
+          },
+          "capture_version": {
+            "title": "Capture Version",
+            "type": "string"
+          },
+          "classification_reason": {
+            "title": "Classification Reason",
+            "type": "string"
+          },
+          "diff": {
+            "$ref": "#/components/schemas/GuidedTrialDiffDto"
+          },
+          "proposed_outcome_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Proposed Outcome Id"
+          },
+          "requires_operator_confirmation": {
+            "title": "Requires Operator Confirmation",
+            "type": "boolean"
+          },
+          "session_id": {
+            "title": "Session Id",
+            "type": "string"
+          },
+          "source_outcome_set_id": {
+            "title": "Source Outcome Set Id",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "trial_id": {
+            "title": "Trial Id",
+            "type": "string"
+          },
+          "warnings": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Warnings",
+            "type": "array"
+          }
+        },
+        "required": [
+          "capture_version",
+          "session_id",
+          "trial_id",
+          "status",
+          "action_id",
+          "source_outcome_set_id",
+          "classification_reason",
+          "requires_operator_confirmation",
+          "before_item_fingerprint",
+          "after_item_fingerprint",
+          "before_raw_sha256",
+          "after_raw_sha256",
+          "diff"
+        ],
+        "title": "GuidedTrialPreviewResponseDto",
+        "type": "object"
+      },
       "HTTPValidationError": {
         "properties": {
           "detail": {
@@ -7545,6 +7901,88 @@
           }
         },
         "summary": "Export Observations",
+        "tags": [
+          "observations"
+        ]
+      }
+    },
+    "/api/v1/observations/guided-trials/confirm": {
+      "post": {
+        "operationId": "confirm_guided_observation_trial_api_v1_observations_guided_trials_confirm_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GuidedTrialConfirmRequestDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GuidedTrialConfirmResponseDto"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Confirm Guided Observation Trial",
+        "tags": [
+          "observations"
+        ]
+      }
+    },
+    "/api/v1/observations/guided-trials/preview": {
+      "post": {
+        "operationId": "preview_guided_observation_trial_api_v1_observations_guided_trials_preview_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GuidedTrialPreviewRequestDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GuidedTrialPreviewResponseDto"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Preview Guided Observation Trial",
         "tags": [
           "observations"
         ]

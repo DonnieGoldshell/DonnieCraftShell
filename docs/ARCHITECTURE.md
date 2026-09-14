@@ -72,6 +72,13 @@ classification method, and Task 15C-compatible raw records. It is evidence
 collection only; probability, EV, valuation, and Advisor readiness remain owned
 by their existing engines.
 
+Issue #97 layers a guided real-trial capture workflow on top of that recorder.
+The API parses both pasted item states, previews the diff against a trusted
+backend outcome set, and requires explicit operator confirmation before saving
+classified evidence to the observation workspace. Ambiguous diffs remain
+unclassified, duplicate trial/raw record IDs do not inflate empirical counts,
+and capture alone still does not activate probability evidence.
+
 Task 16B adds [OBSERVATION_REVIEW.md](OBSERVATION_REVIEW.md). Recorder exports
 load as pending review records; accepted/rejected/pending decisions are audited
 in a manifest, and only accepted non-duplicate observations are exported in the

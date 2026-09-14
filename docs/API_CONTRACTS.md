@@ -253,6 +253,20 @@ candidate data is not trusted as evidence for `AUTOMATIC` results. Exported
 source outcome-set and dataset-version provenance must be backend-derived or
 strictly validated against configured backend datasets.
 
+Issue #97 adds guided real-trial capture endpoints:
+
+- `POST /api/v1/observations/guided-trials/preview`
+- `POST /api/v1/observations/guided-trials/confirm`
+
+Preview parses before/after clipboard text, derives trusted outcome context from
+configured backend datasets, and returns a proposed outcome or `UNCLASSIFIED`
+diff. It does not write workspace evidence. Confirm replays the same trusted
+preview inputs and requires `operator_confirmed = true`; it saves only either
+the exact proposed outcome as `MANUAL` evidence or an explicitly unclassified
+record. Ambiguous or incompatible diffs fail closed and must not become
+classified counts. Guided records still flow through workspace review, curated
+import, registry, explicit dataset selection, and probability readiness gates.
+
 Task 16B implements `POST /api/v1/observations/review` for the review and
 curation gate documented in [OBSERVATION_REVIEW.md](OBSERVATION_REVIEW.md).
 The endpoint loads one or more recorder export batches, returns every record as
