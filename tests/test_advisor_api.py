@@ -2419,7 +2419,7 @@ class AdvisorApiTests(unittest.TestCase):
             outcome_id = outcome_ids[index % len(outcome_ids)]
             record = self._observation_export_record(f"first-playable-annulment-observation-{index:02d}", outcome_id)
             record["source_outcome_set_id"] = source_outcome_set_id
-            record["game_version"] = None
+            record["game_version"] = "synthetic-test-version"
             record["synthetic"] = False
             record["source_uri"] = "local://tests/first-playable-annulment-empirical-workflow"
             record["notes"] = "Synthetic test-only observation shape exercising the production empirical workflow."
@@ -2812,9 +2812,11 @@ class AdvisorApiTests(unittest.TestCase):
                     "item_class": "Quivers",
                     "league": LEAGUE,
                     "game": "Path of Exile 2",
+                    "game_version": "synthetic-test-version",
                     "observed_at": AS_OF,
                     "source_id": "api-workspace-test",
                     "source_type": "MANUAL_RESEARCH",
+                    "source_uri": "local://tests/api-workspace-test",
                     "outcome_id": "outcome-1",
                     "unclassified": False,
                     "synthetic": False,
@@ -2883,9 +2885,11 @@ class AdvisorApiTests(unittest.TestCase):
                 "item_class": "Quivers",
                 "league": LEAGUE,
                 "game": "Path of Exile 2",
+                "game_version": "synthetic-test-version",
                 "observed_at": AS_OF,
                 "source_id": "api-workspace-test",
                 "source_type": "MANUAL_RESEARCH",
+                "source_uri": "local://tests/api-workspace-test",
                 "outcome_id": "outcome-1",
                 "unclassified": False,
                 "synthetic": False,
@@ -2918,9 +2922,11 @@ class AdvisorApiTests(unittest.TestCase):
                 "item_class": "Quivers",
                 "league": LEAGUE,
                 "game": "Path of Exile 2",
+                "game_version": "synthetic-test-version",
                 "observed_at": AS_OF,
                 "source_id": "api-workspace-test",
                 "source_type": "MANUAL_RESEARCH",
+                "source_uri": "local://tests/api-workspace-test",
                 "outcome_id": "outcome-1",
                 "unclassified": False,
                 "synthetic": False,

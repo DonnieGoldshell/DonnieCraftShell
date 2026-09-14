@@ -41,6 +41,13 @@ crafted and Desecrated modifiers present in the First Playable Bramble Spike
 pilot. The detailed artifact is
 [ANNULMENT_ANALYTICAL_PROBABILITY_EVIDENCE_2026-09-09.md](data/ANNULMENT_ANALYTICAL_PROBABILITY_EVIDENCE_2026-09-09.md).
 
+Issue #95 reviewed public sources for real empirical Orb of Annulment outcome
+observations on `2026-09-14`. The search found item wording, economy data,
+simulator assumptions, and community crafting notes, but no trustworthy
+reproducible public trial dataset suitable for production import. The detailed
+artifact is
+[ANNULMENT_EMPIRICAL_PROBABILITY_EVIDENCE_2026-09-14.md](data/ANNULMENT_EMPIRICAL_PROBABILITY_EVIDENCE_2026-09-14.md).
+
 ## Exalted Weight Evidence
 
 The Task 8C Quiver pool has source-backed legal candidates, not weights. PoE2DB's Quiver page explicitly notes that modifier weight information cannot be obtained from game files. The official GGG developer docs do not expose PoE2 modifier weights.
@@ -66,3 +73,8 @@ Task 15A adds a synthetic offline fixture only to prove the empirical pipeline.
 It is marked `synthetic` and `test-only`, carries local provenance, and is not a
 real PoE2 probability source. No real public empirical probability dataset was
 ingested in Task 15A.
+
+Issue #95 keeps that conclusion for ordinary Orb of Annulment. Real empirical
+imports are now required to preserve source URI, game version, crafting dataset
+version, and modifier dataset version before they can be aggregated into a raw
+probability dataset. Missing context is rejected, not guessed.

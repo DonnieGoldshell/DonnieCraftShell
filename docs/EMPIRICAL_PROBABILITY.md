@@ -153,3 +153,13 @@ Before any real empirical probability dataset is accepted, it must document:
 - methodology and known biases
 
 Empirical evidence is not official mechanical probability. It remains patch-sensitive and must not be presented as exact unless the methodology and source justify that status.
+
+Issue #95 reviewed public sources for ordinary Orb of Annulment empirical trial
+data on `2026-09-14` and did not find a trustworthy reproducible dataset to
+import. The Bramble Spike ordinary Annulment probability therefore remains
+`UNKNOWN`. Non-synthetic observation imports now require source URI, game
+version, crafting dataset version, and modifier dataset version so future real
+trial batches cannot be pooled without reproducible context.
+
+See
+[ANNULMENT_EMPIRICAL_PROBABILITY_EVIDENCE_2026-09-14.md](data/ANNULMENT_EMPIRICAL_PROBABILITY_EVIDENCE_2026-09-14.md).

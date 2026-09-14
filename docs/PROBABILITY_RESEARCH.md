@@ -177,3 +177,29 @@ probability blocker remains valid.
 
 See
 [ANNULMENT_ANALYTICAL_PROBABILITY_EVIDENCE_2026-09-09.md](data/ANNULMENT_ANALYTICAL_PROBABILITY_EVIDENCE_2026-09-09.md).
+
+## Issue 95 Empirical Annulment Evidence Path
+
+Issue #95 researched whether a trustworthy public empirical Orb of Annulment
+trial dataset exists today. The decision is:
+
+```text
+NO TRUSTWORTHY PUBLIC EMPIRICAL DATASET FOUND — REMAINS UNKNOWN
+```
+
+Reviewed public sources contained mechanic wording, economy data, simulator
+assumptions, or crafting notes rather than reproducible before/after real trial
+records with action, outcome-set, league, game-version, dataset-version, and
+source provenance. No production empirical dataset was added.
+
+The empirical import path remains manual/export based. To prevent weak
+production-shaped evidence from becoming selectable, non-synthetic imports now
+require traceable source URI plus game, crafting, and modifier dataset context.
+Small or incomplete samples still produce `PARTIAL` or `UNKNOWN` models under
+the existing empirical readiness policy.
+
+The First Playable Bramble Spike ordinary Annulment probability remains
+`UNKNOWN`; no `1/6` fallback exists.
+
+See
+[ANNULMENT_EMPIRICAL_PROBABILITY_EVIDENCE_2026-09-14.md](data/ANNULMENT_EMPIRICAL_PROBABILITY_EVIDENCE_2026-09-14.md).
