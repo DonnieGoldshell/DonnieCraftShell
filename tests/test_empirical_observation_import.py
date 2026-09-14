@@ -201,13 +201,96 @@ class EmpiricalObservationImportTests(unittest.TestCase):
         self.assertEqual(result.accepted_record_count, 1)
         self.assertEqual(result.rejected_records[0].raw_record_id, "bad-record")
 
+    def test_non_synthetic_observation_requires_traceable_source_uri(self):
+        record = observation("record-1", synthetic=False)
+        record.pop("source_uri")
+
+        batch = load_empirical_observation_files((self._json_file([record]),))
+        result = aggregate_observations(batch, retrieved_at=datetime(2026, 9, 14, tzinfo=timezone.utc))
+
+        self.assertEqual(result.accepted_record_count, 0)
+        self.assertEqual(len(result.datasets), 0)
+        self.assertEqual(result.rejected_records[0].raw_record_id, "record-1")
+        self.assertIn("source_uri", result.rejected_records[0].reason)
+
+    def test_non_synthetic_observation_requires_full_context_versions(self):
+        record = observation("record-1", synthetic=False)
+        record["game_version"] = ""
+        record["crafting_dataset_version"] = ""
+        record["modifier_dataset_version"] = ""
+
+        batch = load_empirical_observation_files((self._json_file([record]),))
+        result = aggregate_observations(batch, retrieved_at=datetime(2026, 9, 14, tzinfo=timezone.utc))
+
+        self.assertEqual(result.accepted_record_count, 0)
+        self.assertEqual(len(result.datasets), 0)
+        reason = result.rejected_records[0].reason
+        self.assertIn("game_version", reason)
+        self.assertIn("crafting_dataset_version", reason)
+        self.assertIn("modifier_dataset_version", reason)
+
+    def test_non_synthetic_observation_cannot_use_internal_source_type(self):
+        record = observation("record-1", synthetic=False, source_type="INTERNAL")
+
+        batch = load_empirical_observation_files((self._json_file([record]),))
+        result = aggregate_observations(batch, retrieved_at=datetime(2026, 9, 14, tzinfo=timezone.utc))
+
+        self.assertEqual(result.accepted_record_count, 0)
+        self.assertEqual(len(result.datasets), 0)
+        self.assertIn("non-INTERNAL source_type", result.rejected_records[0].reason)
+
+    def test_duplicate_batch_import_cannot_inflate_sample_size(self):
+        path = self._json_file([observation("record-1"), observation("record-2", "synthetic-outcome-b")])
+
+        result = aggregate_observations(
+            load_empirical_observation_files((path, path)),
+            retrieved_at=datetime(2026, 9, 14, tzinfo=timezone.utc),
+        )
+
+        self.assertEqual(result.accepted_record_count, 2)
+        self.assertEqual(result.duplicate_record_count, 2)
+        counts = {item.outcome_id: item.observed_count for item in result.datasets[0].observations}
+        self.assertEqual(counts, {"synthetic-outcome-a": 1, "synthetic-outcome-b": 1})
+
+    def test_traceable_non_synthetic_batch_import_is_deterministic_without_count_inflation(self):
+        path = self._json_file(
+            [
+                observation("record-1", synthetic=False, source_type="MANUAL_RESEARCH"),
+                observation("record-2", "synthetic-outcome-b", synthetic=False, source_type="MANUAL_RESEARCH"),
+            ]
+        )
+
+        first = aggregate_observations(
+            load_empirical_observation_files((path,)),
+            retrieved_at=datetime(2026, 9, 14, tzinfo=timezone.utc),
+            dataset_id_prefix="manual-research-import",
+        )
+        reimport = aggregate_observations(
+            load_empirical_observation_files((path, path)),
+            retrieved_at=datetime(2026, 9, 14, tzinfo=timezone.utc),
+            dataset_id_prefix="manual-research-import",
+        )
+
+        self.assertEqual(first.accepted_record_count, 2)
+        self.assertEqual(first.rejected_records, ())
+        self.assertEqual(reimport.accepted_record_count, 2)
+        self.assertEqual(reimport.duplicate_record_count, 2)
+        self.assertEqual(first.datasets[0].dataset_id, reimport.datasets[0].dataset_id)
+        counts = {item.outcome_id: item.observed_count for item in reimport.datasets[0].observations}
+        self.assertEqual(counts, {"synthetic-outcome-a": 1, "synthetic-outcome-b": 1})
+
     def test_synthetic_and_non_synthetic_records_are_not_mixed_silently(self):
         batch = load_empirical_observation_files(
             (
                 self._json_file(
                     [
                         observation("record-1", "synthetic-outcome-a", synthetic=True),
-                        observation("record-2", "synthetic-outcome-a", synthetic=False),
+                        observation(
+                            "record-2",
+                            "synthetic-outcome-a",
+                            synthetic=False,
+                            source_type="MANUAL_RESEARCH",
+                        ),
                     ]
                 ),
             )

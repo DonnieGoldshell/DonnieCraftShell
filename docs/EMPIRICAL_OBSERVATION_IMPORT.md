@@ -43,6 +43,13 @@ Recommended context/provenance fields:
 
 Unclassified records must not include `outcome_id`. DonnieCraftShell never infers an outcome for them.
 
+For non-synthetic observations, Task #95 makes source/context provenance
+mandatory rather than merely recommended. A production-shaped record must
+include `source_uri`, `game_version`, `crafting_dataset_version`, and
+`modifier_dataset_version`, and it must not use `source_type = INTERNAL`.
+Records missing that context are rejected before aggregation so they cannot
+become selectable empirical probability evidence accidentally.
+
 ## Deduplication
 
 `raw_record_id` is the deduplication key within an import batch.
@@ -69,6 +76,9 @@ Different leagues, patches, actions, outcome sets, synthetic status values, sour
 
 Missing game/crafting/modifier version fields remain missing and generate warnings. They are not guessed.
 
+For non-synthetic records these version fields are required at validation time.
+The warning-only path remains for synthetic and legacy-shaped test fixtures.
+
 ## Dataset Identity
 
 Aggregated dataset IDs are deterministic from both:
@@ -83,6 +93,9 @@ The evidence fingerprint includes sorted accepted `raw_record_id` values and the
 Synthetic/test observations can be imported, but remain marked `synthetic`.
 
 Production/default probability dependency assembly skips synthetic empirical datasets. Synthetic data requires explicit test-only dependency injection and `allow_synthetic=True`.
+
+Synthetic fixtures may use internal/local provenance for tests. That exception
+does not apply to real empirical evidence.
 
 ## CLI
 
@@ -131,3 +144,7 @@ Importing observations does not bypass Task 15A readiness. Unclassified records 
 ## Future Recorder
 
 A future manual or in-game-assisted recorder should emit the same record shape. It must preserve the raw record ID, context, source, timestamp, and explicit classification/unclassified status before any aggregation occurs.
+
+Task #95 reviewed public sources for ordinary Orb of Annulment trial data and
+did not find a trustworthy reproducible public dataset. See
+[ANNULMENT_EMPIRICAL_PROBABILITY_EVIDENCE_2026-09-14.md](data/ANNULMENT_EMPIRICAL_PROBABILITY_EVIDENCE_2026-09-14.md).

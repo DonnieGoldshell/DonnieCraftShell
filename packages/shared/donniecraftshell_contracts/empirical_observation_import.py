@@ -135,8 +135,21 @@ def aggregate_observations(
     seen_ids: set[str] = set()
     duplicate_count = 0
     accepted: list[EmpiricalCraftingObservation] = []
+    rejected = list(batch.rejected_records)
     warnings = list(_context_warnings(batch.observations))
     for observation in batch.observations:
+        context_issues = _real_observation_context_issues(observation)
+        if context_issues:
+            rejected.append(
+                ObservationValidationIssue(
+                    raw_record_id=observation.raw_record_id,
+                    reason=(
+                        "non-synthetic empirical observations require traceable source/context fields: "
+                        + ", ".join(context_issues)
+                    ),
+                )
+            )
+            continue
         if observation.raw_record_id in seen_ids:
             duplicate_count += 1
             warnings.append(f"Duplicate raw_record_id {observation.raw_record_id} ignored.")
@@ -157,7 +170,7 @@ def aggregate_observations(
         accepted_record_count=len(accepted),
         duplicate_record_count=duplicate_count,
         unclassified_record_count=sum(1 for item in accepted if item.unclassified),
-        rejected_records=batch.rejected_records,
+        rejected_records=tuple(rejected),
         warnings=tuple(warnings),
     )
 
@@ -316,6 +329,24 @@ def _context_warnings(records: Iterable[EmpiricalCraftingObservation]) -> tuple[
     if len(synthetic_values) > 1:
         warnings.append("Synthetic and non-synthetic observations were separated by context and not mixed.")
     return tuple(warnings)
+
+
+def _real_observation_context_issues(observation: EmpiricalCraftingObservation) -> tuple[str, ...]:
+    if observation.synthetic:
+        return ()
+    issues = [
+        name
+        for name, value in {
+            "source_uri": observation.source_uri,
+            "game_version": observation.game_version,
+            "crafting_dataset_version": observation.crafting_dataset_version,
+            "modifier_dataset_version": observation.modifier_dataset_version,
+        }.items()
+        if not value
+    ]
+    if observation.source_type == SourceType.INTERNAL:
+        issues.append("non-INTERNAL source_type")
+    return tuple(issues)
 
 
 def _datetime(value: str) -> datetime:
